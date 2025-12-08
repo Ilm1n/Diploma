@@ -23,7 +23,7 @@ class DatabaseHelper:
             pool_size=pool_size,
             max_overflow=max_overflow,
         )
-        self.session_factory = async_sessionmaker(
+        self.async_session_maker = async_sessionmaker(
             bind=self.engine,
             autoflush=False,
             autocommit=False,
@@ -33,8 +33,8 @@ class DatabaseHelper:
     async def dispose(self):
         await self.engine.dispose()
 
-    async def session_getter(self):
-        async with self.session_factory() as session:
+    async def get_async_session(self):
+        async with self.async_session_maker() as session:
             yield session
 
 

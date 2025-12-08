@@ -1,12 +1,14 @@
 from contextlib import asynccontextmanager
-
 import uvicorn
-from fastapi import FastAPI
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
-from src.common.db.database import db_helper
+from src.core.db.database import db_helper
 from src.config import settings
+from src.auth.router import router as auth_router
+from src.users.router import router as user_router
 
 
 @asynccontextmanager
@@ -19,10 +21,33 @@ async def lifespan(app: FastAPI):
 
 main_app = FastAPI(
     title="LightTask",
+    version="0.1.0",
     default_response_class=ORJSONResponse,
     lifespan=lifespan,
 )
-main_app.include_router(api_router)
+
+origins = [
+    "http://localhost:5173",  # Vue default port
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+]
+
+main_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+main_app.include_router(auth_router, prefix="/api")
+main_app.include_router(user_router, prefix="/api")
+
+
+@main_app.get("/")
+async def root():
+    return {"message": "LightTask API is running"}
+
 
 if __name__ == "__main__":
     uvicorn.run(
