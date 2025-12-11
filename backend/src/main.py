@@ -9,6 +9,7 @@ from src.core.db.database import db_helper
 from src.config import settings
 from src.auth.router import router as auth_router
 from src.users.router import router as user_router
+from src.projects.router import router as project_router
 
 
 @asynccontextmanager
@@ -42,6 +43,7 @@ main_app.add_middleware(
 
 main_app.include_router(auth_router, prefix="/api")
 main_app.include_router(user_router, prefix="/api")
+main_app.include_router(project_router, prefix="/api")
 
 
 @main_app.get("/")
