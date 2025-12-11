@@ -8,8 +8,7 @@ from src.users.models import User
 from src.auth.dependencies import get_current_user
 from src.projects.models import Project, ProjectMember
 from src.projects.schemas import ProjectCreate, ProjectRead
-from src.core.constants.role import ProjectRole
-
+from src.projects.constants import ProjectRole
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 

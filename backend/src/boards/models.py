@@ -1,0 +1,61 @@
+from typing import TYPE_CHECKING
+
+from sqlalchemy import String, ForeignKey, Text, Float, Enum as SQLEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.core.db.base import Base
+from src.core.db.mixins import TimestampMixin
+from src.boards.constants import TaskPriority
+
+if TYPE_CHECKING:
+    from src.projects.models import Project
+
+
+class BoardColumn(Base, TimestampMixin):
+    __tablename__ = "board_columns"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    position: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE")
+    )
+
+    project: Mapped["Project"] = relationship("Project", back_populates="board_columns")
+    tasks: Mapped[list["Task"]] = relationship(
+        "Task",
+        back_populates="column",
+        cascade="all, delete-orphan",
+        order_by="Task.position",
+    )
+
+
+class Task(Base, TimestampMixin):
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    priority: Mapped[TaskPriority] = mapped_column(
+        SQLEnum(TaskPriority), default=TaskPriority.MEDIUM, nullable=False
+    )
+    position: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    column_id: Mapped[int] = mapped_column(
+        ForeignKey("board_columns.id", ondelete="CASCADE")
+    )
+
+    assignee_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    author_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+
+    column: Mapped["BoardColumn"] = relationship(back_populates="tasks")
+    assignee = relationship("User", foreign_keys=[assignee_id])
+    author = relationship("User", foreign_keys=[author_id])
