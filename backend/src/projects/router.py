@@ -26,3 +26,9 @@ async def create_project(
     session.add(new_project)
 
     await session.flush()
+
+    member = ProjectMember(
+        project_id=new_project.id,
+        user_id=current_user.id,
+        role="owner"
+    )

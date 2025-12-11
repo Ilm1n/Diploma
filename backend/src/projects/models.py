@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, Text, Boolean, DateTime, func, UniqueConstraint
+from sqlalchemy import String, ForeignKey, Text, Boolean, DateTime, func, UniqueConstraint, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.core.constants.role import ProjectRole
 from src.core.db.base import Base
 from src.core.db.mixins import TimestampMixin
 
@@ -20,7 +21,7 @@ class Project(Base, TimestampMixin):
         cascade="all, delete-orphan",
     )
 
-
+    owner = relationship("User", foreign_keys=[owner_id])
 
 
 class ProjectMember(Base, TimestampMixin):
@@ -29,7 +30,7 @@ class ProjectMember(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    role: Mapped[ProjectRole] = mapped_column(Enum(ProjectRole), nullable=False)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     project: Mapped["Project"] = relationship(back_populates="members")
