@@ -4,12 +4,12 @@ from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).parent.parent
-print(BASE_DIR)
 
 
 class RunConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8000
+
 
 class DatabaseConfig(BaseModel):
     url: PostgresDsn

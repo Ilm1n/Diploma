@@ -10,3 +10,11 @@ openssl genrsa -out jwt-private.pem 2048
 # Extract the public key from the key pair, which can be used in a certificate
 openssl rsa -in jwt-private.pem -outform PEM -pubout -out jwt-public.pem
 ```
+
+tests:
+```shell
+ st run http://127.0.0.1:8000/openapi.json --checks all --max-examples 50
+``` 
+```shell
+st run http://127.0.0.1:8000/openapi.json --checks all --header "Authorization: Bearer YOUR_TOKEN_HERE"
+```

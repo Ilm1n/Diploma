@@ -20,4 +20,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black>=25.9.0",
+    "schemathesis>=4.7.5",
 ]

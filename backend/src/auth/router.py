@@ -22,7 +22,7 @@ async def register_user(
     hashed_pw = security.hash_password(user_in.password)
 
     new_user = User(
-        email=user_in.email,
+        email=str(user_in.email),
         username=user_in.username,
         hashed_password=hashed_pw,
     )

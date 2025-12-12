@@ -28,7 +28,6 @@ class Project(Base, TimestampMixin):
         "BoardColumn",
         back_populates="project",
         cascade="all, delete-orphan",
-        order_by="BoardColumn.position",
     )
 
 
