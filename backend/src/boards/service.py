@@ -10,7 +10,7 @@ from src.boards.schemas import ColumnCreate, TaskCreate, TaskMove
 from src.projects.models import ProjectMember
 
 POSITION_GAP = 65536.0
-MIN_POSITION_DELTA = 0.002
+MIN_POSITION_DELTA = 0.0000001
 
 
 class BoardService:
@@ -58,9 +58,13 @@ class BoardService:
         author_id: int,
     ) -> Task:
         if data.assignee_id is not None:
-            stmt = select(1).where(
-                ProjectMember.project_id == project_id,
-                ProjectMember.user_id == data.assignee_id,
+            stmt = (
+                select(1)
+                .where(
+                    ProjectMember.project_id == project_id,
+                    ProjectMember.user_id == data.assignee_id,
+                )
+                .limit(1)
             )
             if not (await session.scalar(stmt)):
                 raise HTTPException(

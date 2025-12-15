@@ -15,10 +15,16 @@ class ProjectCreate(ProjectBase):
     pass
 
 
+class ProjectUpdate(BaseSchema):
+    name: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, min_length=1)
+
+
 class ProjectRead(ProjectBase):
     id: int
     owner_id: int
     created_at: datetime
+    updated_at: datetime
 
 
 class ProjectMemberBase(BaseSchema):

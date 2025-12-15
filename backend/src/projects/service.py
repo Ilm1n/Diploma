@@ -2,10 +2,11 @@ from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import status, HTTPException
 
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
-from src.projects.schemas import ProjectCreate
+from src.projects.schemas import ProjectCreate, ProjectUpdate
 from src.users.models import User
 
 
@@ -65,3 +66,46 @@ class ProjectService:
         )
         result = await session.execute(query)
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def update_project(
+        session: AsyncSession,
+        project_id: int,
+        project_update: ProjectUpdate,
+        member: ProjectMember,
+    ) -> Project:
+        if member.role != ProjectRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only project owner can edit project settings",
+            )
+
+        project = await session.get(Project, project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        update_data = project_update.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(project, key, value)
+
+        session.add(project)
+        await session.commit()
+        await session.refresh(project)
+        return project
+
+    @staticmethod
+    async def delete_project(
+        session: AsyncSession,
+        project_id: int,
+        member: ProjectMember,
+    ) -> None:
+        if member.role != ProjectRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only project owner can delete the project",
+            )
+
+        project = await session.get(Project, project_id)
+        if project:
+            await session.delete(project)
+            await session.commit()
