@@ -1,12 +1,16 @@
+import uuid
 from datetime import datetime, timezone, timedelta
 
 import jwt
-import uuid
-from src.config import settings
+from pwdlib import PasswordHash
 
+from src.config import settings
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
+
+password_hash = PasswordHash.recommended()
+
 
 def encode_jwt(
     payload: dict,
@@ -45,14 +49,22 @@ def create_access_token(user_id: int, username: str, email: str) -> str:
         "sub": str(user_id),
         "username": username,
         "email": email,
-        "type": ACCESS_TOKEN_TYPE
+        "type": ACCESS_TOKEN_TYPE,
     }
-    return encode_jwt(payload, expire_minutes=settings.auth_jwt.access_token_expire_minutes)
+    return encode_jwt(
+        payload, expire_minutes=settings.auth_jwt.access_token_expire_minutes
+    )
+
 
 def create_refresh_token(user_id: int) -> str:
-    payload = {
-        "sub": str(user_id),
-        "type": REFRESH_TOKEN_TYPE
-    }
+    payload = {"sub": str(user_id), "type": REFRESH_TOKEN_TYPE}
     expire_minutes = settings.auth_jwt.refresh_token_expire_days * 24 * 60
     return encode_jwt(payload, expire_minutes=expire_minutes)
+
+
+def hash_password(password):
+    return password_hash.hash(password)
+
+
+def validate_password(plain_password, hashed_password):
+    return password_hash.verify(plain_password, hashed_password)

@@ -4,11 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+import src.core.security as security
 from src.auth.dependencies import get_current_user_for_refresh
 from src.core.db.database import db_helper
 from src.users.models import User
 from src.users.schemas import UserCreate, UserRead
-from src.auth import utils, security, schemas
+from src.auth import schemas
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -63,12 +64,12 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token = utils.create_access_token(
+    access_token = security.create_access_token(
         user.id,
         user.username,
         user.email,
     )
-    refresh_token = utils.create_refresh_token(
+    refresh_token = security.create_refresh_token(
         user.id,
     )
 
@@ -81,8 +82,8 @@ async def login_for_access_token(
 
 @router.post("/refresh", response_model=schemas.Token)
 async def refresh_jwt(user: User = Depends(get_current_user_for_refresh)):
-    access_token = utils.create_access_token(user.id, user.username, user.email)
-    new_refresh_token = utils.create_refresh_token(user.id)
+    access_token = security.create_access_token(user.id, user.username, user.email)
+    new_refresh_token = security.create_refresh_token(user.id)
 
     return {
         "access_token": access_token,

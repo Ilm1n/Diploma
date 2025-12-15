@@ -5,15 +5,14 @@ from fastapi.security import (
     HTTPAuthorizationCredentials,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
+import src.core.security as security
 from src.core.db.database import db_helper
-from src.auth import utils
 from src.users.models import User
 
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-http_bearer = HTTPBearer()
+http_bearer = HTTPBearer(auto_error=False)
 
 
 async def get_user_from_token(
@@ -25,7 +24,7 @@ async def get_user_from_token(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    payload = utils.decode_jwt(token)
+    payload = security.decode_jwt(token)
 
     if not payload:
         raise credentials_exception
@@ -41,9 +40,7 @@ async def get_user_from_token(
     if user_id is None:
         raise credentials_exception
 
-    query = select(User).where(User.id == int(user_id))
-    result = await session.execute(query)
-    user = result.scalar_one_or_none()
+    user = await session.get(User, int(user_id))
 
     if user is None:
         raise credentials_exception
@@ -60,8 +57,14 @@ async def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(http_bearer),
     session: AsyncSession = Depends(db_helper.get_async_session),
 ) -> User:
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return await get_user_from_token(
-        creds.credentials, utils.ACCESS_TOKEN_TYPE, session
+        creds.credentials, security.ACCESS_TOKEN_TYPE, session
     )
 
 
@@ -69,6 +72,12 @@ async def get_current_user_for_refresh(
     creds: HTTPAuthorizationCredentials = Depends(http_bearer),
     session: AsyncSession = Depends(db_helper.get_async_session),
 ) -> User:
+    if creds is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return await get_user_from_token(
-        creds.credentials, utils.REFRESH_TOKEN_TYPE, session
+        creds.credentials, security.REFRESH_TOKEN_TYPE, session
     )

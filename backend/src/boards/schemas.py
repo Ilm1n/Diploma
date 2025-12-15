@@ -1,44 +1,30 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 from src.boards.constants import TaskPriority
+from src.core.schemas import BaseSchema
 
 
-class TaskBase(BaseModel):
-    title: str = Field(..., max_length=200)
-    description: str | None = None
+class TaskBase(BaseSchema):
+    title: str = Field(max_length=200)
+    description: str | None = Field(None, min_length=1)
     priority: TaskPriority = TaskPriority.MEDIUM
     assignee_id: int | None = None
-
-    @field_validator("assignee_id", mode="before")
-    @classmethod
-    def validate_assignee(cls, v):
-        if not v:
-            return None
-        return v
 
 
 class TaskCreate(TaskBase):
     pass
 
 
-class TaskUpdate(BaseModel):
-    title: str | None = Field(None, max_length=200)
-    description: str | None = None
+class TaskUpdate(BaseSchema):
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, min_length=1)
     priority: TaskPriority | None = None
     assignee_id: int | None = None
 
 
-class TaskMove(BaseModel):
+class TaskMove(BaseSchema):
     new_column_id: int
     after_task_id: int | None = None
-
-    @field_validator("after_task_id", mode="before")
-    @classmethod
-    def treat_zero_as_none(cls, v):
-        # Если пришел 0, пустая строка или False -> превращаем в None
-        if not v:
-            return None
-        return v
 
 
 class TaskRead(TaskBase):
@@ -50,25 +36,21 @@ class TaskRead(TaskBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
 
-
-class ColumnBase(BaseModel):
-    name: str = Field(..., max_length=100)
+class ColumnBase(BaseSchema):
+    name: str = Field(min_length=1, max_length=100)
 
 
 class ColumnCreate(ColumnBase):
     pass
 
 
-class ColumnUpdate(ColumnBase):
-    name: str | None = None
+class ColumnUpdate(BaseSchema):
+    name: str | None = Field(None, min_length=1, max_length=100)
 
 
 class ColumnRead(ColumnBase):
     id: int
     project_id: int
     position: float
-    tasks: list[TaskRead] = []
-
-    model_config = ConfigDict(from_attributes=True)
+    tasks: list[TaskRead] = Field(default_factory=list)

@@ -1,9 +1,13 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict, Field
 
-class ProjectBase(BaseModel):
-    name: str
-    description: str | None = None
+from src.core.schemas import BaseSchema
+from src.projects.constants import ProjectRole
+
+
+class ProjectBase(BaseSchema):
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(None, min_length=1)
 
 
 class ProjectCreate(ProjectBase):
@@ -15,16 +19,12 @@ class ProjectRead(ProjectBase):
     owner_id: int
     created_at: datetime
 
-    model_config = ConfigDict(from_attributes=True)
 
-
-class ProjectMemberBase(BaseModel):
+class ProjectMemberBase(BaseSchema):
     user_id: int
-    role: str
+    role: ProjectRole
 
 
 class ProjectMemberRead(ProjectMemberBase):
     id: int
     joined_at: datetime
-    model_config = ConfigDict(from_attributes=True)
-

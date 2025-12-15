@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from src.core.schemas import BaseSchema
 
-class Token(BaseModel):
+
+class Token(BaseSchema):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
 
-class TokenData(BaseModel):
+class TokenData(BaseSchema):
     username: str | None = None
-

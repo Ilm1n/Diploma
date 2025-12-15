@@ -9,6 +9,7 @@ from src.boards.constants import TaskPriority
 
 if TYPE_CHECKING:
     from src.projects.models import Project
+    from src.users.models import User
 
 
 class BoardColumn(Base, TimestampMixin):
@@ -38,7 +39,13 @@ class Task(Base, TimestampMixin):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     priority: Mapped[TaskPriority] = mapped_column(
-        SQLEnum(TaskPriority), default=TaskPriority.MEDIUM, nullable=False
+        SQLEnum(
+            TaskPriority,
+            native_enum=False,
+            values_callable=lambda x: [e.value for e in x],
+        ),
+        default=TaskPriority.MEDIUM,
+        nullable=False,
     )
     position: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
@@ -57,5 +64,5 @@ class Task(Base, TimestampMixin):
     )
 
     column: Mapped["BoardColumn"] = relationship(back_populates="tasks")
-    assignee = relationship("User", foreign_keys=[assignee_id])
-    author = relationship("User", foreign_keys=[author_id])
+    assignee: Mapped["User"] = relationship("User", foreign_keys=[assignee_id])
+    author: Mapped["User"] = relationship("User", foreign_keys=[author_id])

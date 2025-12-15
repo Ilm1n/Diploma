@@ -1,14 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from src.core.db.database import db_helper
+from src.projects.service import ProjectService
 from src.users.models import User
 from src.auth.dependencies import get_current_user
-from src.projects.models import Project, ProjectMember
 from src.projects.schemas import ProjectCreate, ProjectRead
-from src.projects.constants import ProjectRole
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -19,24 +16,7 @@ async def create_project(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.get_async_session),
 ):
-    new_project = Project(
-        name=project_in.name,
-        description=project_in.description,
-        owner_id=current_user.id,
-    )
-    session.add(new_project)
-
-    await session.flush()
-
-    member = ProjectMember(
-        project_id=new_project.id, user_id=current_user.id, role=ProjectRole.OWNER
-    )
-
-    session.add(member)
-    await session.commit()
-    await session.refresh(new_project)
-
-    return new_project
+    return await ProjectService.create_project(session, current_user, project_in)
 
 
 @router.get("/", response_model=list[ProjectRead])
@@ -44,15 +24,7 @@ async def get_my_projects(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.get_async_session),
 ):
-    query = (
-        select(Project)
-        .join(ProjectMember, Project.id == ProjectMember.project_id)
-        .where(ProjectMember.user_id == current_user.id)
-        .order_by(Project.created_at.desc())
-    )
-
-    result = await session.execute(query)
-    return result.scalars().all()
+    return await ProjectService.get_user_projects(session, current_user)
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
@@ -61,20 +33,10 @@ async def get_project_details(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.get_async_session),
 ):
-    query = (
-        select(Project)
-        .join(ProjectMember, Project.id == ProjectMember.project_id)
-        .where(Project.id == project_id)
-        .where(ProjectMember.user_id == current_user.id)
-    )
-
-    result = await session.execute(query)
-    project = result.scalar_one_or_none()
-
+    project = await ProjectService.get_project_by_id(session, project_id, current_user)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found",
         )
-
     return project
