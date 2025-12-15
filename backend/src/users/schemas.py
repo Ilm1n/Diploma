@@ -21,6 +21,12 @@ class UserRead(UserBase):
 
 class UserUpdate(BaseSchema):
     username: str | None = Field(None, min_length=1, max_length=50)
-    email: EmailStr | None = None
     full_name: str | None = Field(None, min_length=1, max_length=255)
     avatar_url: str | None = Field(None, max_length=512)
+
+
+class UserPublic(BaseSchema):
+    id: int
+    username: str
+    full_name: str | None
+    avatar_url: str | None

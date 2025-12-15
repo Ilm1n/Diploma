@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.core.security as security
 from src.users.models import User
-from src.users.schemas import UserCreate
+from src.users.schemas import UserCreate, UserUpdate
 
 
 class UserService:
@@ -32,4 +32,41 @@ class UserService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Username or email already exists",
+            )
+
+    @staticmethod
+    async def get_user_by_id(
+        session: AsyncSession,
+        user_id: int,
+    ) -> User:
+        user = await session.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        return user
+
+    @staticmethod
+    async def update_user(
+        session: AsyncSession,
+        user: User,
+        user_update: UserUpdate,
+    ) -> User:
+        update_data = user_update.model_dump(exclude_unset=True)
+
+        if not update_data:
+            return user
+
+        for key, value in update_data.items():
+            setattr(user, key, value)
+
+        try:
+            await session.commit()
+            await session.refresh(user)
+            return user
+        except IntegrityError:
+            await session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username already taken",
             )
