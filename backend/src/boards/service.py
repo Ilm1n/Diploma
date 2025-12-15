@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
 from src.boards.models import BoardColumn, Task
-from src.boards.schemas import ColumnCreate, TaskCreate, TaskMove
+from src.boards.schemas import (
+    ColumnCreate,
+    TaskCreate,
+    TaskMove,
+    TaskUpdate,
+    ColumnReorderRequest,
+    ColumnUpdate,
+)
 from src.projects.models import ProjectMember
 
 POSITION_GAP = 65536.0
@@ -48,6 +55,51 @@ class BoardService:
         await session.commit()
         attributes.set_committed_value(new_column, "tasks", [])
         return new_column
+
+    @staticmethod
+    async def update_column(
+        session: AsyncSession,
+        column: BoardColumn,
+        data: ColumnUpdate,
+    ) -> BoardColumn:
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(column, key, value)
+
+        session.add(column)
+        await session.commit()
+        return column
+
+    @staticmethod
+    async def delete_column(
+        session: AsyncSession,
+        column: BoardColumn,
+    ) -> None:
+        await session.delete(column)
+        await session.commit()
+
+    @staticmethod
+    async def reorder_columns(
+        session: AsyncSession,
+        project_id: int,
+        data: ColumnReorderRequest,
+    ) -> None:
+        stmt = select(BoardColumn).where(
+            BoardColumn.project_id == project_id,
+            BoardColumn.id.in_(data.column_ids),
+        )
+        result = await session.execute(stmt)
+        columns = result.scalars().all()
+
+        col_map = {col.id: col for col in columns}
+
+        for index, col_id in enumerate(data.column_ids):
+            column = col_map.get(col_id)
+            if column:
+                column.position = (index + 1) * POSITION_GAP
+                session.add(column)
+
+        await session.commit()
 
     @staticmethod
     async def create_task(
@@ -193,3 +245,42 @@ class BoardService:
             session.add(task)
 
         await session.flush()
+
+    @staticmethod
+    async def update_task(
+        session: AsyncSession,
+        task: Task,
+        data: TaskUpdate,
+    ) -> Task:
+        if data.assignee_id is not None:
+            if task.assignee_id != data.assignee_id:
+                stmt = (
+                    select(1)
+                    .where(
+                        ProjectMember.project_id == task.project_id,
+                        ProjectMember.user_id == data.assignee_id,
+                    )
+                    .limit(1)
+                )
+                if not (await session.scalar(stmt)):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="New assignee is not a member of this project.",
+                    )
+
+        update_data = data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(task, key, value)
+
+        session.add(task)
+        await session.commit()
+        await session.refresh(task)
+        return task
+
+    @staticmethod
+    async def delete_task(
+        session: AsyncSession,
+        task: Task,
+    ) -> None:
+        await session.delete(task)
+        await session.commit()

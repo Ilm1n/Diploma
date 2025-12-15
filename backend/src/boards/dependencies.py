@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Path, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.auth.dependencies import get_current_user
 from src.boards.models import BoardColumn, Task
@@ -16,9 +17,13 @@ async def get_valid_column(
     column_id: Annotated[int, Path(...)],
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ) -> BoardColumn:
-    query = select(BoardColumn).where(
-        BoardColumn.id == column_id,
-        BoardColumn.project_id == project_id,
+    query = (
+        select(BoardColumn)
+        .where(
+            BoardColumn.id == column_id,
+            BoardColumn.project_id == project_id,
+        )
+        .options(selectinload(BoardColumn.tasks))
     )
     column = (await session.execute(query)).scalar_one_or_none()
 

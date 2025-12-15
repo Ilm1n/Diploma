@@ -6,7 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.dependencies import get_current_user
 from src.boards import dependencies
 from src.boards.models import BoardColumn, Task
-from src.boards.schemas import ColumnCreate, ColumnRead, TaskCreate, TaskMove, TaskRead
+from src.boards.schemas import (
+    ColumnCreate,
+    ColumnRead,
+    TaskCreate,
+    TaskMove,
+    TaskRead,
+    TaskUpdate,
+    ColumnUpdate,
+    ColumnReorderRequest,
+)
 from src.boards.service import BoardService
 from src.core.db.database import db_helper
 from src.projects.dependencies import get_project_member
@@ -39,6 +48,48 @@ async def create_column(
     return await BoardService.create_column(session, project_id, column_in)
 
 
+@router.patch(
+    "/projects/{project_id}/columns/{column_id}",
+    response_model=ColumnRead,
+)
+async def update_column(
+    project_id: int,
+    column_id: int,
+    column_update: ColumnUpdate,
+    _: Annotated[ProjectMember, Depends(get_project_member)],
+    column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    return await BoardService.update_column(session, column, column_update)
+
+
+@router.delete(
+    "/projects/{project_id}/columns/{column_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_column(
+    project_id: int,
+    column_id: int,
+    _: Annotated[ProjectMember, Depends(get_project_member)],
+    column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    await BoardService.delete_column(session, column)
+
+
+@router.post(
+    "/projects/{project_id}/columns/reorder",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def reorder_columns(
+    project_id: int,
+    reorder_data: ColumnReorderRequest,
+    _: Annotated[ProjectMember, Depends(get_project_member)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    await BoardService.reorder_columns(session, project_id, reorder_data)
+
+
 @router.post(
     "/projects/{project_id}/columns/{column_id}/tasks",
     response_model=TaskRead,
@@ -64,3 +115,27 @@ async def move_task(
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ):
     return await BoardService.move_task(session, task, move_data)
+
+
+@router.get("/tasks/{task_id}", response_model=TaskRead)
+async def get_task_details(
+    task: Annotated[Task, Depends(dependencies.get_valid_task)],
+):
+    return task
+
+
+@router.patch("/tasks/{task_id}", response_model=TaskRead)
+async def update_task(
+    task_update: TaskUpdate,
+    task: Annotated[Task, Depends(dependencies.get_valid_task)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    return await BoardService.update_task(session, task, task_update)
+
+
+@router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(
+    task: Annotated[Task, Depends(dependencies.get_valid_task)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    await BoardService.delete_task(session, task)

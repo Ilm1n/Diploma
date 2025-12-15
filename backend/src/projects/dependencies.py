@@ -12,7 +12,7 @@ from src.users.models import User
 
 
 async def get_project_member(
-    project_id: Annotated[int, Path(..., description="Project ID")],
+    project_id: Annotated[int, Path()],
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ) -> ProjectMember:

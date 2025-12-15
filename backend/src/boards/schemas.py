@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import Field
 
 from src.boards.constants import TaskPriority
@@ -48,6 +49,10 @@ class ColumnCreate(ColumnBase):
 
 class ColumnUpdate(BaseSchema):
     name: str | None = Field(None, min_length=1, max_length=100)
+
+
+class ColumnReorderRequest(BaseSchema):
+    column_ids: list[int]
 
 
 class ColumnRead(ColumnBase):
