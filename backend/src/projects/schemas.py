@@ -1,5 +1,6 @@
 from datetime import datetime
-from pydantic import ConfigDict, Field
+
+from pydantic import Field
 
 from src.core.schemas import BaseSchema
 from src.projects.constants import ProjectRole

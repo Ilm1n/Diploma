@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class RunConfig(BaseModel):
@@ -41,6 +41,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="LIGHTTASK_CONFIG__",
+        extra="ignore",
     )
     run: RunConfig = RunConfig()
     db: DatabaseConfig

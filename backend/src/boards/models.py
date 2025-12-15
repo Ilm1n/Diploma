@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, Text, Float, Enum as SQLEnum
+from sqlalchemy import CheckConstraint, Enum as SQLEnum, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.boards.constants import TaskPriority
 from src.core.db.base import Base
 from src.core.db.mixins import TimestampMixin
-from src.boards.constants import TaskPriority
 
 if TYPE_CHECKING:
     from src.projects.models import Project
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 
 class BoardColumn(Base, TimestampMixin):
     __tablename__ = "board_columns"
+    __table_args__ = (
+        CheckConstraint("length(name) > 0", name="check_column_name_length"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -34,6 +37,9 @@ class BoardColumn(Base, TimestampMixin):
 
 class Task(Base, TimestampMixin):
     __tablename__ = "tasks"
+    __table_args__ = (
+        CheckConstraint("length(title) > 0", name="check_task_title_length"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)

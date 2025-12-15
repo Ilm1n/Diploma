@@ -1,12 +1,13 @@
-from typing import Optional, Sequence
-from fastapi import HTTPException, status
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, attributes
+from collections.abc import Sequence
 
-from src.projects.models import ProjectMember
+from fastapi import HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import attributes, selectinload
+
 from src.boards.models import BoardColumn, Task
 from src.boards.schemas import ColumnCreate, TaskCreate, TaskMove
+from src.projects.models import ProjectMember
 
 POSITION_GAP = 65536.0
 MIN_POSITION_DELTA = 0.002
@@ -15,7 +16,8 @@ MIN_POSITION_DELTA = 0.002
 class BoardService:
     @staticmethod
     async def get_board(
-        session: AsyncSession, project_id: int
+        session: AsyncSession,
+        project_id: int,
     ) -> Sequence[BoardColumn]:
         stmt = (
             select(BoardColumn)
@@ -28,9 +30,10 @@ class BoardService:
 
     @staticmethod
     async def create_column(
-        session: AsyncSession, project_id: int, data: ColumnCreate
+        session: AsyncSession,
+        project_id: int,
+        data: ColumnCreate,
     ) -> BoardColumn:
-
         query = select(func.max(BoardColumn.position)).where(
             BoardColumn.project_id == project_id
         )
@@ -84,7 +87,11 @@ class BoardService:
         return new_task
 
     @staticmethod
-    async def move_task(session: AsyncSession, task: Task, data: TaskMove) -> Task:
+    async def move_task(
+        session: AsyncSession,
+        task: Task,
+        data: TaskMove,
+    ) -> Task:
         if task.column_id != data.new_column_id:
             col_check = await session.get(BoardColumn, data.new_column_id)
             if not col_check or col_check.project_id != task.project_id:
@@ -118,8 +125,10 @@ class BoardService:
 
     @staticmethod
     async def _calculate_new_position(
-        session: AsyncSession, column_id: int, after_task_id: Optional[int]
-    ) -> Optional[float]:
+        session: AsyncSession,
+        column_id: int,
+        after_task_id: int | None,
+    ) -> float | None:
         if after_task_id is None:
             stmt = (
                 select(Task.position)
@@ -146,7 +155,8 @@ class BoardService:
 
             if prev_pos is None:
                 raise HTTPException(
-                    status_code=409, detail="Anchor task not found in target column"
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Anchor task not found in target column",
                 )
 
             next_task_stmt = (

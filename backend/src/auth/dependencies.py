@@ -1,22 +1,20 @@
+from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import (
-    OAuth2PasswordBearer,
-    HTTPBearer,
-    HTTPAuthorizationCredentials,
-)
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.core.security as security
 from src.core.db.database import db_helper
 from src.users.models import User
 
-
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 http_bearer = HTTPBearer(auto_error=False)
 
 
 async def get_user_from_token(
-    token: str, required_type: str, session: AsyncSession
+    token: str,
+    required_type: str,
+    session: AsyncSession,
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -36,7 +34,7 @@ async def get_user_from_token(
             detail=f"Invalid token type: expected {required_type}, got {token_type}",
         )
 
-    user_id: str = payload.get("sub")
+    user_id = payload.get("sub")
     if user_id is None:
         raise credentials_exception
 
@@ -47,37 +45,44 @@ async def get_user_from_token(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
         )
 
     return user
 
 
 async def get_current_user(
-    creds: HTTPAuthorizationCredentials = Depends(http_bearer),
-    session: AsyncSession = Depends(db_helper.get_async_session),
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ) -> User:
-    if creds is None:
+    if not creds:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
     return await get_user_from_token(
-        creds.credentials, security.ACCESS_TOKEN_TYPE, session
+        creds.credentials,
+        security.ACCESS_TOKEN_TYPE,
+        session,
     )
 
 
 async def get_current_user_for_refresh(
-    creds: HTTPAuthorizationCredentials = Depends(http_bearer),
-    session: AsyncSession = Depends(db_helper.get_async_session),
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ) -> User:
-    if creds is None:
+    if not creds:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
     return await get_user_from_token(
-        creds.credentials, security.REFRESH_TOKEN_TYPE, session
+        creds.credentials,
+        security.REFRESH_TOKEN_TYPE,
+        session,
     )

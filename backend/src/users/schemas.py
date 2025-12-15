@@ -1,4 +1,4 @@
-from pydantic import EmailStr, ConfigDict, Field
+from pydantic import EmailStr, Field
 
 from src.core.schemas import BaseSchema
 
@@ -17,10 +17,6 @@ class UserRead(UserBase):
     is_active: bool
     full_name: str | None = Field(None, min_length=1, max_length=255)
     avatar_url: str | None = Field(None, max_length=512)
-
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
 
 
 class UserUpdate(BaseSchema):

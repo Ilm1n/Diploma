@@ -1,21 +1,21 @@
 from contextlib import asynccontextmanager
-import uvicorn
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
-from src.core.db.database import db_helper
-from src.config import settings
 from src.auth.router import router as auth_router
-from src.users.router import router as user_router
-from src.projects.router import router as project_router
 from src.boards.router import router as board_router
+from src.config import settings
+from src.core.db.database import db_helper
+from src.projects.router import router as project_router
+from src.users.router import router as user_router
 
-# инициализация моделей импортами для регистрации в контексте sqla
-from src.users.models import User  # noqa: F401
-from src.projects.models import Project, ProjectMember  # noqa: F401
+# модели импортируются для регистрации в metadata
 from src.boards.models import BoardColumn, Task  # noqa: F401
+from src.projects.models import Project, ProjectMember  # noqa: F401
+from src.users.models import User  # noqa: F401
 
 
 @asynccontextmanager

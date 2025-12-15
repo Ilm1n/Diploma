@@ -1,16 +1,17 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
-
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.core.db.database import db_helper
 
-from src.users.models import User
 from src.auth.dependencies import get_current_user
-from src.boards.schemas import ColumnCreate, ColumnRead, TaskCreate, TaskRead, TaskMove
-from src.boards import service, dependencies
-from src.boards.models import Task, BoardColumn
-
+from src.boards import dependencies
+from src.boards.models import BoardColumn, Task
+from src.boards.schemas import ColumnCreate, ColumnRead, TaskCreate, TaskMove, TaskRead
+from src.boards.service import BoardService
+from src.core.db.database import db_helper
+from src.projects.dependencies import get_project_member
 from src.projects.models import ProjectMember
+from src.users.models import User
 
 router = APIRouter(tags=["Boards"])
 
@@ -18,10 +19,10 @@ router = APIRouter(tags=["Boards"])
 @router.get("/projects/{project_id}/columns", response_model=list[ColumnRead])
 async def get_project_board(
     project_id: int,
-    _: ProjectMember = Depends(dependencies.get_project_member),
-    session: AsyncSession = Depends(db_helper.get_async_session),
+    _: Annotated[ProjectMember, Depends(get_project_member)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ):
-    return await service.BoardService.get_board(session, project_id)
+    return await BoardService.get_board(session, project_id)
 
 
 @router.post(
@@ -32,10 +33,10 @@ async def get_project_board(
 async def create_column(
     project_id: int,
     column_in: ColumnCreate,
-    _: ProjectMember = Depends(dependencies.get_project_member),
-    session: AsyncSession = Depends(db_helper.get_async_session),
+    _: Annotated[ProjectMember, Depends(get_project_member)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ):
-    return await service.BoardService.create_column(session, project_id, column_in)
+    return await BoardService.create_column(session, project_id, column_in)
 
 
 @router.post(
@@ -46,12 +47,12 @@ async def create_column(
 async def create_task(
     project_id: int,
     task_in: TaskCreate,
-    current_user: User = Depends(get_current_user),
-    column: BoardColumn = Depends(dependencies.get_valid_column),
-    _: ProjectMember = Depends(dependencies.get_project_member),
-    session: AsyncSession = Depends(db_helper.get_async_session),
+    current_user: Annotated[User, Depends(get_current_user)],
+    column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
+    _: Annotated[ProjectMember, Depends(get_project_member)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ):
-    return await service.BoardService.create_task(
+    return await BoardService.create_task(
         session, project_id, column.id, task_in, current_user.id
     )
 
@@ -60,6 +61,6 @@ async def create_task(
 async def move_task(
     move_data: TaskMove,
     task: Annotated[Task, Depends(dependencies.get_valid_task)],
-    session: AsyncSession = Depends(db_helper.get_async_session),
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
 ):
-    return await service.BoardService.move_task(session, task, move_data)
+    return await BoardService.move_task(session, task, move_data)

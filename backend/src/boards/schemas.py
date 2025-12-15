@@ -1,11 +1,12 @@
 from datetime import datetime
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import Field
+
 from src.boards.constants import TaskPriority
 from src.core.schemas import BaseSchema
 
 
 class TaskBase(BaseSchema):
-    title: str = Field(max_length=200)
+    title: str = Field(min_length=1, max_length=200)
     description: str | None = Field(None, min_length=1)
     priority: TaskPriority = TaskPriority.MEDIUM
     assignee_id: int | None = None
