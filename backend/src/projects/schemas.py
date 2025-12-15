@@ -25,6 +25,7 @@ class ProjectRead(ProjectBase):
     owner_id: int
     created_at: datetime
     updated_at: datetime
+    current_user_role: ProjectRole | None = None
 
 
 class ProjectMemberBase(BaseSchema):

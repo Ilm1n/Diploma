@@ -1,12 +1,11 @@
 from collections.abc import Sequence
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import status, HTTPException
+from fastapi import HTTPException, status
 
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
-from src.projects.schemas import ProjectCreate, ProjectUpdate
+from src.projects.schemas import ProjectCreate, ProjectUpdate, ProjectRead
 from src.users.models import User
 
 
@@ -16,7 +15,7 @@ class ProjectService:
         session: AsyncSession,
         user: User,
         project_in: ProjectCreate,
-    ) -> Project:
+    ) -> ProjectRead:
         new_project = Project(
             name=project_in.name,
             description=project_in.description,
@@ -31,33 +30,37 @@ class ProjectService:
             role=ProjectRole.OWNER,
         )
         session.add(member)
-
         await session.commit()
         await session.refresh(new_project)
-        return new_project
+
+        return ProjectRead(**new_project.__dict__, current_user_role=ProjectRole.OWNER)
 
     @staticmethod
     async def get_user_projects(
         session: AsyncSession,
         user: User,
-    ) -> Sequence[Project]:
+    ) -> Sequence[ProjectRead]:
         query = (
-            select(Project)
+            select(Project, ProjectMember.role)
             .join(ProjectMember, Project.id == ProjectMember.project_id)
             .where(ProjectMember.user_id == user.id)
             .order_by(Project.created_at.desc())
         )
         result = await session.execute(query)
-        return result.scalars().all()
+        rows = result.all()
+
+        return [
+            ProjectRead(**proj.__dict__, current_user_role=role) for proj, role in rows
+        ]
 
     @staticmethod
-    async def get_project_by_id(
+    async def get_project_details(
         session: AsyncSession,
         project_id: int,
         user: User,
-    ) -> Project | None:
+    ) -> ProjectRead:
         query = (
-            select(Project)
+            select(Project, ProjectMember.role)
             .join(ProjectMember, Project.id == ProjectMember.project_id)
             .where(
                 Project.id == project_id,
@@ -65,25 +68,22 @@ class ProjectService:
             )
         )
         result = await session.execute(query)
-        return result.scalar_one_or_none()
+        row = result.first()
+
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            )
+
+        project, role = row
+        return ProjectRead(**project.__dict__, current_user_role=role)
 
     @staticmethod
     async def update_project(
         session: AsyncSession,
-        project_id: int,
+        project: Project,
         project_update: ProjectUpdate,
-        member: ProjectMember,
-    ) -> Project:
-        if member.role != ProjectRole.OWNER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only project owner can edit project settings",
-            )
-
-        project = await session.get(Project, project_id)
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
-
+    ) -> ProjectRead:
         update_data = project_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(project, key, value)
@@ -91,21 +91,13 @@ class ProjectService:
         session.add(project)
         await session.commit()
         await session.refresh(project)
-        return project
+
+        return ProjectRead(**project.__dict__)
 
     @staticmethod
     async def delete_project(
         session: AsyncSession,
-        project_id: int,
-        member: ProjectMember,
+        project: Project,
     ) -> None:
-        if member.role != ProjectRole.OWNER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only project owner can delete the project",
-            )
-
-        project = await session.get(Project, project_id)
-        if project:
-            await session.delete(project)
-            await session.commit()
+        await session.delete(project)
+        await session.commit()
