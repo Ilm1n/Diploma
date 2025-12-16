@@ -12,7 +12,6 @@ class RunConfig(BaseModel):
 
 
 class InvitationConfig(BaseModel):
-    INVITATION_TTL_DAYS: int = 7
     BASE_URL: str = "http://localhost:5173/invite"
 
 

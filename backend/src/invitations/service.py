@@ -1,11 +1,11 @@
 import secrets
 from datetime import datetime, timedelta, timezone
+from collections.abc import Sequence
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.config import settings
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
@@ -15,8 +15,7 @@ from src.invitations.schemas import (
 from src.projects.models import ProjectMember
 from src.users.models import User
 
-INVITATION_TTL_DAYS = settings.invite.INVITATION_TTL_DAYS
-BASE_URL = settings.invite.BASE_URL
+BASE_URL = "http://localhost:5173/invite"
 
 
 class InvitationService:
@@ -28,7 +27,7 @@ class InvitationService:
         data: InvitationCreate,
     ) -> InvitationRead:
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.now(timezone.utc) + timedelta(days=INVITATION_TTL_DAYS)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
         invite = ProjectInvitation(
             token=token,
@@ -36,19 +35,41 @@ class InvitationService:
             inviter_id=inviter_id,
             role=data.role,
             email=data.email,
+            max_uses=data.max_uses,
             expires_at=expires_at,
         )
         session.add(invite)
         await session.commit()
 
-        return InvitationRead(
-            token=invite.token,
-            project_id=invite.project_id,
-            role=invite.role,
-            email=invite.email,
-            expires_at=invite.expires_at,
-            link=f"{BASE_URL}/{token}",
+        return InvitationRead(**invite.__dict__, link=f"{BASE_URL}/{token}")
+
+    @staticmethod
+    async def get_project_invitations(
+        session: AsyncSession,
+        project_id: int,
+    ) -> Sequence[ProjectInvitation]:
+        query = (
+            select(ProjectInvitation)
+            .where(ProjectInvitation.project_id == project_id)
+            .order_by(ProjectInvitation.created_at.desc())
         )
+        result = await session.execute(query)
+        return result.scalars().all()
+
+    @staticmethod
+    async def delete_invitation(
+        session: AsyncSession,
+        invitation_id: int,
+        project_id: int,
+    ) -> None:
+        query = select(ProjectInvitation).where(
+            ProjectInvitation.id == invitation_id,
+            ProjectInvitation.project_id == project_id,
+        )
+        invite = await session.scalar(query)
+        if invite:
+            await session.delete(invite)
+            await session.commit()
 
     @staticmethod
     async def accept_invitation(
@@ -56,7 +77,11 @@ class InvitationService:
         token: str,
         user: User,
     ) -> InvitationAcceptResponse:
-        query = select(ProjectInvitation).where(ProjectInvitation.token == token)
+        query = (
+            select(ProjectInvitation)
+            .where(ProjectInvitation.token == token)
+            .with_for_update()
+        )
         invite = await session.scalar(query)
 
         if not invite:
@@ -64,14 +89,21 @@ class InvitationService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Invalid invitation token"
             )
 
-        if invite.is_used:
-            raise HTTPException(
-                status_code=status.HTTP_410_GONE, detail="Invitation already used"
-            )
-
         if invite.expires_at < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_410_GONE, detail="Invitation expired"
+            )
+
+        if invite.max_uses is not None and invite.used_count >= invite.max_uses:
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="Invitation usage limit reached",
+            )
+
+        if invite.email and invite.email != user.email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This invitation was sent to another email address",
             )
 
         member_check = select(ProjectMember).where(
@@ -91,9 +123,9 @@ class InvitationService:
         )
         session.add(new_member)
 
-        if invite.email:
-            invite.is_used = True
-            session.add(invite)
+        invite.used_count += 1
+
+        session.add(invite)
 
         await session.commit()
 

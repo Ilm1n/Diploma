@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, DateTime, func
+from sqlalchemy import ForeignKey, String, DateTime, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.db.base import Base
@@ -23,7 +23,6 @@ class ProjectInvitation(Base):
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE")
     )
-
     inviter_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
@@ -32,7 +31,8 @@ class ProjectInvitation(Base):
 
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    is_used: Mapped[bool] = mapped_column(default=False)
+    max_uses: Mapped[int | None] = mapped_column(nullable=True)
+    used_count: Mapped[int] = mapped_column(default=0)
 
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

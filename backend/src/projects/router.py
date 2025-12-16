@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,7 +38,7 @@ async def create_project(
     return await ProjectService.create_project(session, current_user, project_in)
 
 
-@router.get("/", response_model=List[ProjectRead])
+@router.get("/", response_model=list[ProjectRead])
 async def get_my_projects(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],

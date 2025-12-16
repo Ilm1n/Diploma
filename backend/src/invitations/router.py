@@ -35,6 +35,28 @@ async def create_invitation(
     )
 
 
+@router.get("/projects/{project_id}/invitations", response_model=list[InvitationRead])
+async def get_project_invitations(
+    project_id: int,
+    _: Annotated[Project, Depends(require_project_manager)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    return await InvitationService.get_project_invitations(session, project_id)
+
+
+@router.delete(
+    "/projects/{project_id}/invitations/{invitation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_invitation(
+    project_id: int,
+    invitation_id: int,
+    _: Annotated[Project, Depends(require_project_manager)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+):
+    await InvitationService.delete_invitation(session, invitation_id, project_id)
+
+
 @router.post(
     "/invitations/{token}/accept",
     response_model=InvitationAcceptResponse,
