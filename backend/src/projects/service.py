@@ -2,10 +2,16 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
+from sqlalchemy.orm import selectinload
 
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
-from src.projects.schemas import ProjectCreate, ProjectUpdate, ProjectRead
+from src.projects.schemas import (
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectRead,
+    ProjectMemberUpdate,
+)
 from src.tags.constants import DEFAULT_PROJECT_TAGS
 from src.tags.models import Tag
 from src.users.models import User
@@ -114,3 +120,95 @@ class ProjectService:
     ) -> None:
         await session.delete(project)
         await session.commit()
+
+    @staticmethod
+    async def get_project_members(
+        session: AsyncSession,
+        project_id: int,
+    ) -> Sequence[ProjectMember]:
+        query = (
+            select(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
+            .options(selectinload(ProjectMember.user))
+            .order_by(ProjectMember.joined_at)
+        )
+        result = await session.execute(query)
+        return result.scalars().all()
+
+    @staticmethod
+    async def remove_member(
+        session: AsyncSession,
+        project_id: int,
+        user_id: int,
+        requester_id: int,
+    ) -> None:
+        target_query = select(ProjectMember).where(
+            ProjectMember.project_id == project_id, ProjectMember.user_id == user_id
+        )
+        target_member = await session.scalar(target_query)
+
+        if not target_member:
+            raise HTTPException(status_code=404, detail="Member not found")
+
+        requester_query = select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == requester_id,
+        )
+        requester_member = await session.scalar(requester_query)
+
+        if not requester_member:
+            raise HTTPException(
+                status_code=403, detail="You are not a member of this project"
+            )
+
+        if target_member.role == ProjectRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot remove project owner",
+            )
+
+        if (
+            requester_member.role == ProjectRole.MANAGER
+            and target_member.role == ProjectRole.MANAGER
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Managers cannot remove other managers. Ask the Owner.",
+            )
+
+        await session.delete(target_member)
+        await session.commit()
+
+    @staticmethod
+    async def update_member_role(
+        session: AsyncSession,
+        project_id: int,
+        user_id: int,
+        data: ProjectMemberUpdate,
+    ) -> ProjectMember:
+        query = (
+            select(ProjectMember)
+            .where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == user_id,
+            )
+            .options(selectinload(ProjectMember.user))
+        )
+        member = await session.scalar(query)
+
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
+            )
+
+        if member.role == ProjectRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change role of project owner",
+            )
+
+        member.role = data.role
+        session.add(member)
+        await session.commit()
+        await session.refresh(member)
+        return member

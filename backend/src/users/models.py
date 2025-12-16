@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.db.base import Base
 from src.core.db.mixins import TimestampMixin
+
+if TYPE_CHECKING:
+    from src.projects.models import ProjectMember
 
 
 class User(Base, TimestampMixin):
@@ -24,3 +29,9 @@ class User(Base, TimestampMixin):
     is_admin: Mapped[bool] = mapped_column(default=False)
     avatar_url: Mapped[str | None] = mapped_column(String(512))
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    project_memberships: Mapped[list["ProjectMember"]] = relationship(
+        "ProjectMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

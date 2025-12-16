@@ -20,6 +20,7 @@ from src.projects.constants import ProjectRole
 if TYPE_CHECKING:
     from src.boards.models import BoardColumn
     from src.tags.models import Tag
+    from src.users.models import User
 
 
 class Project(Base, TimestampMixin):
@@ -76,3 +77,7 @@ class ProjectMember(Base, TimestampMixin):
     )
 
     project: Mapped["Project"] = relationship(back_populates="members")
+    user: Mapped["User"] = relationship(
+        "User",
+        back_populates="project_memberships",
+    )

@@ -4,6 +4,7 @@ from pydantic import Field
 
 from src.core.schemas import BaseSchema
 from src.projects.constants import ProjectRole
+from src.users.schemas import UserPublic
 
 
 class ProjectBase(BaseSchema):
@@ -28,11 +29,12 @@ class ProjectRead(ProjectBase):
     current_user_role: ProjectRole | None = None
 
 
-class ProjectMemberBase(BaseSchema):
-    user_id: int
-    role: ProjectRole
-
-
-class ProjectMemberRead(ProjectMemberBase):
+class ProjectMemberRead(BaseSchema):
     id: int
+    user: UserPublic
+    role: ProjectRole
     joined_at: datetime
+
+
+class ProjectMemberUpdate(BaseSchema):
+    role: ProjectRole
