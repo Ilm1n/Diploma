@@ -15,6 +15,7 @@ from src.boards.schemas import (
     ColumnUpdate,
 )
 from src.projects.models import ProjectMember
+from src.tags.models import Tag
 
 POSITION_GAP = 65536.0
 MIN_POSITION_DELTA = 0.0000001
@@ -30,7 +31,7 @@ class BoardService:
             select(BoardColumn)
             .where(BoardColumn.project_id == project_id)
             .order_by(BoardColumn.position.asc())
-            .options(selectinload(BoardColumn.tasks))
+            .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
         )
         result = await session.execute(stmt)
         return result.scalars().all()
@@ -137,10 +138,80 @@ class BoardService:
             author_id=author_id,
             position=max_pos + POSITION_GAP,
         )
+
+        if data.tag_ids:
+            tags_query = select(Tag).where(
+                Tag.id.in_(data.tag_ids), Tag.project_id == project_id
+            )
+            tags = (await session.execute(tags_query)).scalars().all()
+
+            if len(tags) != len(data.tag_ids):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="One or more tags not found or belong to another project",
+                )
+
+            new_task.tags = list(tags)
+
         session.add(new_task)
         await session.commit()
         await session.refresh(new_task)
         return new_task
+
+    @staticmethod
+    async def update_task(
+        session: AsyncSession,
+        task: Task,
+        data: TaskUpdate,
+    ) -> Task:
+        if data.assignee_id is not None:
+            if task.assignee_id != data.assignee_id:
+                stmt = (
+                    select(1)
+                    .where(
+                        ProjectMember.project_id == task.project_id,
+                        ProjectMember.user_id == data.assignee_id,
+                    )
+                    .limit(1)
+                )
+                if not (await session.scalar(stmt)):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="New assignee is not a member of this project.",
+                    )
+
+        if data.tag_ids is not None:
+            tags_query = select(Tag).where(
+                Tag.id.in_(data.tag_ids), Tag.project_id == task.project_id
+            )
+            tags = (await session.execute(tags_query)).scalars().all()
+
+            if len(tags) != len(data.tag_ids):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tag IDs"
+                )
+
+            task.tags = list(tags)
+
+        update_data = data.model_dump(
+            exclude_unset=True,
+            exclude={"tag_ids"},
+        )
+        for key, value in update_data.items():
+            setattr(task, key, value)
+
+        session.add(task)
+        await session.commit()
+        await session.refresh(task)
+        return task
+
+    @staticmethod
+    async def delete_task(
+        session: AsyncSession,
+        task: Task,
+    ) -> None:
+        await session.delete(task)
+        await session.commit()
 
     @staticmethod
     async def move_task(
@@ -245,42 +316,3 @@ class BoardService:
             session.add(task)
 
         await session.flush()
-
-    @staticmethod
-    async def update_task(
-        session: AsyncSession,
-        task: Task,
-        data: TaskUpdate,
-    ) -> Task:
-        if data.assignee_id is not None:
-            if task.assignee_id != data.assignee_id:
-                stmt = (
-                    select(1)
-                    .where(
-                        ProjectMember.project_id == task.project_id,
-                        ProjectMember.user_id == data.assignee_id,
-                    )
-                    .limit(1)
-                )
-                if not (await session.scalar(stmt)):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="New assignee is not a member of this project.",
-                    )
-
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(task, key, value)
-
-        session.add(task)
-        await session.commit()
-        await session.refresh(task)
-        return task
-
-    @staticmethod
-    async def delete_task(
-        session: AsyncSession,
-        task: Task,
-    ) -> None:
-        await session.delete(task)
-        await session.commit()

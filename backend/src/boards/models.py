@@ -7,6 +7,8 @@ from src.boards.constants import TaskPriority
 from src.core.db.base import Base
 from src.core.db.mixins import TimestampMixin
 
+from src.tags.models import Tag, task_tags
+
 if TYPE_CHECKING:
     from src.projects.models import Project
     from src.users.models import User
@@ -72,3 +74,7 @@ class Task(Base, TimestampMixin):
     column: Mapped["BoardColumn"] = relationship(back_populates="tasks")
     assignee: Mapped["User"] = relationship("User", foreign_keys=[assignee_id])
     author: Mapped["User"] = relationship("User", foreign_keys=[author_id])
+
+    tags: Mapped[list["Tag"]] = relationship(
+        "Tag", secondary=task_tags, back_populates="tasks"
+    )

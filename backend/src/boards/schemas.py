@@ -4,6 +4,7 @@ from pydantic import Field
 
 from src.boards.constants import TaskPriority
 from src.core.schemas import BaseSchema
+from src.tags.schemas import TagRead
 
 
 class TaskBase(BaseSchema):
@@ -14,7 +15,7 @@ class TaskBase(BaseSchema):
 
 
 class TaskCreate(TaskBase):
-    pass
+    tag_ids: list[int] = Field(default_factory=list)
 
 
 class TaskUpdate(BaseSchema):
@@ -22,6 +23,7 @@ class TaskUpdate(BaseSchema):
     description: str | None = Field(None, min_length=1)
     priority: TaskPriority | None = None
     assignee_id: int | None = None
+    tag_ids: list[int] | None = None
 
 
 class TaskMove(BaseSchema):
@@ -37,6 +39,7 @@ class TaskRead(TaskBase):
     position: float
     created_at: datetime
     updated_at: datetime
+    tags: list[TagRead] = Field(default_factory=list)
 
 
 class ColumnBase(BaseSchema):

@@ -24,7 +24,7 @@ async def get_valid_column(
             BoardColumn.id == column_id,
             BoardColumn.project_id == project_id,
         )
-        .options(selectinload(BoardColumn.tasks))
+        .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
     )
     column = (await session.execute(query)).scalar_one_or_none()
 
@@ -52,7 +52,15 @@ class TaskAccessChecker:
         user: Annotated[User, Depends(get_current_user)],
         session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
     ) -> Task:
-        task = await session.get(Task, task_id)
+        query = (
+            select(Task)
+            .where(Task.id == task_id)
+            .options(
+                selectinload(Task.tags),
+            )
+        )
+        result = await session.execute(query)
+        task = result.scalar_one_or_none()
         if not task:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

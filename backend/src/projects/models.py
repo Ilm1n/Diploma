@@ -19,6 +19,7 @@ from src.projects.constants import ProjectRole
 
 if TYPE_CHECKING:
     from src.boards.models import BoardColumn
+    from src.tags.models import Tag
 
 
 class Project(Base, TimestampMixin):
@@ -43,6 +44,12 @@ class Project(Base, TimestampMixin):
         back_populates="project",
         cascade="all, delete-orphan",
         order_by="BoardColumn.position",
+    )
+
+    tags: Mapped[list["Tag"]] = relationship(
+        "Tag",
+        back_populates="project",
+        cascade="all, delete-orphan",
     )
 
 

@@ -6,6 +6,8 @@ from fastapi import HTTPException, status
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
 from src.projects.schemas import ProjectCreate, ProjectUpdate, ProjectRead
+from src.tags.constants import DEFAULT_PROJECT_TAGS
+from src.tags.models import Tag
 from src.users.models import User
 
 
@@ -30,6 +32,17 @@ class ProjectService:
             role=ProjectRole.OWNER,
         )
         session.add(member)
+
+        default_tags = [
+            Tag(
+                name=tag_data["name"],
+                color=tag_data["color"],
+                project_id=new_project.id,
+            )
+            for tag_data in DEFAULT_PROJECT_TAGS
+        ]
+        session.add_all(default_tags)
+
         await session.commit()
         await session.refresh(new_project)
 
