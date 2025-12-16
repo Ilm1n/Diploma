@@ -12,12 +12,14 @@ from src.boards.router import router as board_router
 from src.projects.router import router as project_router
 from src.users.router import router as user_router
 from src.tags.router import router as tag_router
+from src.invitations.router import router as invitation_router
 
 # модели импортируются для регистрации в metadata
 from src.boards.models import BoardColumn, Task  # noqa: F401
 from src.projects.models import Project, ProjectMember  # noqa: F401
 from src.users.models import User  # noqa: F401
-from src.tags.models import Tag
+from src.tags.models import Tag  # noqa: F401
+from src.invitations.models import ProjectInvitation  # noqa: F401
 
 
 @asynccontextmanager
@@ -54,6 +56,7 @@ main_app.include_router(user_router, prefix="/api")
 main_app.include_router(project_router, prefix="/api")
 main_app.include_router(board_router, prefix="/api")
 main_app.include_router(tag_router, prefix="/api")
+main_app.include_router(invitation_router, prefix="/api")
 
 
 @main_app.get("/")

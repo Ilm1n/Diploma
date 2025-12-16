@@ -15,6 +15,7 @@ from src.users.models import User
 from src.projects.models import Project, ProjectMember
 from src.boards.models import BoardColumn, Task
 from src.tags.models import Tag
+from src.invitations.models import ProjectInvitation
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

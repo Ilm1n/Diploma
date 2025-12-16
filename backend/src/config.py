@@ -11,6 +11,11 @@ class RunConfig(BaseModel):
     port: int = 8000
 
 
+class InvitationConfig(BaseModel):
+    INVITATION_TTL_DAYS: int = 7
+    BASE_URL: str = "http://localhost:5173/invite"
+
+
 class DatabaseConfig(BaseModel):
     url: PostgresDsn
     echo: bool = False
@@ -46,6 +51,7 @@ class Settings(BaseSettings):
     run: RunConfig = RunConfig()
     db: DatabaseConfig
     auth_jwt: AuthJWT = AuthJWT()
+    invite: InvitationConfig = InvitationConfig()
 
 
 settings = Settings()
