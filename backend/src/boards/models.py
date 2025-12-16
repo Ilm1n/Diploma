@@ -23,7 +23,7 @@ class BoardColumn(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     position: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-
+    tasks_limit: Mapped[int | None] = mapped_column(nullable=True)
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE")
     )

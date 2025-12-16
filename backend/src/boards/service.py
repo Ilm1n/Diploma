@@ -37,6 +37,26 @@ class BoardService:
         return result.scalars().all()
 
     @staticmethod
+    async def _check_column_limit(session: AsyncSession, column_id: int):
+        column = await session.get(BoardColumn, column_id)
+        if not column:
+            raise HTTPException(status_code=404, detail="Column not found")
+
+        if column.tasks_limit is not None:
+            count_query = (
+                select(func.count())
+                .select_from(Task)
+                .where(Task.column_id == column_id)
+            )
+            current_count = await session.scalar(count_query)
+
+            if current_count >= column.tasks_limit:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Column '{column.name}' has reached its task limit ({column.tasks_limit})",
+                )
+
+    @staticmethod
     async def create_column(
         session: AsyncSession,
         project_id: int,
@@ -49,6 +69,7 @@ class BoardService:
 
         new_column = BoardColumn(
             name=data.name,
+            tasks_limit=data.tasks_limit,
             project_id=project_id,
             position=max_pos + POSITION_GAP,
         )
@@ -110,6 +131,8 @@ class BoardService:
         data: TaskCreate,
         author_id: int,
     ) -> Task:
+        await BoardService._check_column_limit(session, column_id)
+
         if data.assignee_id is not None:
             stmt = (
                 select(1)
@@ -144,74 +167,14 @@ class BoardService:
                 Tag.id.in_(data.tag_ids), Tag.project_id == project_id
             )
             tags = (await session.execute(tags_query)).scalars().all()
-
             if len(tags) != len(data.tag_ids):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="One or more tags not found or belong to another project",
-                )
-
+                raise HTTPException(status_code=400, detail="Invalid tag IDs")
             new_task.tags = list(tags)
 
         session.add(new_task)
         await session.commit()
-        await session.refresh(new_task)
-        return new_task
 
-    @staticmethod
-    async def update_task(
-        session: AsyncSession,
-        task: Task,
-        data: TaskUpdate,
-    ) -> Task:
-        if data.assignee_id is not None:
-            if task.assignee_id != data.assignee_id:
-                stmt = (
-                    select(1)
-                    .where(
-                        ProjectMember.project_id == task.project_id,
-                        ProjectMember.user_id == data.assignee_id,
-                    )
-                    .limit(1)
-                )
-                if not (await session.scalar(stmt)):
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="New assignee is not a member of this project.",
-                    )
-
-        if data.tag_ids is not None:
-            tags_query = select(Tag).where(
-                Tag.id.in_(data.tag_ids), Tag.project_id == task.project_id
-            )
-            tags = (await session.execute(tags_query)).scalars().all()
-
-            if len(tags) != len(data.tag_ids):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tag IDs"
-                )
-
-            task.tags = list(tags)
-
-        update_data = data.model_dump(
-            exclude_unset=True,
-            exclude={"tag_ids"},
-        )
-        for key, value in update_data.items():
-            setattr(task, key, value)
-
-        session.add(task)
-        await session.commit()
-        await session.refresh(task)
-        return task
-
-    @staticmethod
-    async def delete_task(
-        session: AsyncSession,
-        task: Task,
-    ) -> None:
-        await session.delete(task)
-        await session.commit()
+        return await BoardService._get_task_with_tags(session, new_task.id)
 
     @staticmethod
     async def move_task(
@@ -226,6 +189,7 @@ class BoardService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Target column invalid or belongs to another project",
                 )
+            await BoardService._check_column_limit(session, data.new_column_id)
 
         attempts = 0
         while attempts < 2:
@@ -242,8 +206,8 @@ class BoardService:
             task.position = new_position
             session.add(task)
             await session.commit()
-            await session.refresh(task)
-            return task
+
+            return await BoardService._get_task_with_tags(session, task.id)
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -316,3 +280,57 @@ class BoardService:
             session.add(task)
 
         await session.flush()
+
+    @staticmethod
+    async def update_task(
+        session: AsyncSession,
+        task: Task,
+        data: TaskUpdate,
+    ) -> Task:
+        if data.assignee_id is not None:
+            if task.assignee_id != data.assignee_id:
+                stmt = (
+                    select(1)
+                    .where(
+                        ProjectMember.project_id == task.project_id,
+                        ProjectMember.user_id == data.assignee_id,
+                    )
+                    .limit(1)
+                )
+                if not (await session.scalar(stmt)):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="New assignee is not a member of this project.",
+                    )
+
+        if data.tag_ids is not None:
+            tags_query = select(Tag).where(
+                Tag.id.in_(data.tag_ids), Tag.project_id == task.project_id
+            )
+            tags = (await session.execute(tags_query)).scalars().all()
+            if len(tags) != len(data.tag_ids):
+                raise HTTPException(status_code=400, detail="Invalid tag IDs")
+            task.tags = list(tags)
+
+        update_data = data.model_dump(exclude_unset=True, exclude={"tag_ids"})
+        for key, value in update_data.items():
+            setattr(task, key, value)
+
+        session.add(task)
+        await session.commit()
+
+        return await BoardService._get_task_with_tags(session, task.id)
+
+    @staticmethod
+    async def delete_task(
+        session: AsyncSession,
+        task: Task,
+    ) -> None:
+        await session.delete(task)
+        await session.commit()
+
+    @staticmethod
+    async def _get_task_with_tags(session: AsyncSession, task_id: int) -> Task:
+        stmt = select(Task).where(Task.id == task_id).options(selectinload(Task.tags))
+        result = await session.execute(stmt)
+        return result.scalar_one()

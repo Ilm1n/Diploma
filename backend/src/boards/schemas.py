@@ -44,6 +44,7 @@ class TaskRead(TaskBase):
 
 class ColumnBase(BaseSchema):
     name: str = Field(min_length=1, max_length=100)
+    tasks_limit: int | None = Field(None, gt=0)
 
 
 class ColumnCreate(ColumnBase):
@@ -52,6 +53,7 @@ class ColumnCreate(ColumnBase):
 
 class ColumnUpdate(BaseSchema):
     name: str | None = Field(None, min_length=1, max_length=100)
+    tasks_limit: int | None = Field(None, gt=0)
 
 
 class ColumnReorderRequest(BaseSchema):
@@ -62,4 +64,5 @@ class ColumnRead(ColumnBase):
     id: int
     project_id: int
     position: float
+    tasks_limit: int | None
     tasks: list[TaskRead] = Field(default_factory=list)
