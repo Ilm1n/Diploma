@@ -10,6 +10,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,6 +59,7 @@ class ProjectMember(Base, TimestampMixin):
     __tablename__ = "project_members"
     __table_args__ = (
         UniqueConstraint("project_id", "user_id", name="idx_unique_project_user"),
+        Index("idx_project_members_user", "user_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

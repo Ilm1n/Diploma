@@ -39,6 +39,12 @@ class AuthJWT(BaseModel):
     refresh_token_expire_days: int = 30
 
 
+class FilesConfig(BaseModel):
+    static_url: str = "/static"
+    static_dir: Path = BASE_DIR / "static"
+    avatars_dir: Path = BASE_DIR / "static" / "avatars"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(BASE_DIR / ".env.template", BASE_DIR / ".env"),
@@ -51,6 +57,7 @@ class Settings(BaseSettings):
     db: DatabaseConfig
     auth_jwt: AuthJWT = AuthJWT()
     invite: InvitationConfig = InvitationConfig()
+    files: FilesConfig = FilesConfig()
 
 
 settings = Settings()

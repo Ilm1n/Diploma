@@ -1,9 +1,11 @@
+import os
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.config import settings
 from src.core.db.database import db_helper
@@ -49,6 +51,13 @@ main_app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+settings.files.avatars_dir.mkdir(parents=True, exist_ok=True)
+main_app.mount(
+    settings.files.static_url,
+    StaticFiles(directory=settings.files.static_dir),
+    name="static",
 )
 
 main_app.include_router(auth_router, prefix="/api")
