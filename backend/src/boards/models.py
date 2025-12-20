@@ -1,6 +1,14 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Enum as SQLEnum, Float, ForeignKey, String, Text
+from sqlalchemy import (
+    CheckConstraint,
+    Enum as SQLEnum,
+    Float,
+    ForeignKey,
+    String,
+    Text,
+    Index,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.boards.constants import TaskPriority
@@ -41,6 +49,9 @@ class Task(Base, TimestampMixin):
     __tablename__ = "tasks"
     __table_args__ = (
         CheckConstraint("length(title) > 0", name="check_task_title_length"),
+        Index("idx_tasks_column_position", "column_id", "position"),
+        Index("idx_tasks_project", "project_id"),
+        Index("idx_tasks_assignee", "assignee_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

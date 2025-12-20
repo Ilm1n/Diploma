@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
@@ -175,6 +175,38 @@ class BoardService:
         await session.commit()
 
         return await BoardService._get_task_with_tags(session, new_task.id)
+
+    @staticmethod
+    async def get_project_tasks(
+        session: AsyncSession,
+        project_id: int,
+        assignee_id: int | None = None,
+        tag_ids: list[int] | None = None,
+        search: str | None = None,
+    ) -> Sequence[Task]:
+        stmt = (
+            select(Task)
+            .where(Task.project_id == project_id)
+            .options(selectinload(Task.tags), selectinload(Task.assignee))
+            .order_by(Task.updated_at.desc())
+        )
+
+        if assignee_id:
+            stmt = stmt.where(Task.assignee_id == assignee_id)
+
+        if search:
+            stmt = stmt.where(
+                or_(
+                    Task.title.ilike(f"%{search}%"),
+                    Task.description.ilike(f"%{search}%"),
+                )
+            )
+
+        if tag_ids:
+            stmt = stmt.join(Task.tags).where(Tag.id.in_(tag_ids)).distinct()
+
+        result = await session.execute(stmt)
+        return result.scalars().all()
 
     @staticmethod
     async def move_task(

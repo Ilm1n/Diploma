@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
@@ -109,6 +109,20 @@ async def create_task(
 ):
     return await BoardService.create_task(
         session, project_id, column.id, task_in, current_user.id
+    )
+
+
+@router.get("/projects/{project_id}/tasks", response_model=list[TaskRead])
+async def get_project_tasks(
+    project_id: int,
+    _: Annotated[Project, Depends(require_project_member)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    assignee_id: Annotated[int | None, Query()] = None,
+    tag_ids: Annotated[list[int] | None, Query()] = None,
+    search: Annotated[str | None, Query(min_length=3)] = None,
+):
+    return await BoardService.get_project_tasks(
+        session, project_id, assignee_id=assignee_id, tag_ids=tag_ids, search=search
     )
 
 
