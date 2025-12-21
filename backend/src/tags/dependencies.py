@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
-from src.core.db.database import db_helper
+from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.models import ProjectMember
 from src.tags.models import Tag

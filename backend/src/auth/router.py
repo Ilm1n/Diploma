@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth import schemas
 from src.auth.dependencies import get_current_user_for_refresh
 from src.auth.service import AuthService
-from src.core.db.database import db_helper
+from src.db.database import db_helper
 from src.users.models import User
 
 router = APIRouter(

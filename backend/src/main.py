@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from src.config import settings
-from src.core.db.database import db_helper
+from src.db.database import db_helper
 from src.auth.router import router as auth_router
 from src.boards.router import router as board_router
 from src.projects.router import router as project_router

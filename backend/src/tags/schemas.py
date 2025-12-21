@@ -1,7 +1,7 @@
 from pydantic import Field
 
-from src.core.constants import HEX_COLOR_PATTERN
-from src.core.schemas import BaseSchema
+from src.constants import HEX_COLOR_PATTERN
+from src.schemas import BaseSchema
 
 
 class TagBase(BaseSchema):

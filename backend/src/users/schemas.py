@@ -1,6 +1,6 @@
 from pydantic import EmailStr, Field
 
-from src.core.schemas import BaseSchema
+from src.schemas import BaseSchema
 
 
 class UserBase(BaseSchema):

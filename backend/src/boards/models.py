@@ -12,8 +12,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.boards.constants import TaskPriority
-from src.core.db.base import Base
-from src.core.db.mixins import TimestampMixin
+from src.db.base import Base
+from src.db.mixins import TimestampMixin
 
 from src.tags.models import Tag, task_tags
 

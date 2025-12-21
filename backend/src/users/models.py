@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.db.base import Base
-from src.core.db.mixins import TimestampMixin
+from src.db.base import Base
+from src.db.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from src.projects.models import ProjectMember

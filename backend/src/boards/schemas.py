@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import Field
 
 from src.boards.constants import TaskPriority
-from src.core.schemas import BaseSchema
+from src.schemas import BaseSchema
 from src.tags.schemas import TagRead
 
 

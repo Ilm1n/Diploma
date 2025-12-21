@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import Field, EmailStr
-from src.core.schemas import BaseSchema
+from src.schemas import BaseSchema
 from src.projects.constants import ProjectRole
 
 

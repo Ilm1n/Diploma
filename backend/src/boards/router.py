@@ -17,7 +17,7 @@ from src.boards.schemas import (
     ColumnReorderRequest,
 )
 from src.boards.service import BoardService
-from src.core.db.database import db_helper
+from src.db.database import db_helper
 
 from src.projects.dependencies import (
     require_project_member,

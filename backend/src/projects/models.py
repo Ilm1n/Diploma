@@ -14,8 +14,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.db.base import Base
-from src.core.db.mixins import TimestampMixin
+from src.db.base import Base
+from src.db.mixins import TimestampMixin
 from src.projects.constants import ProjectRole
 
 if TYPE_CHECKING:

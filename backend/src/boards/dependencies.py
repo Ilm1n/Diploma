@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from src.auth.dependencies import get_current_user
 from src.boards.models import BoardColumn, Task
-from src.core.db.database import db_helper
+from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.models import ProjectMember
 from src.users.models import User

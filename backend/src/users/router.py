@@ -9,8 +9,8 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
-from src.core.db.database import db_helper
-from src.core.s3 import S3Client, get_s3_client
+from src.db.database import db_helper
+from src.s3 import S3Client, get_s3_client
 from src.users.dependencies import valid_avatar
 from src.users.models import User
 from src.users.schemas import UserCreate, UserRead, UserUpdate, UserPublic

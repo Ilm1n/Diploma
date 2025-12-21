@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
-from src.core.db.database import db_helper
+from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.dependencies import (
     require_project_owner,

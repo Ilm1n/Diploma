@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, DateTime, func, Integer
+from sqlalchemy import ForeignKey, String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.db.base import Base
+from src.db.base import Base
 from src.projects.constants import ProjectRole
 
 if TYPE_CHECKING:
