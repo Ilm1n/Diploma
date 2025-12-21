@@ -1,12 +1,13 @@
-import shutil
 import uuid
+from urllib.parse import urlparse
 
-from fastapi import HTTPException, status, UploadFile
+from fastapi import HTTPException, status, BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.core.security as security
 from src.config import settings
+from src.core.s3 import S3Client
 from src.users.models import User
 from src.users.schemas import UserCreate, UserUpdate
 
@@ -77,40 +78,61 @@ class UserService:
 
     @staticmethod
     async def upload_avatar(
-        session: AsyncSession, user: User, file: UploadFile
+        session: AsyncSession,
+        user: User,
+        file_data: bytes,
+        extension: str,
+        mime_type: str,
+        s3_client: S3Client,
+        background_tasks: BackgroundTasks,
     ) -> User:
-        if user.avatar_url:
-            url_prefix = f"{settings.files.static_url}/avatars/"
-
-            if user.avatar_url.startswith(url_prefix):
-                filename = user.avatar_url.replace(url_prefix, "")
-
-                old_file_path = settings.files.avatars_dir / filename
-
-                try:
-                    old_file_path.unlink(missing_ok=True)
-                except Exception as e:
-                    print(f"Failed to delete old avatar: {e}")
-
-        extension = file.filename.split(".")[-1].lower()
-        if extension not in ["jpg", "jpeg", "png", "webp"]:
-            extension = "jpg"
-
-        file_name = f"user_{user.id}_{uuid.uuid4()}.{extension}"
-
-        destination_path = settings.files.avatars_dir / file_name
+        old_avatar_url = user.avatar_url
+        object_name = f"avatars/user_{user.id}_{uuid.uuid4()}.{extension}"
 
         try:
-            with destination_path.open("wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-        finally:
-            await file.close()
-
-        public_url = f"{settings.files.static_url}/avatars/{file_name}"
+            public_url = await s3_client.upload_file(
+                file_data=file_data,
+                object_name=object_name,
+                content_type=mime_type,
+            )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="File upload failed",
+            )
 
         user.avatar_url = public_url
         session.add(user)
-        await session.commit()
-        await session.refresh(user)
+
+        try:
+            await session.commit()
+            await session.refresh(user)
+        except Exception:
+            await session.rollback()
+            await s3_client.delete_file(object_name)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database commit failed",
+            )
+
+        if old_avatar_url:
+            UserService._schedule_old_avatar_deletion(
+                old_avatar_url, background_tasks, s3_client
+            )
 
         return user
+
+    @staticmethod
+    def _schedule_old_avatar_deletion(
+        url: str,
+        bg_tasks: BackgroundTasks,
+        s3_client: S3Client,
+    ):
+        try:
+            parsed = urlparse(url)
+            path = parsed.path.lstrip("/")
+            if path.startswith(settings.s3.bucket_name):
+                key = path.replace(f"{settings.s3.bucket_name}/", "", 1)
+                bg_tasks.add_task(s3_client.delete_file, key)
+        except Exception as e:
+            print(f"Failed to schedule old avatar deletion: {e}")

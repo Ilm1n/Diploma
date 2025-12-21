@@ -1,10 +1,17 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File
+from fastapi import (
+    APIRouter,
+    Depends,
+    status,
+    BackgroundTasks,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
 from src.core.db.database import db_helper
+from src.core.s3 import S3Client, get_s3_client
+from src.users.dependencies import valid_avatar
 from src.users.models import User
 from src.users.schemas import UserCreate, UserRead, UserUpdate, UserPublic
 from src.users.service import UserService
@@ -51,16 +58,22 @@ async def read_user_by_id(
     return await UserService.get_user_by_id(session, user_id)
 
 
-@router.post("/users/me/avatar", response_model=UserRead)
+@router.post("/me/avatar", response_model=UserRead)
 async def upload_avatar(
-    file: Annotated[UploadFile, File(description="Файл изображения (jpg, png, webp)")],
+    file_data: Annotated[tuple[bytes, str, str], Depends(valid_avatar)],
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    s3_client: Annotated[S3Client, Depends(get_s3_client)],
+    bg_tasks: BackgroundTasks,
 ):
-    allowed_types = ["image/jpeg", "image/png", "image/webp"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}",
-        )
-    return await UserService.upload_avatar(session=session, user=user, file=file)
+    content, ext, mime = file_data
+
+    return await UserService.upload_avatar(
+        session=session,
+        user=user,
+        file_data=content,
+        extension=ext,
+        mime_type=mime,
+        s3_client=s3_client,
+        background_tasks=bg_tasks,
+    )

@@ -39,10 +39,17 @@ class AuthJWT(BaseModel):
     refresh_token_expire_days: int = 30
 
 
-class FilesConfig(BaseModel):
-    static_url: str = "/static"
-    static_dir: Path = BASE_DIR / "static"
-    avatars_dir: Path = BASE_DIR / "static" / "avatars"
+class S3Config(BaseModel):
+    access_key: str
+    secret_key: str
+    bucket_name: str
+    endpoint_url: str = "https://s3.ru1.storage.beget.cloud"
+    region_name: str = "ru1"
+
+
+class Files(BaseModel):
+    avatar_max_size: int = 5 * 1024 * 1024  # 5 MB
+    avatar_allowed_types: list[str] = ["image/jpeg", "image/png", "image/webp"]
 
 
 class Settings(BaseSettings):
@@ -57,7 +64,8 @@ class Settings(BaseSettings):
     db: DatabaseConfig
     auth_jwt: AuthJWT = AuthJWT()
     invite: InvitationConfig = InvitationConfig()
-    files: FilesConfig = FilesConfig()
+    s3: S3Config
+    files: Files = Files()
 
 
 settings = Settings()
