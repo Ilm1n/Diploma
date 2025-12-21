@@ -33,6 +33,9 @@ class Project(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    color: Mapped[str] = mapped_column(
+        String(9), default="#3B82F6", server_default="#3B82F6", nullable=False
+    )
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
     )

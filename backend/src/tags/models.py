@@ -30,7 +30,9 @@ class Tag(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
-    color: Mapped[str] = mapped_column(String(20), default="#9CA3AF")
+    color: Mapped[str] = mapped_column(
+        String(9), default="#9CA3AF", server_default="#9CA3AF"
+    )
 
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE")

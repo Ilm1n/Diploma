@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import Field
 
+from src.core.constants import HEX_COLOR_PATTERN
 from src.core.schemas import BaseSchema
 from src.projects.constants import ProjectRole
 from src.users.schemas import UserPublic
@@ -10,6 +11,7 @@ from src.users.schemas import UserPublic
 class ProjectBase(BaseSchema):
     name: str = Field(min_length=1, max_length=200)
     description: str | None = Field(None, min_length=1)
+    color: str = Field(default="#3B82F6", pattern=HEX_COLOR_PATTERN)
 
 
 class ProjectCreate(ProjectBase):
@@ -19,6 +21,7 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseSchema):
     name: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = Field(None, min_length=1)
+    color: str | None = Field(None, pattern=HEX_COLOR_PATTERN)
 
 
 class ProjectRead(ProjectBase):
