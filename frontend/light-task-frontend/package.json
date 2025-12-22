@@ -13,6 +13,7 @@
     "@primevue/themes": "^4.5.4",
     "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",
+    "form-data": "^4.0.5",
     "pinia": "^3.0.4",
     "primevue": "^4.5.4",
     "vue": "^3.5.24",
