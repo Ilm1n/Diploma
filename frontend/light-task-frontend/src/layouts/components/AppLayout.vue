@@ -34,11 +34,11 @@ const menuItems = [
 
     <!-- SIDEBAR -->
     <aside
-        class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-white dark:bg-dark-surface border-r border-gray-200 dark:border-dark-border transform transition-transform duration-300 lg:transform-none flex flex-col"
+        class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-white dark:bg-dark-surface border-r border-gray-300 dark:border-dark-border transform transition-transform duration-300 lg:transform-none flex flex-col"
         :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <!-- Logo Area -->
-      <div class="h-20 flex items-center px-8 border-b border-gray-100 dark:border-dark-border/50">
+      <div class="h-20 flex items-center px-8 border-b border-gray-200 dark:border-dark-border/50">
         <i class="pi pi-bolt text-primary-500 text-2xl mr-3"></i>
         <span class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">LightTask</span>
       </div>
@@ -54,7 +54,7 @@ const menuItems = [
       </nav>
 
       <!-- User Profile & Footer -->
-      <div class="p-4 border-t border-gray-100 dark:border-dark-border/50 bg-gray-50/50 dark:bg-slate-800/50">
+      <div class="p-4 border-t border-gray-200 dark:border-dark-border/50 bg-gray-50/50 dark:bg-slate-800/50">
 
         <!-- Theme Toggle (Mini version) -->
         <div class="flex justify-between items-center mb-4 px-2">

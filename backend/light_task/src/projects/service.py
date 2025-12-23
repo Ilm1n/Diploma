@@ -27,6 +27,7 @@ class ProjectService:
         new_project = Project(
             name=project_in.name,
             description=project_in.description,
+            color=project_in.color,
             owner_id=user.id,
         )
         session.add(new_project)

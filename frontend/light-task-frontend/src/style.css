@@ -25,3 +25,24 @@
 body {
   @apply bg-gray-50 text-slate-800 dark:bg-dark-bg dark:text-gray-100 transition-colors duration-300;
 }
+
+.dark .p-dialog {
+  background-color: #1e293b; /* slate-800 */
+  border: 1px solid #334155; /* slate-700 */
+}
+
+.dark .p-dialog-header,
+.dark .p-dialog-content,
+.dark .p-dialog-footer {
+  background-color: transparent !important;
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
+.dark .p-dialog-header-icon {
+  color: #94a3b8; /* slate-400 */
+}
+
+.dark .p-dialog-header-icon:hover {
+  background-color: #334155; /* slate-700 */
+  color: white;
+}
