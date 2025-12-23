@@ -34,21 +34,29 @@ const router = createRouter({
 
 router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();
+
+  if (to.path === '/login') {
+    if (authStore.isAuthenticated) {
+      return next('/');
+    }
+    return next();
+  }
+
   if (!authStore.user && authStore.accessToken) {
     try {
       await authStore.fetchUser();
     } catch (e) {
+      console.error('Session restore failed:', e);
+      authStore.logout();
       return next('/login');
     }
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login');
-  } else if (to.path === '/login' && authStore.isAuthenticated) {
-    next('/');
-  } else {
-    next();
+    return next('/login');
   }
+
+  next();
 });
 
 export default router;

@@ -209,30 +209,4 @@ const toggleUserMenu = (event: Event) => {
 </template>
 
 <style>
-.dark .p-menu {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
-}
-
-.dark .p-menu .p-menu-item-link {
-  color: #cbd5e1 !important;
-}
-
-.dark .p-menu .p-menu-item-icon {
-  color: #94a3b8 !important;
-}
-
-.dark .p-menu .p-menu-item-content:hover .p-menu-item-link {
-  background-color: #334155 !important;
-  color: #ffffff !important;
-}
-
-.dark .p-menu .p-menu-item-content:hover .p-menu-item-icon {
-  color: #ffffff !important;
-}
-
-.dark .p-menu .p-menu-separator {
-  border-color: #334155 !important;
-}
 </style>

@@ -141,7 +141,7 @@ const onSubmit = handleSubmit(async (values) => {
             type="submit"
             label="Войти"
             :loading="isSubmitting"
-            class="w-full !rounded-xl !bg-primary-600 hover:!bg-primary-700 !border-none !py-3.5 !text-base !font-semibold shadow-lg shadow-primary-500/30 transition-all hover:scale-[1.02]"
+            class="w-full !rounded-xl !bg-primary-600 hover:!bg-primary-700 !border-none !py-3.5 !text-base !font-semibold shadow-md shadow-primary-500/30 transition-all hover:scale-[1.02] !text-white"
         />
       </form>
 

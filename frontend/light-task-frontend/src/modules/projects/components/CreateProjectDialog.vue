@@ -73,6 +73,8 @@ const onSubmit = handleSubmit(async (values) => {
       :draggable="false"
       class="p-dialog-custom"
   >
+    <!-- Убрали все классы цветов из Dialog, оставили только логику -->
+
     <form
         @submit="onSubmit"
         class="flex flex-col gap-6 mt-2"
@@ -92,7 +94,7 @@ const onSubmit = handleSubmit(async (values) => {
             v-bind="nameAttrs"
             :invalid="!!errors.name"
             placeholder="Например: Redesign 2025"
-            class="w-full !p-3 !bg-white dark:!bg-slate-900 !border-gray-300 dark:!border-slate-600 text-slate-900 dark:text-white focus:!border-primary-500"
+            class="w-full !p-3"
         />
         <small
             class="text-red-500 font-medium"
@@ -114,7 +116,7 @@ const onSubmit = handleSubmit(async (values) => {
             v-bind="descriptionAttrs"
             rows="3"
             placeholder="Краткое описание целей..."
-            class="w-full resize-none !p-3 !bg-white dark:!bg-slate-900 !border-gray-300 dark:!border-slate-600 text-slate-900 dark:text-white focus:!border-primary-500"
+            class="w-full resize-none !p-3"
         />
       </div>
 
@@ -123,6 +125,7 @@ const onSubmit = handleSubmit(async (values) => {
         <label class="font-bold text-base text-slate-800 dark:text-white">
           Цвет обложки
         </label>
+        <!-- Здесь вручную задаем цвета, так как это div -->
         <div class="flex items-center gap-4 p-3 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-900">
           <ColorPicker
               v-model="selectedColor"
@@ -150,14 +153,14 @@ const onSubmit = handleSubmit(async (values) => {
             text
             severity="secondary"
             @click="emit('update:visible', false)"
-            class="!font-bold dark:!text-slate-300 dark:hover:!text-white"
+            class="!font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
         />
         <Button
             type="submit"
             label="Создать проект"
             icon="pi pi-check"
             :loading="isSubmitting"
-            class="!bg-primary-600 hover:!bg-primary-700 !border-none !rounded-lg !px-6 !font-bold shadow-lg shadow-primary-500/20"
+            class="!bg-primary-600 hover:!bg-primary-700 !border-none !rounded-lg !px-6 !font-bold shadow-lg shadow-primary-500/20 !text-white"
         />
       </div>
     </form>
