@@ -12,7 +12,6 @@ export const useProjectsStore = defineStore('projects', () => {
   async function fetchProjects() {
     isLoading.value = true;
     try {
-      // Генератор создал метод getMyProjectsApiProjectsGet
       const response = await apiClient.projects.getMyProjectsApiProjectsGet();
       projects.value = response;
     } catch (error) {
@@ -27,7 +26,6 @@ export const useProjectsStore = defineStore('projects', () => {
     isLoading.value = true;
     try {
       const newProject = await apiClient.projects.createProjectApiProjectsPost(payload);
-      // Добавляем новый проект в начало списка локально (чтобы не перезагружать всё)
       projects.value.unshift(newProject);
       return newProject;
     } catch (error) {

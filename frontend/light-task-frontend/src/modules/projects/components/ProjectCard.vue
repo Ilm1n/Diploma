@@ -9,7 +9,7 @@ const props = defineProps<{
   project: ProjectRead;
 }>();
 
-// Форматируем дату (можно вынести в utils)
+// Форматируем дату
 const formattedDate = computed(() => {
   return new Date(props.project.updatedAt).toLocaleDateString('ru-RU', {
     day: 'numeric',

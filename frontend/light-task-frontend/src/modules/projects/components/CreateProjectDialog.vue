@@ -25,7 +25,7 @@ const emit = defineEmits(['update:visible']);
 const store = useProjectsStore();
 const toast = useToast();
 
-// Дефолтный цвет (без решетки для ColorPicker)
+// Дефолтный цвет
 const selectedColor = ref('3B82F6');
 
 const schema = toTypedSchema(z.object({
@@ -80,7 +80,6 @@ const onSubmit = handleSubmit(async (values) => {
 
       <!-- Name -->
       <div class="flex flex-col gap-2">
-        <!-- Лейбл: Slate-800 на светлом, White на темном -->
         <label
             for="p-name"
             class="font-bold text-base text-slate-800 dark:text-white"
@@ -166,7 +165,6 @@ const onSubmit = handleSubmit(async (values) => {
 </template>
 
 <style scoped>
-/* Стилизуем сам ColorPicker от PrimeVue, чтобы он был покрупнее */
 :deep(.p-colorpicker-preview) {
   width: 2.5rem;
   height: 2.5rem;

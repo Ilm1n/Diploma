@@ -2,24 +2,63 @@
     setup
     lang="ts"
 >
-import {ref} from 'vue';
+import {ref, watch} from 'vue';
+import {useRouter} from 'vue-router';
 import {useAuthStore} from '@/modules/auth/store/auth.store';
 import {useTheme} from '@/composables/useTheme';
 import SidebarLink from '@/layouts/components/SidebarLink.vue';
 import Avatar from 'primevue/avatar';
+import Menu from 'primevue/menu'; //
 
 const authStore = useAuthStore();
+const router = useRouter();
 const {isDark, toggleTheme} = useTheme();
 const isMobileMenuOpen = ref(false);
+
+const isSidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true');
+
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
+
+watch(isSidebarCollapsed, (val) => {
+  localStorage.setItem('sidebarCollapsed', String(val));
+});
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
 };
 
-// Меню навигации
 const menuItems = [
   {label: 'Проекты', to: '/', icon: 'pi pi-th-large'},
 ];
+
+// --- Логика Меню Пользователя ---
+const userMenu = ref();
+const userMenuItems = [
+  {
+    label: 'Профиль',
+    icon: 'pi pi-user',
+    command: () => {
+      router.push('/profile');
+    }
+  },
+  {
+    separator: true
+  },
+  {
+    label: 'Выйти',
+    icon: 'pi pi-sign-out',
+    class: 'text-red-500',
+    command: () => {
+      authStore.logout();
+    }
+  }
+];
+
+const toggleUserMenu = (event: Event) => {
+  userMenu.value.toggle(event);
+};
 </script>
 
 <template>
@@ -34,75 +73,115 @@ const menuItems = [
 
     <!-- SIDEBAR -->
     <aside
-        class="fixed lg:static inset-y-0 left-0 z-30 w-72 bg-white dark:bg-dark-surface border-r border-gray-300 dark:border-dark-border transform transition-transform duration-300 lg:transform-none flex flex-col"
-        :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed lg:static inset-y-0 left-0 z-30 bg-white dark:bg-dark-surface border-r border-gray-200 dark:border-dark-border transform transition-all duration-300 ease-in-out flex flex-col overflow-hidden"
+        :class="[
+        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        isSidebarCollapsed ? 'w-20' : 'w-72'
+      ]"
     >
-      <!-- Logo Area -->
-      <div class="h-20 flex items-center px-8 border-b border-gray-200 dark:border-dark-border/50">
-        <i class="pi pi-bolt text-primary-500 text-2xl mr-3"></i>
-        <span class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">LightTask</span>
+      <!-- HEADER -->
+      <div class="h-16 flex items-center px-5 border-b border-gray-100 dark:border-dark-border/50 flex-shrink-0 transition-all duration-300">
+        <div
+            class="flex items-center gap-3 overflow-hidden transition-all duration-300 ease-in-out whitespace-nowrap"
+            :class="isSidebarCollapsed ? 'w-0 opacity-0 mr-0' : 'w-40 opacity-100 mr-auto'"
+        >
+          <i class="pi pi-bolt text-primary-500 text-2xl flex-shrink-0"></i>
+          <span class="text-lg font-bold text-slate-800 dark:text-white tracking-tight">LightTask</span>
+        </div>
+
+        <button
+            @click="toggleSidebar"
+            class="w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
+            :title="isSidebarCollapsed ? 'Развернуть' : 'Свернуть'"
+        >
+          <i
+              class="pi"
+              :class="isSidebarCollapsed ? 'pi-align-justify' : 'pi-align-left'"
+              style="font-size: 1.1rem"
+          ></i>
+        </button>
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+      <nav class="flex-1 px-3 py-6 space-y-2 overflow-y-auto overflow-x-hidden">
         <SidebarLink
             v-for="item in menuItems"
             :key="item.to"
             v-bind="item"
+            :collapsed="isSidebarCollapsed"
             @click="isMobileMenuOpen = false"
         />
       </nav>
 
       <!-- User Profile & Footer -->
-      <div class="p-4 border-t border-gray-200 dark:border-dark-border/50 bg-gray-50/50 dark:bg-slate-800/50">
+      <div class="border-t border-gray-100 dark:border-dark-border/50 bg-gray-50/50 dark:bg-slate-800/50 overflow-hidden flex-shrink-0">
 
-        <!-- Theme Toggle (Mini version) -->
-        <div class="flex justify-between items-center mb-4 px-2">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Тема</span>
+        <!-- Theme Toggle -->
+        <div class="flex items-center px-5 h-12 transition-all duration-300">
+          <span
+              class="text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out"
+              :class="isSidebarCollapsed ? 'w-0 opacity-0' : 'w-full opacity-100'"
+          >
+            Тема
+          </span>
           <button
               @click="toggleTheme"
-              class="text-slate-500 hover:text-primary-500 transition-colors"
+              class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-primary-500 transition-colors flex-shrink-0"
           >
             <i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'"></i>
           </button>
         </div>
 
-        <!-- User Info -->
-        <div
-            class="flex items-center gap-3 p-2 rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer group"
-        >
-          <Avatar
-              :image="authStore.user?.avatarUrl || undefined"
-              :label="authStore.user?.avatarUrl ? undefined : authStore.user?.username?.charAt(0).toUpperCase()"
-              class="bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200"
-              shape="circle"
-              style="background-color: transparent;"
-          />
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-slate-700 dark:text-gray-200 truncate">
-              {{ authStore.user?.username || authStore.user?.fullName }}
-            </p>
-            <p class="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {{ authStore.user?.email }}
-            </p>
-          </div>
-          <button
-              @click="authStore.logout"
-              class="text-slate-400 hover:text-red-500 transition-colors"
+        <!-- User Info (Clickable for Menu) -->
+        <div class="flex items-center px-3 pb-4 pt-2">
+          <div
+              @click="toggleUserMenu"
+              aria-haspopup="true"
+              aria-controls="user_menu"
+              class="flex items-center gap-3 p-2 w-full rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer group overflow-hidden relative"
           >
-            <i class="pi pi-sign-out"></i>
-          </button>
+            <!-- Аватар -->
+            <Avatar
+                :image="authStore.user?.avatarUrl || undefined"
+                :label="authStore.user?.avatarUrl ? undefined : authStore.user?.username?.charAt(0).toUpperCase()"
+                class="bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200 flex-shrink-0 transition-all duration-300"
+                shape="circle"
+                style="background-color: transparent;"
+            />
+
+            <!-- Текст -->
+            <div
+                class="flex items-center justify-between overflow-hidden transition-all duration-300 ease-in-out"
+                :class="isSidebarCollapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100 min-w-[120px]'"
+            >
+              <div class="min-w-0 mr-2 ml-2">
+                <p class="text-sm font-semibold text-slate-700 dark:text-gray-200 truncate">
+                  {{ authStore.user?.username || authStore.user?.fullName }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {{ authStore.user?.email }}
+                </p>
+              </div>
+
+              <i class="pi pi-chevron-up text-xs text-slate-400 mr-1"></i>
+            </div>
+          </div>
         </div>
       </div>
     </aside>
 
+    <!-- Компонент Меню  -->
+    <Menu
+        ref="userMenu"
+        id="user_menu"
+        :model="userMenuItems"
+        :popup="true"
+    />
+
     <!-- MAIN CONTENT -->
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-
       <!-- Mobile Header -->
-      <header
-          class="lg:hidden h-16 bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border flex items-center px-4 justify-between shrink-0"
-      >
+      <header class="lg:hidden h-16 bg-white dark:bg-dark-surface border-b border-gray-200 dark:border-dark-border flex items-center px-4 justify-between shrink-0">
         <div class="flex items-center gap-3">
           <button
               @click="toggleMobileMenu"
@@ -113,16 +192,14 @@ const menuItems = [
           <span class="font-bold text-slate-800 dark:text-white">LightTask</span>
         </div>
         <Avatar
-            :image="authStore.user?.avatarUrl || undefined"
-            :label="authStore.user?.avatarUrl ? undefined : authStore.user?.username?.charAt(0).toUpperCase()"
+            :label="authStore.user?.username?.charAt(0).toUpperCase()"
             shape="circle"
             class="!w-8 !h-8 bg-primary-100 text-primary-600"
+            @click="toggleUserMenu"
         />
       </header>
 
-      <!-- Scrollable Area -->
       <div class="flex-1 overflow-auto scroll-smooth">
-        <!-- Контейнер для контента страниц -->
         <div class="h-full">
           <router-view />
         </div>
@@ -130,3 +207,32 @@ const menuItems = [
     </main>
   </div>
 </template>
+
+<style>
+.dark .p-menu {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark .p-menu .p-menu-item-link {
+  color: #cbd5e1 !important;
+}
+
+.dark .p-menu .p-menu-item-icon {
+  color: #94a3b8 !important;
+}
+
+.dark .p-menu .p-menu-item-content:hover .p-menu-item-link {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+.dark .p-menu .p-menu-item-content:hover .p-menu-item-icon {
+  color: #ffffff !important;
+}
+
+.dark .p-menu .p-menu-separator {
+  border-color: #334155 !important;
+}
+</style>

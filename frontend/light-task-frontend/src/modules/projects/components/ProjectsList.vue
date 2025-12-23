@@ -32,7 +32,7 @@ const openCreateDialog = () => {
         <p class="text-slate-500 dark:text-slate-400 mt-1">Управляйте задачами и командами</p>
       </div>
 
-      <!-- Кнопка в хедере (Дублирующая) -->
+      <!-- Кнопка в хедере -->
       <!--            <Button-->
       <!--                label="Новый проект"-->
       <!--                icon="pi pi-plus"-->
@@ -56,10 +56,8 @@ const openCreateDialog = () => {
 
       <!-- Content -->
       <template v-else>
-        <!-- 1. Карточка создания (в начале списка, как в Trello) -->
         <CreateProjectCard @click="openCreateDialog" />
 
-        <!-- 2. Список проектов -->
         <ProjectCard
             v-for="project in store.projects"
             :key="project.id"

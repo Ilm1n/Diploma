@@ -46,3 +46,36 @@ body {
   background-color: #334155; /* slate-700 */
   color: white;
 }
+
+.dark .p-menu {
+  background: #1e293b !important; /* slate-800 */
+  border-color: #334155 !important; /* slate-700 */
+  color: #e2e8f0 !important;
+}
+
+
+.dark .p-menu .p-menu-item-link {
+  color: #cbd5e1 !important; /* slate-300 */
+  background: transparent !important;
+}
+
+.dark .p-menu .p-menu-item-icon {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+.dark .p-menu .p-menu-item-content:hover .p-menu-item-link,
+.dark .p-menu .p-menu-item-content:focus-within .p-menu-item-link,
+.dark .p-menu .p-menu-item.p-focus .p-menu-item-link {
+  background-color: #334155 !important; /* slate-700*/
+  color: #ffffff !important;
+}
+
+.dark .p-menu .p-menu-item-content:hover .p-menu-item-icon,
+.dark .p-menu .p-menu-item-content:focus-within .p-menu-item-icon,
+.dark .p-menu .p-menu-item.p-focus .p-menu-item-icon {
+  color: #ffffff !important;
+}
+
+.dark .p-menu .p-menu-separator {
+  border-color: #334155 !important;
+}
