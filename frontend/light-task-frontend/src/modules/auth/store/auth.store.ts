@@ -1,14 +1,18 @@
 // src/modules/auth/store/auth.store.ts
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { apiClient } from '@/api/config';
-import type { UserRead, Body_login_for_access_token_api_auth_login_post } from '@/api/client';
-import { useRouter } from 'vue-router';
+import {defineStore} from 'pinia';
+import {ref, computed} from 'vue';
+import {apiClient} from '@/api/config';
+import type {
+  UserRead,
+  Body_login_for_access_token_api_auth_login_post
+} from '@/api/client';
+import {useRouter} from 'vue-router';
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
   const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
+  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'));
   const user = ref<UserRead | null>(null);
   const isLoading = ref(false);
 
@@ -32,7 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await apiClient.auth.loginForAccessTokenApiAuthLoginPost(credentials);
 
       if (response.accessToken) {
-        setToken(response.accessToken);
+        setTokens(response.accessToken, response.refreshToken);
         await fetchUser();
         return true;
       }
@@ -61,22 +65,27 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = null;
     user.value = null;
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     router.push('/login');
   }
 
-  function setToken(token: string) {
-    accessToken.value = token;
-    localStorage.setItem('accessToken', token);
+  function setTokens(access: string, refresh: string) {
+    accessToken.value = access;
+    refreshToken.value = refresh;
+    localStorage.setItem('accessToken', access);
+    localStorage.setItem('refreshToken', refresh);
   }
 
   return {
     accessToken,
+    refreshToken,
     user,
     isLoading,
     isAuthenticated,
     login,
     logout,
     fetchUser,
-    initAuth
+    initAuth,
+    setTokens,
   };
 });
