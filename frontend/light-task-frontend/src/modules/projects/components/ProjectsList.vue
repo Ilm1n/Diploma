@@ -7,7 +7,7 @@ import {useProjectsStore} from '../store/projects.store';
 import ProjectCard from './ProjectCard.vue';
 import CreateProjectCard from './CreateProjectCard.vue';
 import CreateProjectDialog from './CreateProjectDialog.vue';
-import Button from 'primevue/button';
+// import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 
 const store = useProjectsStore();
