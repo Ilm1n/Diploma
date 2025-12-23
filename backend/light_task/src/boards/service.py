@@ -5,8 +5,8 @@ from sqlalchemy import func, select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import attributes, selectinload
 
-from light_task.src.boards.models import BoardColumn, Task
-from light_task.src.boards.schemas import (
+from src.boards.models import BoardColumn, Task
+from src.boards.schemas import (
     ColumnCreate,
     TaskCreate,
     TaskMove,
@@ -14,8 +14,8 @@ from light_task.src.boards.schemas import (
     ColumnReorderRequest,
     ColumnUpdate,
 )
-from light_task.src.projects.models import ProjectMember
-from light_task.src.tags.models import Tag
+from src.projects.models import ProjectMember
+from src.tags.models import Tag
 
 POSITION_GAP = 65536.0
 MIN_POSITION_DELTA = 0.0000001

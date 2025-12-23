@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.db.database import db_helper
-from light_task.src.projects.dependencies import require_project_manager, require_project_member
-from light_task.src.projects.models import Project
-from light_task.src.tags.dependencies import get_tag_for_write
-from light_task.src.tags.models import Tag
-from light_task.src.tags.schemas import TagCreate, TagRead, TagUpdate
-from light_task.src.tags.service import TagService
+from src.db.database import db_helper
+from src.projects.dependencies import require_project_manager, require_project_member
+from src.projects.models import Project
+from src.tags.dependencies import get_tag_for_write
+from src.tags.models import Tag
+from src.tags.schemas import TagCreate, TagRead, TagUpdate
+from src.tags.service import TagService
 
 router = APIRouter(tags=["Tags"])
 

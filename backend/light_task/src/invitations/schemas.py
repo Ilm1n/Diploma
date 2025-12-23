@@ -1,7 +1,7 @@
 from datetime import datetime
 from pydantic import Field, EmailStr
-from light_task.src.schemas import BaseSchema
-from light_task.src.projects.constants import ProjectRole
+from src.schemas import BaseSchema
+from src.projects.constants import ProjectRole
 
 
 class InvitationCreate(BaseSchema):

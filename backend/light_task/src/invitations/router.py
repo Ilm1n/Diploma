@@ -3,17 +3,17 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.auth.dependencies import get_current_user
-from light_task.src.db.database import db_helper
-from light_task.src.invitations.schemas import (
+from src.auth.dependencies import get_current_user
+from src.db.database import db_helper
+from src.invitations.schemas import (
     InvitationCreate,
     InvitationRead,
     InvitationAcceptResponse,
 )
-from light_task.src.invitations.service import InvitationService
-from light_task.src.projects.dependencies import require_project_manager
-from light_task.src.projects.models import Project
-from light_task.src.users.models import User
+from src.invitations.service import InvitationService
+from src.projects.dependencies import require_project_manager
+from src.projects.models import Project
+from src.users.models import User
 
 router = APIRouter(tags=["Invitations"])
 

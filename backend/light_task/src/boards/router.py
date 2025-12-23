@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.auth.dependencies import get_current_user
-from light_task.src.boards import dependencies
-from light_task.src.boards.models import BoardColumn, Task
-from light_task.src.boards.schemas import (
+from src.auth.dependencies import get_current_user
+from src.boards import dependencies
+from src.boards.models import BoardColumn, Task
+from src.boards.schemas import (
     ColumnCreate,
     ColumnRead,
     TaskCreate,
@@ -16,15 +16,15 @@ from light_task.src.boards.schemas import (
     ColumnUpdate,
     ColumnReorderRequest,
 )
-from light_task.src.boards.service import BoardService
-from light_task.src.db.database import db_helper
+from src.boards.service import BoardService
+from src.db.database import db_helper
 
-from light_task.src.projects.dependencies import (
+from src.projects.dependencies import (
     require_project_member,
     require_project_manager,
 )
-from light_task.src.projects.models import Project
-from light_task.src.users.models import User
+from src.projects.models import Project
+from src.users.models import User
 
 router = APIRouter(tags=["Boards"])
 

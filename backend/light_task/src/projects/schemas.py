@@ -2,10 +2,10 @@ from datetime import datetime
 
 from pydantic import Field
 
-from light_task.src.constants import HEX_COLOR_PATTERN
-from light_task.src.schemas import BaseSchema
-from light_task.src.projects.constants import ProjectRole
-from light_task.src.users.schemas import UserPublic
+from src.constants import HEX_COLOR_PATTERN
+from src.schemas import BaseSchema
+from src.projects.constants import ProjectRole
+from src.users.schemas import UserPublic
 
 
 class ProjectBase(BaseSchema):

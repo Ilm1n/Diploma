@@ -5,8 +5,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import light_task.src.security as security
-from light_task.src.db.database import db_helper
-from light_task.src.users.models import User
+from src.db.database import db_helper
+from src.users.models import User
 
 http_bearer = HTTPBearer(auto_error=False)
 

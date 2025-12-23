@@ -6,14 +6,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.invitations.models import ProjectInvitation
-from light_task.src.invitations.schemas import (
+from src.invitations.models import ProjectInvitation
+from src.invitations.schemas import (
     InvitationCreate,
     InvitationRead,
     InvitationAcceptResponse,
 )
-from light_task.src.projects.models import ProjectMember
-from light_task.src.users.models import User
+from src.projects.models import ProjectMember
+from src.users.models import User
 
 BASE_URL = "http://localhost:5173/invite"
 

@@ -1,7 +1,7 @@
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 
-from light_task.src.config import settings
+from src.config import settings
 
 
 class Base(DeclarativeBase):

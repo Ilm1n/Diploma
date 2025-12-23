@@ -1,6 +1,6 @@
 from pydantic import EmailStr, Field
 
-from light_task.src.schemas import BaseSchema
+from src.schemas import BaseSchema
 
 
 class UserBase(BaseSchema):

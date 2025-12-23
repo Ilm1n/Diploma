@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, String, UniqueConstraint, Table, Column, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from light_task.src.db.base import Base
+from src.db.base import Base
 
 if TYPE_CHECKING:
-    from light_task.src.projects.models import Project
-    from light_task.src.boards.models import Task
+    from src.projects.models import Project
+    from src.boards.models import Task
 
 
 task_tags = Table(

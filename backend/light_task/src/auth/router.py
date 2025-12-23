@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.auth import schemas
-from light_task.src.auth.dependencies import get_current_user_for_refresh
-from light_task.src.auth.service import AuthService
-from light_task.src.db.database import db_helper
-from light_task.src.users.models import User
+from src.auth import schemas
+from src.auth.dependencies import get_current_user_for_refresh
+from src.auth.service import AuthService
+from src.db.database import db_helper
+from src.users.models import User
 
 router = APIRouter(
     prefix="/auth",

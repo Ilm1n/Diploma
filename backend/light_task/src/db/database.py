@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from light_task.src.config import settings
+from src.config import settings
 
 
 class DatabaseHelper:

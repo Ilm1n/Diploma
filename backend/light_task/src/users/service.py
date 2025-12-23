@@ -6,10 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import light_task.src.security as security
-from light_task.src.config import settings
-from light_task.src.s3 import S3Client
-from light_task.src.users.models import User
-from light_task.src.users.schemas import UserCreate, UserUpdate
+from src.config import settings
+from src.s3 import S3Client
+from src.users.models import User
+from src.users.schemas import UserCreate, UserUpdate
 
 
 class UserService:

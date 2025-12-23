@@ -2,9 +2,9 @@ from datetime import datetime
 
 from pydantic import Field
 
-from light_task.src.boards.constants import TaskPriority
-from light_task.src.schemas import BaseSchema
-from light_task.src.tags.schemas import TagRead
+from src.boards.constants import TaskPriority
+from src.schemas import BaseSchema
+from src.tags.schemas import TagRead
 
 
 class TaskBase(BaseSchema):

@@ -3,24 +3,24 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.auth.dependencies import get_current_user
-from light_task.src.db.database import db_helper
-from light_task.src.projects.constants import ProjectRole
-from light_task.src.projects.dependencies import (
+from src.auth.dependencies import get_current_user
+from src.db.database import db_helper
+from src.projects.constants import ProjectRole
+from src.projects.dependencies import (
     require_project_owner,
     require_project_manager,
     require_project_member,
 )
-from light_task.src.projects.models import Project
-from light_task.src.projects.schemas import (
+from src.projects.models import Project
+from src.projects.schemas import (
     ProjectCreate,
     ProjectRead,
     ProjectUpdate,
     ProjectMemberRead,
     ProjectMemberUpdate,
 )
-from light_task.src.projects.service import ProjectService
-from light_task.src.users.models import User
+from src.projects.service import ProjectService
+from src.users.models import User
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 

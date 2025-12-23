@@ -14,14 +14,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from light_task.src.db.base import Base
-from light_task.src.db.mixins import TimestampMixin
-from light_task.src.projects.constants import ProjectRole
+from src.db.base import Base
+from src.db.mixins import TimestampMixin
+from src.projects.constants import ProjectRole
 
 if TYPE_CHECKING:
-    from light_task.src.boards.models import BoardColumn
-    from light_task.src.tags.models import Tag
-    from light_task.src.users.models import User
+    from src.boards.models import BoardColumn
+    from src.tags.models import Tag
+    from src.users.models import User
 
 
 class Project(Base, TimestampMixin):

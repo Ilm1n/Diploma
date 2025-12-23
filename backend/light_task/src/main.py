@@ -5,21 +5,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
-from light_task.src.config import settings
-from light_task.src.db.database import db_helper
-from light_task.src.auth.router import router as auth_router
-from light_task.src.boards.router import router as board_router
-from light_task.src.projects.router import router as project_router
-from light_task.src.users.router import router as user_router
-from light_task.src.tags.router import router as tag_router
-from light_task.src.invitations.router import router as invitation_router
+from src.config import settings
+from src.db.database import db_helper
+from src.auth.router import router as auth_router
+from src.boards.router import router as board_router
+from src.projects.router import router as project_router
+from src.users.router import router as user_router
+from src.tags.router import router as tag_router
+from src.invitations.router import router as invitation_router
 
 # модели импортируются для регистрации в metadata
-from light_task.src.boards.models import BoardColumn, Task  # noqa: F401
-from light_task.src.projects.models import Project, ProjectMember  # noqa: F401
-from light_task.src.users.models import User  # noqa: F401
-from light_task.src.tags.models import Tag  # noqa: F401
-from light_task.src.invitations.models import ProjectInvitation  # noqa: F401
+from src.boards.models import BoardColumn, Task  # noqa: F401
+from src.projects.models import Project, ProjectMember  # noqa: F401
+from src.users.models import User  # noqa: F401
+from src.tags.models import Tag  # noqa: F401
+from src.invitations.models import ProjectInvitation  # noqa: F401
 
 
 @asynccontextmanager

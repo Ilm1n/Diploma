@@ -3,8 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 
-from light_task.src.tags.models import Tag
-from light_task.src.tags.schemas import TagCreate, TagUpdate
+from src.tags.models import Tag
+from src.tags.schemas import TagCreate, TagUpdate
 
 
 class TagService:

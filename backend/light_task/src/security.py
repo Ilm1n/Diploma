@@ -5,7 +5,7 @@ from typing import Any
 import jwt
 from pwdlib import PasswordHash
 
-from light_task.src.config import settings
+from src.config import settings
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"

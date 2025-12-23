@@ -7,10 +7,15 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-from light_task.src.config import settings
-from light_task.src.db.base import Base
+from src.config import settings
+from src.db.base import Base
 
 # Модели
+from src.boards.models import BoardColumn, Task  # noqa: F401
+from src.invitations.models import ProjectInvitation  # noqa: F401
+from src.projects.models import Project, ProjectMember  # noqa: F401
+from src.tags.models import Tag  # noqa: F401
+from src.users.models import User  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

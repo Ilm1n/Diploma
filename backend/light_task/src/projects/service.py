@@ -4,17 +4,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from sqlalchemy.orm import selectinload
 
-from light_task.src.projects.constants import ProjectRole
-from light_task.src.projects.models import Project, ProjectMember
-from light_task.src.projects.schemas import (
+from src.projects.constants import ProjectRole
+from src.projects.models import Project, ProjectMember
+from src.projects.schemas import (
     ProjectCreate,
     ProjectUpdate,
     ProjectRead,
     ProjectMemberUpdate,
 )
-from light_task.src.tags.constants import DEFAULT_PROJECT_TAGS
-from light_task.src.tags.models import Tag
-from light_task.src.users.models import User
+from src.tags.constants import DEFAULT_PROJECT_TAGS
+from src.tags.models import Tag
+from src.users.models import User
 
 
 class ProjectService:

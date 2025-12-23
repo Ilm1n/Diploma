@@ -5,12 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from light_task.src.auth.dependencies import get_current_user
-from light_task.src.boards.models import BoardColumn, Task
-from light_task.src.db.database import db_helper
-from light_task.src.projects.constants import ProjectRole
-from light_task.src.projects.models import ProjectMember
-from light_task.src.users.models import User
+from src.auth.dependencies import get_current_user
+from src.boards.models import BoardColumn, Task
+from src.db.database import db_helper
+from src.projects.constants import ProjectRole
+from src.projects.models import ProjectMember
+from src.users.models import User
 
 
 async def get_valid_column(

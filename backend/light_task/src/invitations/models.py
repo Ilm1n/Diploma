@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from light_task.src.db.base import Base
-from light_task.src.projects.constants import ProjectRole
+from src.db.base import Base
+from src.projects.constants import ProjectRole
 
 if TYPE_CHECKING:
-    from light_task.src.projects.models import Project
-    from light_task.src.users.models import User
+    from src.projects.models import Project
+    from src.users.models import User
 
 
 class ProjectInvitation(Base):

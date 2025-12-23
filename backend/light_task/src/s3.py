@@ -6,7 +6,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 from fastapi import HTTPException, status
 
-from light_task.src.config import settings
+from src.config import settings
 
 
 class S3Client:

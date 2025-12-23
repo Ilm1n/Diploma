@@ -11,15 +11,15 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from light_task.src.boards.constants import TaskPriority
-from light_task.src.db.base import Base
-from light_task.src.db.mixins import TimestampMixin
+from src.boards.constants import TaskPriority
+from src.db.base import Base
+from src.db.mixins import TimestampMixin
 
-from light_task.src.tags.models import Tag, task_tags
+from src.tags.models import Tag, task_tags
 
 if TYPE_CHECKING:
-    from light_task.src.projects.models import Project
-    from light_task.src.users.models import User
+    from src.projects.models import Project
+    from src.users.models import User
 
 
 class BoardColumn(Base, TimestampMixin):

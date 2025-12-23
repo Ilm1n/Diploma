@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.auth.schemas import Token
-from light_task.src.users.models import User
+from src.auth.schemas import Token
+from src.users.models import User
 import light_task.src.security as security
 
 

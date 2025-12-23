@@ -8,13 +8,13 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from light_task.src.auth.dependencies import get_current_user
-from light_task.src.db.database import db_helper
-from light_task.src.s3 import S3Client, get_s3_client
-from light_task.src.users.dependencies import valid_avatar
-from light_task.src.users.models import User
-from light_task.src.users.schemas import UserCreate, UserRead, UserUpdate, UserPublic
-from light_task.src.users.service import UserService
+from src.auth.dependencies import get_current_user
+from src.db.database import db_helper
+from src.s3 import S3Client, get_s3_client
+from src.users.dependencies import valid_avatar
+from src.users.models import User
+from src.users.schemas import UserCreate, UserRead, UserUpdate, UserPublic
+from src.users.service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
