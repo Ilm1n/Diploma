@@ -29,11 +29,10 @@ axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isLoginRequest = originalRequest.url?.includes('/auth/login');
 
-    // Если ошибка 401 и мы еще не пытались обновить токен для этого запроса
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
 
-      // Если это уже был запрос на рефреш и он упал
       if (originalRequest.url?.includes('/auth/refresh')) {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -42,7 +41,6 @@ axios.interceptors.response.use(
       }
 
       if (isRefreshing) {
-        // Если рефреш уже идет, добавляем запрос в очередь
         return new Promise(function (resolve, reject) {
           failedQueue.push({resolve, reject});
         })

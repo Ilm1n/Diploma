@@ -83,7 +83,7 @@ const onSubmit = handleSubmit(async (values) => {
       </div>
 
       <form
-          @submit="onSubmit"
+          @submit.prevent="onSubmit"
           class="space-y-6"
       >
 

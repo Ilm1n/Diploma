@@ -2,13 +2,14 @@
     setup
     lang="ts"
 >
-import {ref, watch} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import {useAuthStore} from '@/modules/auth/store/auth.store';
 import {useTheme} from '@/composables/useTheme';
 import SidebarLink from '@/layouts/components/SidebarLink.vue';
 import Avatar from 'primevue/avatar';
-import Menu from 'primevue/menu'; //
+import Menu from 'primevue/menu';
+import {useBreakpoints} from "@vueuse/core"; //
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -18,6 +19,11 @@ const isMobileMenuOpen = ref(false);
 const isSidebarCollapsed = ref(localStorage.getItem('sidebarCollapsed') === 'true');
 
 const toggleSidebar = () => {
+  if (isMobile.value) {
+    isMobileMenuOpen.value = false;
+    return;
+  }
+
   isSidebarCollapsed.value = !isSidebarCollapsed.value;
 };
 
@@ -59,6 +65,22 @@ const userMenuItems = [
 const toggleUserMenu = (event: Event) => {
   userMenu.value.toggle(event);
 };
+
+const avatarImage = computed<string | undefined>(() =>
+    authStore.user?.avatarUrl || undefined
+);
+
+const avatarLabel = computed<string | undefined>(() =>
+    avatarImage.value
+        ? undefined
+        : authStore.user?.username?.charAt(0).toUpperCase()
+);
+
+const breakpoints = useBreakpoints({
+  lg: 1024,
+});
+
+const isMobile = breakpoints.smaller('lg');
 </script>
 
 <template>
@@ -138,16 +160,20 @@ const toggleUserMenu = (event: Event) => {
               @click="toggleUserMenu"
               aria-haspopup="true"
               aria-controls="user_menu"
-              class="flex items-center gap-3 p-2 w-full rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer group overflow-hidden relative"
+              class="flex items-center  gap-3 p-2 w-full rounded-xl  hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer group overflow-hidden relative"
           >
             <!-- Аватар -->
-            <Avatar
-                :image="authStore.user?.avatarUrl || undefined"
-                :label="authStore.user?.avatarUrl ? undefined : authStore.user?.username?.charAt(0).toUpperCase()"
-                class="bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-200 flex-shrink-0 transition-all duration-300"
-                shape="circle"
-                style="background-color: transparent;"
-            />
+            <div
+                class="flex items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900 w-10 h-10 flex-shrink-0"
+            >
+              <Avatar
+                  :image="avatarImage"
+                  :label="avatarLabel"
+                  class="!bg-transparent !text-primary-600 flex-shrink-0 transition-all duration-300"
+                  shape="circle"
+                  style="background-color: transparent;"
+              />
+            </div>
 
             <!-- Текст -->
             <div
@@ -191,12 +217,22 @@ const toggleUserMenu = (event: Event) => {
           </button>
           <span class="font-bold text-slate-800 dark:text-white">LightTask</span>
         </div>
-        <Avatar
-            :label="authStore.user?.username?.charAt(0).toUpperCase()"
-            shape="circle"
-            class="!w-8 !h-8 bg-primary-100 text-primary-600"
-            @click="toggleUserMenu"
-        />
+        <div class="flex items-center gap-3">
+
+          <button
+              @click="toggleTheme"
+              class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-primary-500 transition-colors flex-shrink-0"
+          >
+            <i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'"></i>
+          </button>
+          <Avatar
+              :image="avatarImage"
+              :label="avatarLabel"
+              shape="circle"
+              class="!w-8 !h-8 !bg-primary-100 dark:!bg-primary-900 !text-primary-600 "
+              @click="toggleUserMenu"
+          />
+        </div>
       </header>
 
       <div class="flex-1 overflow-auto scroll-smooth">
