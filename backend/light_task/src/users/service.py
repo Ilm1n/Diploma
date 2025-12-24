@@ -5,7 +5,7 @@ from fastapi import HTTPException, status, BackgroundTasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import light_task.src.security as security
+import src.security as security
 from src.config import settings
 from src.s3 import S3Client
 from src.users.models import User

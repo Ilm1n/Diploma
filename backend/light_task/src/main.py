@@ -59,9 +59,9 @@ main_app.include_router(tag_router, prefix="/api")
 main_app.include_router(invitation_router, prefix="/api")
 
 
-@main_app.get("/")
-async def root():
-    return {"message": "LightTask API is running"}
+@main_app.get("/api/health")
+async def health_check():
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

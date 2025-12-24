@@ -1,0 +1,14 @@
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.venv
+venv
+env
+.idea
+.git
+.gitignore
+.env
+.env.*
+certs/
+logs/

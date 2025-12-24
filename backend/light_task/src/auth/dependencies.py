@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import light_task.src.security as security
+import src.security as security
 from src.db.database import db_helper
 from src.users.models import User
 
