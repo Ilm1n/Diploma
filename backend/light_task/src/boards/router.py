@@ -15,6 +15,7 @@ from src.boards.schemas import (
     TaskUpdate,
     ColumnUpdate,
     ColumnReorderRequest,
+    TaskMoveResponse, TaskPreview,
 )
 from src.boards.service import BoardService
 from src.db.database import db_helper
@@ -57,8 +58,8 @@ async def create_column(
     response_model=ColumnRead,
 )
 async def update_column(
-    project_id: int,
-    column_id: int,
+    project_id: int, # noqa
+    column_id: int, # noqa
     column_update: ColumnUpdate,
     _: Annotated[Project, Depends(require_project_manager)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
@@ -72,8 +73,8 @@ async def update_column(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_column(
-    project_id: int,
-    column_id: int,
+    project_id: int, # noqa
+    column_id: int, # noqa
     _: Annotated[Project, Depends(require_project_manager)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
@@ -112,7 +113,7 @@ async def create_task(
     )
 
 
-@router.get("/projects/{project_id}/tasks", response_model=list[TaskRead])
+@router.get("/projects/{project_id}/tasks", response_model=list[TaskPreview])
 async def get_project_tasks(
     project_id: int,
     _: Annotated[Project, Depends(require_project_member)],
@@ -133,7 +134,7 @@ async def get_task_details(
     return task
 
 
-@router.patch("/tasks/{task_id}/move", response_model=TaskRead)
+@router.patch("/tasks/{task_id}/move", response_model=TaskMoveResponse)
 async def move_task(
     move_data: TaskMove,
     task: Annotated[Task, Depends(dependencies.get_task_for_update)],

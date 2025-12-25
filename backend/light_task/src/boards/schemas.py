@@ -9,12 +9,12 @@ from src.tags.schemas import TagRead
 
 class TaskBase(BaseSchema):
     title: str = Field(min_length=1, max_length=200)
-    description: str | None = Field(None, min_length=1)
     priority: TaskPriority = TaskPriority.MEDIUM
     assignee_id: int | None = None
 
 
 class TaskCreate(TaskBase):
+    description: str | None = Field(None, min_length=1)
     tag_ids: list[int] = Field(default_factory=list)
 
 
@@ -31,15 +31,25 @@ class TaskMove(BaseSchema):
     after_task_id: int | None = None
 
 
-class TaskRead(TaskBase):
+class TaskPreview(TaskBase):
     id: int
     column_id: int
     project_id: int
-    author_id: int | None
     position: float
+    tags: list[TagRead] = Field(default_factory=list)
+
+
+class TaskRead(TaskPreview):
+    description: str | None = Field(None, min_length=1)
+    author_id: int | None
     created_at: datetime
     updated_at: datetime
-    tags: list[TagRead] = Field(default_factory=list)
+
+class TaskMoveResponse(BaseSchema):
+    id: int
+    column_id: int
+    position: float
+    updated_at: datetime
 
 
 class ColumnBase(BaseSchema):
@@ -65,4 +75,4 @@ class ColumnRead(ColumnBase):
     project_id: int
     position: float
     tasks_limit: int | None
-    tasks: list[TaskRead] = Field(default_factory=list)
+    tasks: list[TaskPreview] = Field(default_factory=list)

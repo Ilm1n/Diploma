@@ -239,7 +239,7 @@ class BoardService:
             session.add(task)
             await session.commit()
 
-            return await BoardService._get_task_with_tags(session, task.id)
+            return task
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
