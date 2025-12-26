@@ -4,7 +4,7 @@ import {ref, computed} from 'vue';
 import {apiClient} from '@/api/config';
 import type {
   UserRead,
-  Body_login_for_access_token_api_auth_login_post
+  Body_login_for_access_token_api_auth_login_post, UserCreate,
 } from '@/api/client';
 import {useRouter} from 'vue-router';
 
@@ -49,6 +49,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function register(payload: UserCreate) {
+    isLoading.value = true;
+    try {
+      await apiClient.users.createUserApiUsersRegisterPost(payload);
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function fetchUser() {
     isLoading.value = true;
     try {
@@ -83,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     isAuthenticated,
     login,
+    register,
     logout,
     fetchUser,
     initAuth,

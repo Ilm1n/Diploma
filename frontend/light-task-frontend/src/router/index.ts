@@ -6,6 +6,7 @@ const AppLayout = () => import('@/layouts/components/AppLayout.vue');
 
 // Pages
 const LoginPage = () => import('@/modules/auth/components/LoginPage.vue');
+const RegisterPage = () => import('@/modules/auth/components/RegisterPage.vue');
 const ProjectsList = () => import('@/modules/projects/components/ProjectsList.vue');
 
 const router = createRouter({
@@ -15,6 +16,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginPage,
+      meta: {requiresAuth: false}
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterPage,
       meta: {requiresAuth: false}
     },
     {
@@ -35,7 +42,7 @@ const router = createRouter({
 router.beforeEach(async (to, _, next) => {
   const authStore = useAuthStore();
 
-  if (to.path === '/login') {
+  if (to.path === '/login' || to.path === '/register') {
     if (authStore.isAuthenticated) {
       return next('/');
     }

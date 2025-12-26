@@ -19,10 +19,13 @@ const router = useRouter();
 const toast = useToast();
 const {isDark, toggleTheme} = useTheme();
 
+// Русская схема валидации
 const validationSchema = toTypedSchema(
     z.object({
-      username: z.string().min(1, 'Введите имя пользователя'),
-      password: z.string().min(1, 'Введите пароль'),
+      username: z.string({required_error: 'Введите имя пользователя'})
+          .min(1, 'Имя пользователя обязательно'),
+      password: z.string({required_error: 'Введите пароль'})
+          .min(1, 'Пароль обязателен'),
     })
 );
 
@@ -40,14 +43,22 @@ const onSubmit = handleSubmit(async (values) => {
       password: values.password,
       grant_type: 'password',
     });
-    toast.add({severity: 'success', summary: 'Welcome back!', life: 3000});
+    toast.add({severity: 'success', summary: 'С возвращением!', life: 3000});
     await router.push('/');
   } catch (error: any) {
-    const errorMsg = error.response?.data?.detail || 'Login failed';
+    // Обработка ошибки
+    let errorMsg = 'Неверные данные для входа';
+    if (error.response?.data?.detail) {
+      errorMsg = error.response.data.detail;
+    }
+    if (Array.isArray(errorMsg)) {
+      errorMsg = errorMsg[0].msg || JSON.stringify(errorMsg);
+    }
+
     toast.add({
       severity: 'error',
-      summary: 'Error',
-      detail: Array.isArray(errorMsg) ? errorMsg[0].msg : errorMsg,
+      summary: 'Ошибка входа',
+      detail: errorMsg,
       life: 5000
     });
   }
@@ -55,7 +66,6 @@ const onSubmit = handleSubmit(async (values) => {
 </script>
 
 <template>
-  <!-- Main Container -->
   <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
 
     <!-- Decorative Blobs -->
@@ -67,33 +77,23 @@ const onSubmit = handleSubmit(async (values) => {
         @click="toggleTheme"
         class="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-dark-surface transition-colors z-20"
     >
-      <i
-          :class="isDark ? 'pi pi-sun text-yellow-400' : 'pi pi-moon text-slate-600'"
-          style="font-size: 1.5rem"
-      ></i>
+      <i :class="isDark ? 'pi pi-sun text-yellow-400' : 'pi pi-moon text-slate-600'" style="font-size: 1.5rem"></i>
     </button>
 
     <!-- Login Card -->
     <div class="w-full max-w-md bg-white dark:bg-dark-surface rounded-2xl shadow-xl p-8 z-10 border border-gray-100 dark:border-dark-border transition-colors duration-300">
 
-      <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">LightTask</h1>
         <p class="text-slate-500 dark:text-slate-400">Войдите, чтобы управлять проектами</p>
       </div>
 
-      <form
-          @submit.prevent="onSubmit"
-          class="space-y-6"
-      >
+      <form @submit.prevent="onSubmit" class="space-y-4">
 
         <!-- Username -->
-        <div class="space-y-2">
-          <label
-              for="login-username"
-              class="block text-base font-medium text-slate-700 dark:text-gray-200"
-          >
-            Username
+        <div>
+          <label for="login-username" class="block text-base font-medium text-slate-700 dark:text-gray-200 mb-2">
+            Имя пользователя
           </label>
           <InputText
               id="login-username"
@@ -101,21 +101,20 @@ const onSubmit = handleSubmit(async (values) => {
               v-bind="usernameAttrs"
               :invalid="!!errors.username"
               autocomplete="username"
-              class="w-full !p-3 !text-base !bg-gray-50 dark:!bg-slate-900 !border-gray-300 dark:!border-slate-600 focus:!border-primary-500 text-slate-900 dark:text-white placeholder:text-slate-400"
-              placeholder="your_username"
+              class="w-full !p-3 !text-base"
+              placeholder="Введите username"
           />
-          <small
-              class="text-red-500 block mt-1"
-              v-if="errors.username"
-          >{{ errors.username }}</small>
+          <!-- FIX: Резервируем место под ошибку (min-h) -->
+          <div class="min-h-[1.5rem] mt-1">
+            <small class="text-red-500 transition-opacity duration-200" v-if="errors.username">
+              {{ errors.username }}
+            </small>
+          </div>
         </div>
 
         <!-- Password -->
-        <div class="space-y-2">
-          <label
-              for="login-password"
-              class="block text-base font-medium text-slate-700 dark:text-gray-200"
-          >
+        <div>
+          <label for="login-password" class="block text-base font-medium text-slate-700 dark:text-gray-200 mb-2">
             Пароль
           </label>
           <Password
@@ -127,13 +126,15 @@ const onSubmit = handleSubmit(async (values) => {
               toggleMask
               placeholder="••••••••"
               class="w-full"
-              inputClass="w-full !p-3 !text-base !bg-gray-50 dark:!bg-slate-900 !border-gray-300 dark:!border-slate-600 focus:!border-primary-500 text-slate-900 dark:text-white placeholder:text-slate-400"
+              inputClass="w-full !p-3 !text-base"
               :inputProps="{ autocomplete: 'current-password' }"
           />
-          <small
-              class="text-red-500 block mt-1"
-              v-if="errors.password"
-          >{{ errors.password }}</small>
+          <!-- FIX: Резервируем место под ошибку -->
+          <div class="min-h-[1.5rem] mt-1">
+            <small class="text-red-500 transition-opacity duration-200" v-if="errors.password">
+              {{ errors.password }}
+            </small>
+          </div>
         </div>
 
         <!-- Submit -->
@@ -141,18 +142,17 @@ const onSubmit = handleSubmit(async (values) => {
             type="submit"
             label="Войти"
             :loading="isSubmitting"
-            class="w-full !rounded-xl !bg-primary-600 hover:!bg-primary-700 !border-none !py-3.5 !text-base !font-semibold shadow-md shadow-primary-500/30 transition-all hover:scale-[1.02] !text-white"
+            class="w-full !rounded-xl !bg-primary-600 hover:!bg-primary-700 !border-none !py-3.5 !text-base !font-semibold shadow-md shadow-primary-500/30 !text-white mt-2"
         />
       </form>
 
-      <!-- Footer -->
-      <div class="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+      <div class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         Нет аккаунта?
-        <a
-            href="#"
+        <router-link
+            to="/register"
             class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
         >Регистрация
-        </a>
+        </router-link>
       </div>
     </div>
   </div>
