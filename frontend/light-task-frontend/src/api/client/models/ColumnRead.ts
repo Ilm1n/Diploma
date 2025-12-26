@@ -2,13 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { TaskRead } from './TaskRead';
+import type { TaskPreview } from './TaskPreview';
 export type ColumnRead = {
     name: string;
     tasksLimit: (number | null);
     id: number;
     projectId: number;
     position: number;
-    tasks?: Array<TaskRead>;
+    tasks?: Array<TaskPreview>;
 };
 

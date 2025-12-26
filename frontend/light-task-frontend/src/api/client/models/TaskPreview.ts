@@ -2,12 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { TagRead } from './TagRead';
 import type { TaskPriority } from './TaskPriority';
-export type TaskCreate = {
+export type TaskPreview = {
     title: string;
     priority?: TaskPriority;
     assigneeId?: (number | null);
-    description?: (string | null);
-    tagIds?: Array<number>;
+    id: number;
+    columnId: number;
+    projectId: number;
+    position: number;
+    tags?: Array<TagRead>;
 };
 

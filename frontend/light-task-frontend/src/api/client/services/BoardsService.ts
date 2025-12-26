@@ -8,6 +8,8 @@ import type { ColumnReorderRequest } from '../models/ColumnReorderRequest';
 import type { ColumnUpdate } from '../models/ColumnUpdate';
 import type { TaskCreate } from '../models/TaskCreate';
 import type { TaskMove } from '../models/TaskMove';
+import type { TaskMoveResponse } from '../models/TaskMoveResponse';
+import type { TaskPreview } from '../models/TaskPreview';
 import type { TaskRead } from '../models/TaskRead';
 import type { TaskUpdate } from '../models/TaskUpdate';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -165,7 +167,7 @@ export class BoardsService {
      * @param assigneeId
      * @param tagIds
      * @param search
-     * @returns TaskRead Successful Response
+     * @returns TaskPreview Successful Response
      * @throws ApiError
      */
     public getProjectTasksApiProjectsProjectIdTasksGet(
@@ -173,7 +175,7 @@ export class BoardsService {
         assigneeId?: (number | null),
         tagIds?: (Array<number> | null),
         search?: (string | null),
-    ): CancelablePromise<Array<TaskRead>> {
+    ): CancelablePromise<Array<TaskPreview>> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/api/projects/{project_id}/tasks',
@@ -258,13 +260,13 @@ export class BoardsService {
      * Move Task
      * @param taskId
      * @param requestBody
-     * @returns TaskRead Successful Response
+     * @returns TaskMoveResponse Successful Response
      * @throws ApiError
      */
     public moveTaskApiTasksTaskIdMovePatch(
         taskId: number,
         requestBody: TaskMove,
-    ): CancelablePromise<TaskRead> {
+    ): CancelablePromise<TaskMoveResponse> {
         return this.httpRequest.request({
             method: 'PATCH',
             url: '/api/tasks/{task_id}/move',

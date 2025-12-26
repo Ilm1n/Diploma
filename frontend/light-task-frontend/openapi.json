@@ -1072,7 +1072,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TaskRead"
+                    "$ref": "#/components/schemas/TaskPreview"
                   },
                   "title": "Response Get Project Tasks Api Projects  Project Id  Tasks Get"
                 }
@@ -1271,7 +1271,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TaskRead"
+                  "$ref": "#/components/schemas/TaskMoveResponse"
                 }
               }
             }
@@ -1694,10 +1694,10 @@
         }
       }
     },
-    "/": {
+    "/api/health": {
       "get": {
-        "summary": "Root",
-        "operationId": "root__get",
+        "summary": "Health Check",
+        "operationId": "health_check_api_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1848,7 +1848,7 @@
           },
           "tasks": {
             "items": {
-              "$ref": "#/components/schemas/TaskRead"
+              "$ref": "#/components/schemas/TaskPreview"
             },
             "type": "array",
             "title": "Tasks"
@@ -2328,18 +2328,6 @@
             "minLength": 1,
             "title": "Title"
           },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
           "priority": {
             "$ref": "#/components/schemas/TaskPriority",
             "default": "MEDIUM"
@@ -2354,6 +2342,18 @@
               }
             ],
             "title": "Assigneeid"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "tagIds": {
             "items": {
@@ -2393,35 +2393,42 @@
         ],
         "title": "TaskMove"
       },
-      "TaskPriority": {
-        "type": "string",
-        "enum": [
-          "LOW",
-          "MEDIUM",
-          "HIGH",
-          "CRITICAL"
+      "TaskMoveResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "columnId": {
+            "type": "integer",
+            "title": "Columnid"
+          },
+          "position": {
+            "type": "number",
+            "title": "Position"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "columnId",
+          "position",
+          "updatedAt"
         ],
-        "title": "TaskPriority"
+        "title": "TaskMoveResponse"
       },
-      "TaskRead": {
+      "TaskPreview": {
         "properties": {
           "title": {
             "type": "string",
             "maxLength": 200,
             "minLength": 1,
             "title": "Title"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
           },
           "priority": {
             "$ref": "#/components/schemas/TaskPriority",
@@ -2450,30 +2457,9 @@
             "type": "integer",
             "title": "Projectid"
           },
-          "authorId": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Authorid"
-          },
           "position": {
             "type": "number",
             "title": "Position"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Createdat"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updatedat"
           },
           "tags": {
             "items": {
@@ -2489,8 +2475,108 @@
           "id",
           "columnId",
           "projectId",
-          "authorId",
+          "position"
+        ],
+        "title": "TaskPreview"
+      },
+      "TaskPriority": {
+        "type": "string",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ],
+        "title": "TaskPriority"
+      },
+      "TaskRead": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TaskPriority",
+            "default": "MEDIUM"
+          },
+          "assigneeId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigneeid"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "columnId": {
+            "type": "integer",
+            "title": "Columnid"
+          },
+          "projectId": {
+            "type": "integer",
+            "title": "Projectid"
+          },
+          "position": {
+            "type": "number",
+            "title": "Position"
+          },
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/TagRead"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "authorId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "id",
+          "columnId",
+          "projectId",
           "position",
+          "authorId",
           "createdAt",
           "updatedAt"
         ],

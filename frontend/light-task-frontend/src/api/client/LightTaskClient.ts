@@ -11,7 +11,7 @@ import { DefaultService } from './services/DefaultService';
 import { InvitationsService } from './services/InvitationsService';
 import { ProjectsService } from './services/ProjectsService';
 import { TagsService } from './services/TagsService';
-import { UsersService } from './services/UsersService.ts';
+import { UsersService } from './services/UsersService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class LightTaskClient {
     public readonly auth: AuthService;

@@ -6,16 +6,16 @@ import type { TagRead } from './TagRead';
 import type { TaskPriority } from './TaskPriority';
 export type TaskRead = {
     title: string;
-    description?: (string | null);
     priority?: TaskPriority;
     assigneeId?: (number | null);
     id: number;
     columnId: number;
     projectId: number;
-    authorId: (number | null);
     position: number;
+    tags?: Array<TagRead>;
+    description?: (string | null);
+    authorId: (number | null);
     createdAt: string;
     updatedAt: string;
-    tags?: Array<TagRead>;
 };
 

@@ -31,6 +31,8 @@ export type { TagRead } from './models/TagRead';
 export type { TagUpdate } from './models/TagUpdate';
 export type { TaskCreate } from './models/TaskCreate';
 export type { TaskMove } from './models/TaskMove';
+export type { TaskMoveResponse } from './models/TaskMoveResponse';
+export type { TaskPreview } from './models/TaskPreview';
 export { TaskPriority } from './models/TaskPriority';
 export type { TaskRead } from './models/TaskRead';
 export type { TaskUpdate } from './models/TaskUpdate';
