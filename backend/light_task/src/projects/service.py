@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from sqlalchemy.orm import selectinload
 
+from src.common.touch import touch_project
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
 from src.projects.schemas import (
@@ -64,7 +65,7 @@ class ProjectService:
             select(Project, ProjectMember.role)
             .join(ProjectMember, Project.id == ProjectMember.project_id)
             .where(ProjectMember.user_id == user.id)
-            .order_by(Project.created_at.desc())
+            .order_by(Project.updated_at.desc())
         )
         result = await session.execute(query)
         rows = result.all()
@@ -178,6 +179,9 @@ class ProjectService:
             )
 
         await session.delete(target_member)
+
+        await touch_project(session, project_id)
+
         await session.commit()
 
     @staticmethod
@@ -211,5 +215,6 @@ class ProjectService:
         member.role = data.role
         session.add(member)
         await session.commit()
+        await touch_project(session, project_id)
         await session.refresh(member)
         return member

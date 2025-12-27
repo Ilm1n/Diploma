@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.common.touch import touch_project
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
@@ -39,6 +40,7 @@ class InvitationService:
             expires_at=expires_at,
         )
         session.add(invite)
+        await touch_project(session, project_id)
         await session.commit()
 
         return InvitationRead(**invite.__dict__, link=f"{BASE_URL}/{token}")
@@ -126,6 +128,7 @@ class InvitationService:
         invite.used_count += 1
 
         session.add(invite)
+        await touch_project(session, invite.project_id)
 
         await session.commit()
 

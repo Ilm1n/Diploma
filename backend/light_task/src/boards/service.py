@@ -14,6 +14,7 @@ from src.boards.schemas import (
     ColumnReorderRequest,
     ColumnUpdate,
 )
+from src.common.touch import touch_project, touch_task
 from src.projects.models import ProjectMember
 from src.tags.models import Tag
 
@@ -74,6 +75,7 @@ class BoardService:
             position=max_pos + POSITION_GAP,
         )
         session.add(new_column)
+        await touch_project(session, project_id)
         await session.commit()
         attributes.set_committed_value(new_column, "tasks", [])
         return new_column
@@ -89,6 +91,7 @@ class BoardService:
             setattr(column, key, value)
 
         session.add(column)
+        await touch_project(session, column.project_id)
         await session.commit()
         return column
 
@@ -98,6 +101,7 @@ class BoardService:
         column: BoardColumn,
     ) -> None:
         await session.delete(column)
+        await touch_project(session, column.project_id)
         await session.commit()
 
     @staticmethod
@@ -121,6 +125,7 @@ class BoardService:
                 column.position = (index + 1) * POSITION_GAP
                 session.add(column)
 
+        await touch_project(session, column.project_id)
         await session.commit()
 
     @staticmethod
@@ -172,6 +177,8 @@ class BoardService:
             new_task.tags = list(tags)
 
         session.add(new_task)
+        await touch_task(session, new_task.id)
+        await touch_project(session, project_id)
         await session.commit()
 
         return await BoardService._get_task_with_tags(session, new_task.id)
@@ -237,6 +244,8 @@ class BoardService:
             task.column_id = data.new_column_id
             task.position = new_position
             session.add(task)
+            await touch_task(session, task.id)
+            await touch_project(session, task.project_id)
             await session.commit()
 
             return task
@@ -349,6 +358,8 @@ class BoardService:
             setattr(task, key, value)
 
         session.add(task)
+        await touch_task(session, task.id)
+        await touch_project(session, task.project_id)
         await session.commit()
 
         return await BoardService._get_task_with_tags(session, task.id)
@@ -359,6 +370,7 @@ class BoardService:
         task: Task,
     ) -> None:
         await session.delete(task)
+        await touch_project(session, task.project_id)
         await session.commit()
 
     @staticmethod
