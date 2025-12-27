@@ -2,7 +2,7 @@
     setup
     lang="ts"
 >
-import {onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import {useProjectsStore} from '../store/projects.store';
 import ProjectCard from './ProjectCard.vue';
 import CreateProjectCard from './CreateProjectCard.vue';
@@ -20,6 +20,11 @@ onMounted(() => {
 const openCreateDialog = () => {
   isCreateDialogOpen.value = true;
 };
+const sortedProjects = computed(() => {
+  return [...store.projects].sort((a, b) => {
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+});
 </script>
 
 <template>
@@ -59,7 +64,7 @@ const openCreateDialog = () => {
         <CreateProjectCard @click="openCreateDialog" />
 
         <ProjectCard
-            v-for="project in store.projects"
+            v-for="project in sortedProjects"
             :key="project.id"
             :project="project"
         />

@@ -8,6 +8,7 @@ const AppLayout = () => import('@/layouts/components/AppLayout.vue');
 const LoginPage = () => import('@/modules/auth/components/LoginPage.vue');
 const RegisterPage = () => import('@/modules/auth/components/RegisterPage.vue');
 const ProjectsList = () => import('@/modules/projects/components/ProjectsList.vue');
+const BoardPage = () => import('@/modules/board/pages/BoardPage.vue');
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +35,12 @@ const router = createRouter({
           name: 'home',
           component: ProjectsList,
         },
+        {
+          path: 'projects/:projectId/board',
+          name: 'project-board',
+          component: BoardPage,
+          props: true // Чтобы projectId прокидывался как prop
+        }
       ]
     },
   ]

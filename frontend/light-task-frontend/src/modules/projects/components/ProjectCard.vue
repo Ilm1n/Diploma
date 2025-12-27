@@ -27,7 +27,7 @@ const roleLabel = computed(() => {
 
 <template>
   <router-link
-      :to="`/projects/${project.id}`"
+      :to="`/projects/${project.id}/board`"
       class="group relative flex flex-col justify-between h-32 p-5 bg-white dark:bg-dark-surface rounded-xl border border-gray-300 dark:border-dark-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden"
   >
     <!-- Цветная полоса слева -->

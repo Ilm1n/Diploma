@@ -9,7 +9,8 @@ import {useTheme} from '@/composables/useTheme';
 import SidebarLink from '@/layouts/components/SidebarLink.vue';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
-import {useBreakpoints} from "@vueuse/core"; //
+import {useBreakpoints} from "@vueuse/core";
+import UserAvatar from "@/shared/ui/UserAvatar.vue"; //
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -225,13 +226,17 @@ const isMobile = breakpoints.smaller('lg');
           >
             <i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'"></i>
           </button>
-          <Avatar
-              :image="avatarImage"
-              :label="avatarLabel"
-              shape="circle"
-              class="!w-8 !h-8 !bg-primary-100 dark:!bg-primary-900 !text-primary-600 "
+          <div
               @click="toggleUserMenu"
-          />
+              aria-haspopup="true"
+              aria-controls="user_menu"
+              class="flex items-center  gap-3 p-2 w-full rounded-xl  hover:bg-white dark:hover:bg-slate-700 transition-colors cursor-pointer group overflow-hidden relative"
+          >
+            <UserAvatar
+                :image="avatarImage"
+                :label="avatarLabel"
+            />
+          </div>
         </div>
       </header>
 
