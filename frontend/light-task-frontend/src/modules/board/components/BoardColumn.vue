@@ -73,6 +73,7 @@ const items = [
     icon: 'pi pi-trash',
     class: 'text-red-500',
     command: () => {
+      menu.value?.hide?.();
       confirm.require({
         message: 'Вы уверены, что хотите удалить эту колонку?',
         header: 'Подтверждение',
