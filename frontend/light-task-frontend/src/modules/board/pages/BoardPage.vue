@@ -5,6 +5,7 @@ import { useBoardStore } from '../store/board.store';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useToast } from 'primevue/usetoast';
 import { useDraggableScroll } from '@/composables/useDraggableScroll';
+import { onClickOutside } from '@vueuse/core';
 
 
 // UI
@@ -24,6 +25,7 @@ const toast = useToast();
 const isCreatingColumn = ref(false);
 const newColumnName = ref('');
 const createInput = ref();
+const createColumnFormRef = ref(null);
 
 const startCreateColumn = () => {
   isCreatingColumn.value = true;
@@ -34,6 +36,12 @@ const cancelCreateColumn = () => {
   isCreatingColumn.value = false;
   newColumnName.value = '';
 };
+
+onClickOutside(createColumnFormRef, () => {
+  if (isCreatingColumn.value) {
+    cancelCreateColumn();
+  }
+});
 
 const saveColumn = async () => {
   if (!newColumnName.value.trim()) {
@@ -151,7 +159,7 @@ useDraggableScroll(scrollContainerRef);
 
           <!-- CREATE COLUMN BUTTON -->
           <div class="w-80 shrink-0">
-            <div v-if="isCreatingColumn" class="bg-gray-50 dark:bg-dark-surface p-3 rounded-xl border border-gray-200 dark:border-dark-border shadow-sm">
+            <div v-if="isCreatingColumn" ref="createColumnFormRef" class="bg-gray-50 dark:bg-dark-surface p-3 rounded-xl border border-gray-200 dark:border-dark-border shadow-sm">
               <InputText ref="createInput" v-model="newColumnName" placeholder="Название колонки..." class="w-full mb-2" @keydown.enter="saveColumn" @keydown.esc="cancelCreateColumn" />
               <div class="flex items-center gap-2">
                 <Button label="Добавить" size="small" class="!bg-primary-600 !border-none !text-xs !px-3 !py-2" @click="saveColumn" />
