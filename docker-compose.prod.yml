@@ -29,7 +29,7 @@ services:
       - gunicorn 
       - src.main:main_app 
       - --workers
-      - "4"
+      - "1"
       - --worker-class
       - uvicorn.workers.UvicornWorker
       - --bind
