@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.common.touch import touch_project
+from src.config import settings
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
@@ -16,7 +17,7 @@ from src.invitations.schemas import (
 from src.projects.models import ProjectMember
 from src.users.models import User
 
-BASE_URL = "http://localhost:5173/invite"
+BASE_URL = settings.invite.url
 
 
 class InvitationService:
@@ -26,7 +27,7 @@ class InvitationService:
         project_id: int,
         inviter_id: int,
         data: InvitationCreate,
-    ) -> InvitationRead:
+    ) -> ProjectInvitation:
         token = secrets.token_urlsafe(32)
         expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
@@ -43,7 +44,7 @@ class InvitationService:
         await touch_project(session, project_id)
         await session.commit()
 
-        return InvitationRead(**invite.__dict__, link=f"{BASE_URL}/{token}")
+        return invite
 
     @staticmethod
     async def get_project_invitations(

@@ -1,5 +1,7 @@
 from datetime import datetime
-from pydantic import Field, EmailStr
+from pydantic import Field, EmailStr, computed_field
+
+from src.config import settings
 from src.schemas import BaseSchema
 from src.projects.constants import ProjectRole
 
@@ -21,7 +23,10 @@ class InvitationRead(BaseSchema):
     max_uses: int | None
     used_count: int
     expires_at: datetime
-    link: str
+
+    @computed_field
+    def link(self) -> str:
+        return f"{settings.invite.url}/{self.token}"
 
 
 class InvitationAcceptResponse(BaseSchema):

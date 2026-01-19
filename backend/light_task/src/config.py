@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pydantic import BaseModel, PostgresDsn
+from pydantic import BaseModel, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,11 +12,16 @@ class RunConfig(BaseModel):
 
 
 class InvitationConfig(BaseModel):
-    BASE_URL: str = "http://localhost:5173/invite"
+    url: str = "http://localhost:5173/invite"
 
 
 class DatabaseConfig(BaseModel):
-    url: PostgresDsn
+    user: str
+    password: str
+    host: str = "localhost"
+    port: int = 5432
+    name: str
+
     echo: bool = False
     echo_pool: bool = False
     pool_size: int = 50
@@ -29,6 +34,18 @@ class DatabaseConfig(BaseModel):
         "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
         "pk": "pk_%(table_name)s",
     }
+
+    @computed_field
+    @property
+    def url(self) -> PostgresDsn:
+        return PostgresDsn.build(
+            scheme="postgresql+asyncpg",
+            username=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            path=self.name,
+        )
 
 
 class AuthJWT(BaseModel):
