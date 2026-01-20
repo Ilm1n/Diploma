@@ -9,6 +9,9 @@ env
 .git
 .gitignore
 .env
+.env.template
 .env.*
 certs/
 logs/
+postgres_data_dev
+postgres_data_prod

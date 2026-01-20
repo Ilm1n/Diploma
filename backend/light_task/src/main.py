@@ -37,16 +37,9 @@ main_app = FastAPI(
     lifespan=lifespan,
 )
 
-origins = [
-    "http://localhost:5173",
-    "http://localhost:4173", #for dev
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-]
-
 main_app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.run.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -9,10 +9,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 class RunConfig(BaseModel):
     host: str = "127.0.0.1"
     port: int = 8000
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+    ]
 
 
 class InvitationConfig(BaseModel):
-    url: str = "http://localhost:5173/invite"
+    base_url: str = "http://localhost:5173/invite"
 
 
 class DatabaseConfig(BaseModel):
@@ -71,7 +76,7 @@ class Files(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(BASE_DIR.parent.parent / ".env.template", BASE_DIR.parent.parent / ".env"),
+        env_file=(BASE_DIR.parent.parent / ".env",),
         case_sensitive=False,
         env_nested_delimiter="__",
         env_prefix="LIGHTTASK_CONFIG__",

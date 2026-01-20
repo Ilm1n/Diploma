@@ -11,13 +11,12 @@ from src.config import settings
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
-    InvitationRead,
     InvitationAcceptResponse,
 )
 from src.projects.models import ProjectMember
 from src.users.models import User
 
-BASE_URL = settings.invite.url
+BASE_URL = settings.invite.base_url
 
 
 class InvitationService:
