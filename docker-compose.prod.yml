@@ -20,6 +20,11 @@ services:
         limits:
           cpus: '0.5'
           memory: 300M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-backend:main
@@ -42,6 +47,11 @@ services:
         limits:
           cpus: '0.8'
           memory: 400M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-frontend:main
@@ -55,6 +65,11 @@ services:
         limits:
           cpus: '0.3'
           memory: 150M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data_prod:
