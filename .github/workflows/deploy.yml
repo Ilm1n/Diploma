@@ -1,8 +1,8 @@
 name: Deploy to Production
 
 on:
-#  push:
-#    branches: [ "main" ]
+  # push:
+  #   branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -27,10 +27,6 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Downcase REPO_NAME
-        run: |
-          echo "REPO_NAME_LC=${REPO_NAME,,}" >>${GITHUB_ENV}
 
       - name: Build and push Backend
         uses: docker/build-push-action@v5
@@ -66,22 +62,26 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
           OWNER: ${{ env.IMAGE_REPO_OWNER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          envs: GITHUB_TOKEN,OWNER
+          envs: PROD_ENV_FILE,OWNER,GITHUB_TOKEN
           script: |
             mkdir -p ~/app
             cd ~/app
             
-            echo $GITHUB_TOKEN | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            rm -f .env
             
-            echo "${{ secrets.PROD_ENV_FILE }}" > .env
+            cat << 'EOF' > .env
+            $PROD_ENV_FILE
+            IMAGE_REPO_OWNER=$OWNER
+            EOF
             
-            echo "IMAGE_REPO_OWNER=$OWNER" >> .env
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
