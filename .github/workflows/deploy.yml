@@ -1,8 +1,8 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [ "main" ]
+#  push:
+#    branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -87,3 +87,28 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             
             docker system prune -af
+
+  cleanup:
+    name: Cleanup Old Images
+    needs: deploy
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete Untagged Backend Images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'lighttask-backend'
+          package-type: 'container'
+          min-versions-to-keep: 1
+          delete-only-untagged-versions: 'true'
+
+      - name: Delete Untagged Frontend Images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'lighttask-frontend'
+          package-type: 'container'
+          min-versions-to-keep: 1
+          delete-only-untagged-versions: 'true'
