@@ -1,0 +1,3 @@
+do-coop.ru, www.do-coop.ru {
+    reverse_proxy frontend:80
+}
