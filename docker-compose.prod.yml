@@ -15,6 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - backend-db
     deploy:
       resources:
         limits:
@@ -36,8 +38,8 @@ services:
       - LIGHTTASK_CONFIG__DB__HOST=db
       - LIGHTTASK_CONFIG__RUN__HOST=0.0.0.0
       - LIGHTTASK_CONFIG__RUN__PORT=8000
-      - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=["http://do-coop.ru","http://www.do-coop.ru","http://144.31.201.48"]
-      - LIGHTTASK_CONFIG__INVITE__BASE_URL=http://do-coop.ru/invite
+      - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=["https://do-coop.ru","https://www.do-coop.ru","https://144.31.201.48"]
+      - LIGHTTASK_CONFIG__INVITE__BASE_URL=https://do-coop.ru/invite
     depends_on:
       db:
         condition: service_healthy
@@ -46,6 +48,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - frontend-api
+      - backend-db
     deploy:
       resources:
         limits:
@@ -62,8 +67,14 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - certbot_etc:/etc/letsencrypt:ro
+      - certbot_var:/var/www/certbot:ro
     depends_on:
       - backend
+    networks:
+      - frontend-api
     deploy:
       resources:
         limits:
@@ -75,5 +86,19 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  certbot:
+    image: certbot/certbot
+    restart: always
+    volumes:
+      - certbot_etc:/etc/letsencrypt
+      - certbot_var:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+    networks:
+      frontend-api:
+      backend-db:
+
 volumes:
   postgres_data_prod:
+  certbot_etc:
+  certbot_var:
