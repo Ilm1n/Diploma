@@ -30,6 +30,8 @@ services:
     image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-backend:main
     restart: always
     env_file: .env
+    volumes:
+      - ./certs:/app/certs:ro
     environment:
       - LIGHTTASK_CONFIG__DB__HOST=db
       - LIGHTTASK_CONFIG__RUN__HOST=0.0.0.0

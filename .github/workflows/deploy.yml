@@ -50,13 +50,18 @@ jobs:
       - name: Checkout config
         uses: actions/checkout@v4
 
-      - name: Create .env file
+      - name: Create config and certs
         env:
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+          JWT_PRIVATE: ${{ secrets.JWT_PRIVATE_KEY }}
+          JWT_PUBLIC: ${{ secrets.JWT_PUBLIC_KEY }}
         run: |
           printf "%s" "$PROD_ENV_FILE" > .env.prod
-          echo "" >> .env.prod
           echo "IMAGE_REPO_OWNER=${{ env.IMAGE_REPO_OWNER }}" >> .env.prod
+            
+          mkdir -p certs
+          printf "%s" "$JWT_PRIVATE" > certs/jwt-private.pem
+          printf "%s" "$JWT_PUBLIC" > certs/jwt-public.pem
 
       - name: Copy files via SCP
         uses: appleboy/scp-action@master
@@ -64,7 +69,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
-          source: "docker-compose.prod.yml,.env.prod"
+          source: "docker-compose.prod.yml,.env.prod,certs/"
           target: "/home/${{ secrets.VPS_USER }}/app"
 
       - name: Deploy via SSH
@@ -76,6 +81,9 @@ jobs:
           script: |
             cd ~/app
             mv .env.prod .env
+            
+            chmod 600 certs/*.pem
+            
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
