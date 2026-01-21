@@ -94,9 +94,9 @@ services:
       - certbot_var:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
-    networks:
-      frontend-api:
-      backend-db:
+networks:
+  frontend-api:
+  backend-db:
 
 volumes:
   postgres_data_prod:
