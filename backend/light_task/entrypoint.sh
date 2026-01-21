@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 DB_HOST="${LIGHTTASK_CONFIG__DB__HOST:-db}"

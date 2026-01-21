@@ -26,8 +26,8 @@ dist-ssr
 
 # Environment Variables (Секреты!)
 .env
-.env.*
-!.env.example
+.env.template
+!.env.template
 
 # Testing
 coverage/

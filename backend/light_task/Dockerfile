@@ -36,3 +36,5 @@ RUN chmod +x /app/entrypoint.sh
 USER appuser
 
 ENTRYPOINT ["/app/entrypoint.sh"]
+
+CMD ["uvicorn", "src.main:main_app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
