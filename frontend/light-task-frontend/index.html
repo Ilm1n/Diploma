@@ -2,34 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <link
-    rel="icon"
-    type="image/svg+xml"
-    href="/vite.svg"
-  />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-  <title>light-task</title>
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LightTask</title>
+
   <script>
     (function () {
       const storageTheme = localStorage.getItem('theme');
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const isDark = storageTheme === 'dark' || (!storageTheme && systemDark);
 
-      if (storageTheme === 'dark' || (!storageTheme && systemDark)) {
+      if (isDark) {
         document.documentElement.classList.add('dark');
+        document.documentElement.style.backgroundColor = '#0f172a';
       } else {
         document.documentElement.classList.remove('dark');
+        document.documentElement.style.backgroundColor = '#f8f9fa';
       }
     })();
   </script>
 </head>
-<body>
-<div id="app">
-</div>
-<script
-  type="module"
-  src="/src/main.ts"
-></script>
+<body class="dark:bg-dark-bg bg-gray-50">
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
