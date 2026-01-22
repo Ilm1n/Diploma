@@ -9,6 +9,7 @@ const LoginPage = () => import('@/modules/auth/components/LoginPage.vue');
 const RegisterPage = () => import('@/modules/auth/components/RegisterPage.vue');
 const ProjectsList = () => import('@/modules/projects/components/ProjectsList.vue');
 const BoardPage = () => import('@/modules/board/pages/BoardPage.vue');
+const ProfilePage = () => import('@/modules/profile/pages/ProfilePage.vue');
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +35,11 @@ const router = createRouter({
           path: '', // path: '/' -> AppLayout -> ProjectsList
           name: 'home',
           component: ProjectsList,
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: ProfilePage,
         },
         {
           path: 'projects/:projectId/board',

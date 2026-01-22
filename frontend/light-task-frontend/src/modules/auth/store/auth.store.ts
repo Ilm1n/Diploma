@@ -4,7 +4,9 @@ import {ref, computed} from 'vue';
 import {apiClient} from '@/api/config';
 import type {
   UserRead,
-  Body_login_for_access_token_api_auth_login_post, UserCreate,
+  Body_login_for_access_token_api_auth_login_post,
+  UserCreate,
+  UserUpdate,
 } from '@/api/client';
 import {useRouter} from 'vue-router';
 
@@ -74,6 +76,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+
+  async function updateProfile(payload: UserUpdate) {
+    isLoading.value = true;
+    try {
+      const updatedUser = await apiClient.users.updateUserMeApiUsersMePatch(payload);
+      user.value = updatedUser;
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function uploadAvatar(file: File) {
+    isLoading.value = true;
+    try {
+      const updatedUser = await apiClient.users.uploadAvatarApiUsersMeAvatarPost({
+        file: file
+      });
+      user.value = updatedUser;
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function logout() {
     accessToken.value = null;
     user.value = null;
@@ -101,5 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser,
     initAuth,
     setTokens,
+    updateProfile,
+    uploadAvatar,
   };
 });
