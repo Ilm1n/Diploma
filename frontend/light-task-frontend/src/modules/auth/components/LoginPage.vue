@@ -44,7 +44,7 @@ const onSubmit = handleSubmit(async (values) => {
       grant_type: 'password',
     });
     toast.add({severity: 'success', summary: 'С возвращением!', life: 3000});
-    await router.push('/');
+    await router.push('/projects');
   } catch (error: any) {
     // Обработка ошибки
     let errorMsg = 'Неверные данные для входа';

@@ -10,10 +10,17 @@ const RegisterPage = () => import('@/modules/auth/components/RegisterPage.vue');
 const ProjectsList = () => import('@/modules/projects/components/ProjectsList.vue');
 const BoardPage = () => import('@/modules/board/pages/BoardPage.vue');
 const ProfilePage = () => import('@/modules/profile/pages/ProfilePage.vue');
+const LandingPage = () => import('@/modules/landing/pages/LandingPage.vue');
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    {
+      path: '/',
+      name: 'landing',
+      component: LandingPage,
+      meta: { requiresAuth: false }
+    },
     {
       path: '/login',
       name: 'login',
@@ -29,23 +36,23 @@ const router = createRouter({
     {
       path: '/',
       component: AppLayout,
-      meta: {requiresAuth: true},
+      meta: { requiresAuth: true },
       children: [
         {
-          path: '', // path: '/' -> AppLayout -> ProjectsList
+          path: 'projects', // Итоговый путь: /projects
           name: 'home',
-          component: ProjectsList,
+          component: ProjectsList
         },
         {
-          path: 'profile',
-          name: 'profile',
-          component: ProfilePage,
-        },
-        {
-          path: 'projects/:projectId/board',
+          path: 'projects/:projectId/board', // Итоговый путь: /projects/1/board
           name: 'project-board',
           component: BoardPage,
-          props: true // Чтобы projectId прокидывался как prop
+          props: true
+        },
+        {
+          path: 'profile', // Итоговый путь: /profile
+          name: 'profile',
+          component: ProfilePage
         }
       ]
     },
@@ -57,7 +64,7 @@ router.beforeEach(async (to, _, next) => {
 
   if (to.path === '/login' || to.path === '/register') {
     if (authStore.isAuthenticated) {
-      return next('/');
+      return next('/projects');
     }
     return next();
   }
