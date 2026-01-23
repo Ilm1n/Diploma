@@ -47,7 +47,7 @@ services:
         max-file: "3"
 
   backend:
-    image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-backend:main
+    image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-backend:${IMAGE_TAG:-main}
     restart: always
     env_file: .env
     volumes:
@@ -81,7 +81,7 @@ services:
         max-file: "3"
 
   frontend:
-    image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-frontend:main
+    image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-frontend:${IMAGE_TAG:-main}
     restart: always
     depends_on:
       - backend
