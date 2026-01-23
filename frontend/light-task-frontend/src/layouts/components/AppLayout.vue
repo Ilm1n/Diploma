@@ -37,7 +37,7 @@ const toggleMobileMenu = () => {
 };
 
 const menuItems = [
-  {label: 'Проекты', to: '/', icon: 'pi pi-th-large'},
+  {label: 'Проекты', to: '/projects', icon: 'pi pi-th-large'},
 ];
 
 // --- Логика Меню Пользователя ---

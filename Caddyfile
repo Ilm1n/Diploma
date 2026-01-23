@@ -1,9 +1,18 @@
 do-coop.ru, www.do-coop.ru {
     encode zstd gzip
+    header Strict-Transport-Security "max-age=31536000;"
 
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    @swagger path /docs* /openapi.json*
+
+    basic_auth @swagger {
+        Ilm1n $2a$14$nYZxShSveyLPJ1ycn/xQreyZA4H.7f4dKJKRb0jLDQNBwywPCVoBa
     }
 
-    reverse_proxy frontend:80
+    handle @swagger {
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        reverse_proxy frontend:80
+    }
 }
