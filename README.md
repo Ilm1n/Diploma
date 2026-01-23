@@ -1,0 +1,1 @@
+docker run --rm caddy caddy hash-password --plaintext "paswrd"
