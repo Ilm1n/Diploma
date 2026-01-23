@@ -123,6 +123,29 @@ class UserService:
         return user
 
     @staticmethod
+    async def delete_avatar(
+            session: AsyncSession,
+            user: User,
+            s3_client: S3Client,
+            background_tasks: BackgroundTasks,
+    ) -> User:
+        if not user.avatar_url:
+            return user
+
+        old_avatar_url = user.avatar_url
+
+        user.avatar_url = None
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        UserService._schedule_old_avatar_deletion(
+            old_avatar_url, background_tasks, s3_client
+        )
+
+        return user
+
+    @staticmethod
     def _schedule_old_avatar_deletion(
         url: str,
         bg_tasks: BackgroundTasks,

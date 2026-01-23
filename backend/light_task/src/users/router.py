@@ -77,3 +77,17 @@ async def upload_avatar(
         s3_client=s3_client,
         background_tasks=bg_tasks,
     )
+
+@router.delete("/me/avatar", response_model=UserRead)
+async def delete_avatar(
+    user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    s3_client: Annotated[S3Client, Depends(get_s3_client)],
+    bg_tasks: BackgroundTasks,
+):
+    return await UserService.delete_avatar(
+        session=session,
+        user=user,
+        s3_client=s3_client,
+        background_tasks=bg_tasks,
+    )
