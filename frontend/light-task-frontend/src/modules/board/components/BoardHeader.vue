@@ -10,10 +10,6 @@ import Skeleton from 'primevue/skeleton';
 const store = useBoardStore();
 const router = useRouter();
 
-// Пока у нас нет списка мемберов в boardStore,
-// давай временно замокаем данные, чтобы сверстать красоту.
-// В будущем тут будет computed от store.members
-// Получаем инициалы для аватарок без картинки
 const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
 const members = computed(() => [
@@ -22,7 +18,7 @@ const members = computed(() => [
 ]);
 
 const goBack = () => {
-  router.push('/');
+  router.push('/projects');
 };
 </script>
 
