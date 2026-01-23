@@ -4,6 +4,9 @@ import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useWindowScroll } from '@vueuse/core';
 
+import avatar1 from '@/assets/images/testimonials/user1.webp';
+import avatar2 from '@/assets/images/testimonials/user2.webp';
+import avatar3 from '@/assets/images/testimonials/user3.webp';
 // UI Components
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -57,9 +60,9 @@ const workflows = [
 ];
 
 const reviews = [
-  { name: 'Алексей Иванов', role: 'Project Manager', text: 'LightTask заменил нам тяжеловесную Jira. Скорость работы просто поражает.', avatar: 'https://i.pravatar.cc/150?u=2' },
-  { name: 'Мария Петрова', role: 'Frontend Developer', text: 'Лучший интерфейс для канбан-досок. Все интуитивно и очень красиво.', avatar: 'https://i.pravatar.cc/150?u=1' },
-  { name: 'Дмитрий Соколов', role: 'Startup Founder', text: 'Мы запустили MVP на 2 недели раньше благодаря планированию в LightTask.', avatar: 'https://i.pravatar.cc/150?u=9' }
+  { name: 'Алексей Иванов', role: 'Project Manager', text: 'LightTask заменил нам тяжеловесную Jira. Скорость работы просто поражает.', avatar: avatar1 },
+  { name: 'Мария Петрова', role: 'Frontend Developer', text: 'Лучший интерфейс для канбан-досок. Все интуитивно и очень красиво.', avatar: avatar2 },
+  { name: 'Дмитрий Соколов', role: 'Startup Founder', text: 'Мы запустили MVP на 2 недели раньше благодаря планированию в LightTask.', avatar: avatar3 }
 ];
 
 const plans = [
@@ -273,7 +276,7 @@ const plans = [
               <template #content>
                 <p class="italic text-slate-600 dark:text-slate-400 mb-6">"{{ review.text }}"</p>
                 <div class="flex items-center gap-4">
-                  <img :src="review.avatar" class="w-12 h-12 rounded-full" alt="Avatar" />
+                  <img :src="review.avatar" class="w-12 h-12 rounded-full" alt="Аватар" />
                   <div>
                     <p class="font-bold text-sm dark:text-slate-300">{{ review.name }}</p>
                     <p class="text-xs text-slate-500 dark:text-slate-300">{{ review.role }}</p>
