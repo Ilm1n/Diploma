@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/modules/auth/store/auth.store';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useForm } from 'vee-validate';
 import { toTypedSchema } from '@vee-validate/zod';
 import * as z from 'zod';
@@ -10,9 +11,11 @@ import * as z from 'zod';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
+import ConfirmDialog from 'primevue/confirmdialog';
 
 const authStore = useAuthStore();
 const toast = useToast();
+const confirm = useConfirm();
 const fileInput = ref<HTMLInputElement | null>(null);
 
 // --- 1. Avatar Logic ---
@@ -29,9 +32,8 @@ const onFileSelect = async (event: Event) => {
 
   if (!file) return;
 
-  // Проверка размера (например, 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Файл слишком большой (макс 2MB)', life: 3000 });
+  if (file.size > 5 * 1024 * 1024) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Файл слишком большой (макс 5MB)', life: 3000 });
     return;
   }
 
@@ -43,6 +45,27 @@ const onFileSelect = async (event: Event) => {
   } finally {
     if (fileInput.value) fileInput.value.value = '';
   }
+};
+
+// --- Delete Avatar Logic ---
+const onDeleteAvatar = () => {
+  confirm.require({
+    message: 'Вы уверены, что хотите удалить фото профиля?',
+    header: 'Удаление фото',
+    icon: 'pi pi-info-circle',
+    rejectLabel: 'Отмена',
+    acceptLabel: 'Удалить',
+    rejectClass: 'p-button-secondary p-button-outlined',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await authStore.deleteAvatar();
+        toast.add({ severity: 'success', summary: 'Удалено', detail: 'Фото профиля удалено', life: 3000 });
+      } catch (e) {
+        toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось удалить фото', life: 3000 });
+      }
+    }
+  });
 };
 
 // --- 2. Form Logic ---
@@ -83,6 +106,8 @@ const onSubmit = handleSubmit(async (values) => {
 
 <template>
   <div class="max-w-4xl mx-auto p-6">
+    <ConfirmDialog />
+
     <div class="mb-8">
       <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Настройки профиля</h1>
       <p class="text-slate-500 dark:text-slate-400">Управляйте личной информацией и безопасностью</p>
@@ -120,6 +145,18 @@ const onSubmit = handleSubmit(async (values) => {
               outlined
               class="!w-full"
               @click="triggerFileUpload"
+              :loading="authStore.isLoading"
+          />
+
+          <Button
+              v-if="avatarUrl"
+              label="Удалить фото"
+              size="small"
+              text
+              severity="danger"
+              class="!w-full !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+              icon="pi pi-trash"
+              @click="onDeleteAvatar"
               :loading="authStore.isLoading"
           />
 
@@ -178,7 +215,7 @@ const onSubmit = handleSubmit(async (values) => {
                   disabled
                   class="w-full !bg-gray-100 dark:!bg-slate-800 !text-slate-500"
               />
-              <small class="text-slate-400">Email нельзя изменить</small>
+              <small class="text-slate-400">В данный момент нельзя изменить Email</small>
             </div>
 
             <!-- Actions -->

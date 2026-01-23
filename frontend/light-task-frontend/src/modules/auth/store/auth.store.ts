@@ -105,6 +105,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function deleteAvatar(): Promise<void> {
+    isLoading.value = true;
+    try {
+      const updatedUser = await apiClient.users.deleteAvatarApiUsersMeAvatarDelete();
+      user.value = updatedUser;
+    } catch (error) {
+      console.error('Failed to delete avatar:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function logout() {
     accessToken.value = null;
     user.value = null;
@@ -134,5 +147,6 @@ export const useAuthStore = defineStore('auth', () => {
     setTokens,
     updateProfile,
     uploadAvatar,
+    deleteAvatar,
   };
 });

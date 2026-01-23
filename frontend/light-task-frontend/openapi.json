@@ -274,6 +274,30 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete Avatar",
+        "operationId": "delete_avatar_api_users_me_avatar_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/projects/": {
@@ -2032,7 +2056,8 @@
           },
           "link": {
             "type": "string",
-            "title": "Link"
+            "title": "Link",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -2823,18 +2848,6 @@
               }
             ],
             "title": "Fullname"
-          },
-          "avatarUrl": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 512
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatarurl"
           }
         },
         "type": "object",

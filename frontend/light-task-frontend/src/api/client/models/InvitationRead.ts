@@ -11,6 +11,6 @@ export type InvitationRead = {
     maxUses: (number | null);
     usedCount: number;
     expiresAt: string;
-    link: string;
+    readonly link: string;
 };
 

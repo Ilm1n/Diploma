@@ -5,6 +5,5 @@
 export type UserUpdate = {
     username?: (string | null);
     fullName?: (string | null);
-    avatarUrl?: (string | null);
 };
 

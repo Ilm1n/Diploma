@@ -99,4 +99,15 @@ export class UsersService {
             },
         });
     }
+    /**
+     * Delete Avatar
+     * @returns UserRead Successful Response
+     * @throws ApiError
+     */
+    public deleteAvatarApiUsersMeAvatarDelete(): CancelablePromise<UserRead> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/api/users/me/avatar',
+        });
+    }
 }
