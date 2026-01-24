@@ -1,4 +1,8 @@
-do-coop.ru, www.do-coop.ru {
+www.do-coop.ru {
+    redir https://do-coop.ru{uri} permanent
+}
+
+do-coop.ru {
     encode zstd gzip
     header Strict-Transport-Security "max-age=31536000;"
 
