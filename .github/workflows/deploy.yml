@@ -16,12 +16,13 @@ jobs:
     permissions:
       contents: read
       packages: write
-
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set outputs
+      - name: Get short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
@@ -37,6 +38,7 @@ jobs:
         with:
           context: ./backend/light_task
           push: true
+          no-cache: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-backend:main
             ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-backend:${{ steps.vars.outputs.sha_short }}
@@ -47,12 +49,10 @@ jobs:
           context: ./frontend/light-task-frontend
           file: ./frontend/light-task-frontend/Dockerfile
           push: true
+          no-cache: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-frontend:main
             ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-frontend:${{ steps.vars.outputs.sha_short }}
-
-    outputs:
-      sha_short: ${{ steps.vars.outputs.sha_short }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -63,18 +63,25 @@ jobs:
 
       - name: Create config and certs
         env:
-          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          S3_ACCESS: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET: ${{ secrets.S3_SECRET_KEY }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+
+          OWNER: ${{ env.IMAGE_REPO_OWNER }}
+          TAG: ${{ needs.build-and-push.outputs.sha_short }}
+
           JWT_PRIVATE: ${{ secrets.JWT_PRIVATE_KEY }}
           JWT_PUBLIC: ${{ secrets.JWT_PUBLIC_KEY }}
-          TAG: ${{ needs.build-and-push.outputs.sha_short }}
         run: |
-          printf "%s" "$PROD_ENV_FILE" > .env.prod
+          echo "LIGHTTASK_CONFIG__DB__PASSWORD=$DB_PASSWORD" >> .env.prod
+          echo "LIGHTTASK_CONFIG__S3__ACCESS_KEY=$S3_ACCESS" >> .env.prod
+          echo "LIGHTTASK_CONFIG__S3__SECRET_KEY=$S3_SECRET" >> .env.prod
+          echo "LIGHTTASK_CONFIG__S3__BUCKET_NAME=$S3_BUCKET" >> .env.prod
           
           echo "" >> .env.prod
-          
-          echo "IMAGE_REPO_OWNER=${{ env.IMAGE_REPO_OWNER }}" >> .env.prod
+          echo "IMAGE_REPO_OWNER=$OWNER" >> .env.prod
           echo "IMAGE_TAG=$TAG" >> .env.prod
-          
             
           mkdir -p certs
           printf "%s" "$JWT_PRIVATE" > certs/jwt-private.pem
@@ -91,23 +98,32 @@ jobs:
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
+          envs: GITHUB_TOKEN,ACTOR
           script: |
+            set -e
             cd ~/app
-            mv .env.prod .env
+            if [ -f .env.prod ]; then
+              mv .env.prod .env
+            fi
             
             chmod 600 certs/*.pem
             
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+            
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            
             docker image prune -af
 
   cleanup:
-    name: Cleanup Old Images
+    name: Cleanup Registry
     needs: deploy
     runs-on: ubuntu-latest
     permissions:

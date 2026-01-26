@@ -23,13 +23,13 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: ${LIGHTTASK_CONFIG__DB__USER}
+      POSTGRES_USER: lighttask_user
+      POSTGRES_DB: lighttask
       POSTGRES_PASSWORD: ${LIGHTTASK_CONFIG__DB__PASSWORD}
-      POSTGRES_DB: ${LIGHTTASK_CONFIG__DB__NAME}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${LIGHTTASK_CONFIG__DB__USER} -d ${LIGHTTASK_CONFIG__DB__NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U lighttask_user -d lighttask"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -54,9 +54,15 @@ services:
       - ./certs:/app/certs:ro
     environment:
       - LIGHTTASK_CONFIG__DB__HOST=db
+      - LIGHTTASK_CONFIG__DB__PORT=5432
+      - LIGHTTASK_CONFIG__DB__USER=lighttask_user
+      - LIGHTTASK_CONFIG__DB__NAME=lighttask
+      - LIGHTTASK_CONFIG__DB__ECHO=0
+
       - LIGHTTASK_CONFIG__RUN__HOST=0.0.0.0
       - LIGHTTASK_CONFIG__RUN__PORT=8000
-      - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=["https://do-coop.ru","https://www.do-coop.ru","https://144.31.201.48"]
+
+      - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=[]
       - LIGHTTASK_CONFIG__INVITE__BASE_URL=https://do-coop.ru/invite
     depends_on:
       db:
@@ -97,7 +103,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
 
 networks:
   frontend-api:
