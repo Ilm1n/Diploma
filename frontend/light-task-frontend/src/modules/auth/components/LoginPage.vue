@@ -84,7 +84,7 @@ const onSubmit = handleSubmit(async (values) => {
     <div class="w-full max-w-md bg-white dark:bg-dark-surface rounded-2xl shadow-xl p-8 z-10 border border-gray-100 dark:border-dark-border transition-colors duration-300">
 
       <div class="text-center mb-8">
-        <router-link to="/"><h1 class="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">LightTask</h1></router-link>
+        <router-link to="/"><h1 class="text-3xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">Kantano</h1></router-link>
         <p class="text-slate-500 dark:text-slate-400">Войдите, чтобы управлять проектами</p>
       </div>
 

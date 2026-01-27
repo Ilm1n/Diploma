@@ -13,7 +13,7 @@ import { ProjectsService } from './services/ProjectsService';
 import { TagsService } from './services/TagsService';
 import { UsersService } from './services/UsersService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
-export class LightTaskClient {
+export class KantanoClient {
     public readonly auth: AuthService;
     public readonly boards: BoardsService;
     public readonly default: DefaultService;

@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
 
 
 main_app = FastAPI(
-    title="LightTask",
+    title="Kantano",
     version="0.1.0",
     default_response_class=ORJSONResponse,
     lifespan=lifespan,

@@ -1,13 +1,17 @@
-www.do-coop.ru {
-    redir https://do-coop.ru{uri} permanent
+do-coop.ru, www.do-coop.ru {
+    redir https://kantano.ru{uri} permanent
 }
 
-do-coop.ru {
+www.kantano.ru {
+    redir https://kantano.ru{uri} permanent
+}
+
+kantano.ru {
     encode zstd gzip
     header Strict-Transport-Security "max-age=31536000;"
 
     @swagger path /docs* /openapi.json*
-
+    
     basic_auth @swagger {
         Ilm1n $2a$14$nYZxShSveyLPJ1ycn/xQreyZA4H.7f4dKJKRb0jLDQNBwywPCVoBa
     }

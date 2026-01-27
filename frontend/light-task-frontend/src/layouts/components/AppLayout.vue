@@ -109,7 +109,7 @@ const isMobile = breakpoints.smaller('lg');
             :class="isSidebarCollapsed ? 'w-0 opacity-0 mr-0' : 'w-40 opacity-100 mr-auto'"
         >
           <i class="pi pi-bolt text-primary-500 text-2xl flex-shrink-0"></i>
-          <span class="text-lg font-bold text-slate-800 dark:text-white tracking-tight">LightTask</span>
+          <span class="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Kantano</span>
         </div>
 
         <button
@@ -216,7 +216,7 @@ const isMobile = breakpoints.smaller('lg');
           >
             <i class="pi pi-bars text-xl"></i>
           </button>
-          <span class="font-bold text-slate-800 dark:text-white">LightTask</span>
+          <span class="font-bold text-slate-800 dark:text-white">Kantano</span>
         </div>
         <div class="flex items-center gap-3">
 

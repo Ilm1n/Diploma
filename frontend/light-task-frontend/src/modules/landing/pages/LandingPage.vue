@@ -60,9 +60,9 @@ const workflows = [
 ];
 
 const reviews = [
-  { name: 'Алексей Иванов', role: 'Project Manager', text: 'LightTask заменил нам тяжеловесную Jira. Скорость работы просто поражает.', avatar: avatar1 },
+  { name: 'Алексей Иванов', role: 'Project Manager', text: 'Kantano заменил нам тяжеловесную Jira. Скорость работы просто поражает.', avatar: avatar1 },
   { name: 'Мария Петрова', role: 'Frontend Developer', text: 'Лучший интерфейс для канбан-досок. Все интуитивно и очень красиво.', avatar: avatar2 },
-  { name: 'Дмитрий Соколов', role: 'Startup Founder', text: 'Мы запустили MVP на 2 недели раньше благодаря планированию в LightTask.', avatar: avatar3 }
+  { name: 'Дмитрий Соколов', role: 'Startup Founder', text: 'Мы запустили MVP на 2 недели раньше благодаря планированию в Kantano.', avatar: avatar3 }
 ];
 
 const plans = [
@@ -87,7 +87,7 @@ const plans = [
         <div class="flex items-center gap-8">
           <router-link to="/" class="flex items-center gap-2 no-underline">
             <i class="pi pi-bolt text-primary-600 text-2xl"></i>
-            <span class="text-xl font-extrabold tracking-tighter uppercase">LightTask</span>
+            <span class="text-xl font-extrabold tracking-tighter uppercase">Kantano</span>
           </router-link>
           <nav class="hidden lg:flex items-center gap-6">
             <a href="#why" class="nav-link">Преимущества</a>
@@ -127,7 +127,7 @@ const plans = [
         <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
           <div class="text-left z-10">
             <h1 class="text-4xl sm:text-6xl font-black leading-[1.05] mb-6 tracking-tight">
-              LightTask объединяет <br/>
+              Kantano объединяет <br/>
               <span class="text-primary-600">команды и задачи</span>
             </h1>
             <p class="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-lg leading-relaxed">
@@ -191,7 +191,7 @@ const plans = [
         </div>
       </section>
 
-      <!-- WHY LIGHTTASK? -->
+      <!-- Why Kantano? -->
       <section id="why" class="py-24 px-4">
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
@@ -229,7 +229,7 @@ const plans = [
         <div class="max-w-5xl mx-auto">
           <div class="text-center mb-16">
             <h2 class="text-4xl font-black mb-4">Решение для <span class="text-primary-600">любой задачи</span></h2>
-            <p class="text-slate-500">LightTask подойдет под любой вид работы</p>
+            <p class="text-slate-500">Kantano подойдет под любой вид работы</p>
           </div>
 
           <Tabs value="dev">
@@ -317,7 +317,7 @@ const plans = [
         <h2 class="text-center text-4xl font-black mb-12">FAQ</h2>
         <Accordion :value="['0']" multiple>
           <AccordionPanel value="0">
-            <AccordionHeader class="!text-slate-400">Можно ли использовать LightTask для личных целей?</AccordionHeader>
+            <AccordionHeader class="!text-slate-400">Можно ли использовать Kantano для личных целей?</AccordionHeader>
             <AccordionContent><p class="text-slate-500">Да, бесплатный тариф идеально подходит для персональных проектов и списков дел.</p></AccordionContent>
           </AccordionPanel>
           <AccordionPanel value="1">
@@ -345,7 +345,7 @@ const plans = [
           </h2>
 
           <p class="text-white/80 dark:text-slate-300 text-xl mb-12 max-w-2xl mx-auto relative z-10 leading-relaxed">
-            Присоединяйтесь к пользователям, которые уже выбрали LightTask для управления своими проектами.
+            Присоединяйтесь к пользователям, которые уже выбрали Kantano для управления своими проектами.
           </p>
 
           <div class="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
@@ -373,7 +373,7 @@ const plans = [
     <footer class="bg-slate-900 text-white pt-20 pb-10 px-4">
       <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
         <div class="col-span-2 md:col-span-1">
-          <div class="flex items-center gap-2 mb-6"><i class="pi pi-bolt text-primary-500 text-2xl"></i><span class="text-xl font-black uppercase tracking-tighter">LightTask</span></div>
+          <div class="flex items-center gap-2 mb-6"><i class="pi pi-bolt text-primary-500 text-2xl"></i><span class="text-xl font-black uppercase tracking-tighter">Kantano</span></div>
           <p class="text-slate-400 text-sm">Сделано с любовью к коду и продуктивности в рамках дипломного проекта.</p>
         </div>
         <div>
@@ -400,7 +400,7 @@ const plans = [
         </div>
       </div>
       <div class="max-w-7xl mx-auto pt-8 border-t border-slate-800 text-center text-slate-500 text-xs">
-        <p>© 2026 LightTask. Дипломный проект.</p>
+        <p>© 2026 Kantano. Дипломный проект.</p>
       </div>
     </footer>
   </div>

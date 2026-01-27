@@ -63,7 +63,7 @@ services:
       - LIGHTTASK_CONFIG__RUN__PORT=8000
 
       - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=[]
-      - LIGHTTASK_CONFIG__INVITE__BASE_URL=https://do-coop.ru/invite
+      - LIGHTTASK_CONFIG__INVITE__BASE_URL=https://kantano.ru/invite
     depends_on:
       db:
         condition: service_healthy
