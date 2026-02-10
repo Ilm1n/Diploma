@@ -12,6 +12,7 @@ import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Skeleton from 'primevue/skeleton';
 import Button from 'primevue/button';
+import TaskSidebar from './TaskSidebar.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -102,7 +103,7 @@ const deleteTask = () => {
   <Drawer
       v-model:visible="isVisible"
       position="right"
-      class="!w-full md:!w-[600px] !bg-white dark:!bg-dark-surface !border-l dark:!border-dark-border !transition-colors !duration-100"
+      class="!w-full md:!w-[600px] !transition-colors !duration-100"
       :pt="{
       mask: { class: 'backdrop-blur-[1px]' },
       header: { class: '!bg-white dark:!bg-dark-surface !border-b !border-gray-200 dark:!border-dark-border !p-5' },
@@ -175,17 +176,7 @@ const deleteTask = () => {
       <!-- Sidebar Right -->
       <!-- TODO: добавить реальные опции -->
       <div class="lg:col-span-1 flex flex-col gap-6">
-        <div>
-          <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Информация</h4>
-          <div class="space-y-3">
-            <div class="flex flex-col gap-1.5 p-3 rounded-lg border border-gray-100 dark:border-dark-border bg-gray-50/50 dark:bg-dark-bg/20">
-              <span class="text-[11px] text-slate-500 dark:text-slate-400">Статус</span>
-              <span class="text-xs font-semibold dark:text-slate-200 flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> В работе
-                </span>
-            </div>
-          </div>
-        </div>
+        <TaskSidebar />
 
         <div class="pt-4 border-t border-gray-100 dark:border-dark-border">
           <Button
@@ -204,7 +195,6 @@ const deleteTask = () => {
 </template>
 
 <style scoped>
-/* Скроллбар в стиле дашборда */
 textarea::-webkit-scrollbar {
   width: 4px;
 }
@@ -215,12 +205,10 @@ textarea::-webkit-scrollbar-thumb {
   @apply bg-gray-200 dark:bg-slate-700 rounded-full;
 }
 
-/* Убираем стандартное свечение PrimeVue */
 :deep(.p-inputtext:focus) {
   box-shadow: none !important;
 }
 
-/* Анимация появления контента */
 .flex-col {
   animation: slideIn 0.2s ease-out;
 }

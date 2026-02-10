@@ -4,13 +4,22 @@ import { useRouter, useRoute } from 'vue-router';
 import type { TaskPreview } from '@/api/client';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
+import { useBoardStore } from '../store/board.store';
 
 const props = defineProps<{
   task: TaskPreview;
 }>();
 
+const store = useBoardStore();
 const router = useRouter();
 const route = useRoute();
+
+const assignedMember = computed(() =>
+    store.members.find(m => m.user.id === props.task.assigneeId)
+);
+
+const avatarUrl = computed(() => assignedMember.value?.user.avatarUrl);
+const initials = computed(() => assignedMember.value?.user.username?.slice(0, 2).toUpperCase() || '?');
 
 const openTask = () => {
   router.push({ query: { ...route.query, taskId: props.task.id } });
@@ -79,11 +88,12 @@ const assigneeInitials = computed(() => {
       </Tag>
 
       <!-- Assignee Avatar -->
-      <div v-if="task.assigneeId" class="flex -space-x-2">
+      <div v-if="task.assigneeId" class="flex">
         <Avatar
             shape="circle"
             class="!w-6 !h-6 !text-[10px] !bg-primary-100 !text-primary-700 border border-white dark:border-slate-800"
-            :label="assigneeInitials"
+            :image="avatarUrl || undefined"
+            :label="avatarUrl ? undefined : initials"
         />
       </div>
     </div>

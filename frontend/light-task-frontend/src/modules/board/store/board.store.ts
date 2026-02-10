@@ -9,7 +9,9 @@ import type {
   TaskUpdate,
   ColumnUpdate,
   ColumnCreate,
-  TaskCreate
+  TaskCreate,
+  ProjectMemberRead,
+  TagRead,
 } from '@/api/client';
 
 export const useBoardStore = defineStore('board', () => {
@@ -17,6 +19,9 @@ export const useBoardStore = defineStore('board', () => {
   const project = ref<ProjectRead | null>(null);
   const columns = ref<ColumnRead[]>([]);
   const selectedTask = ref<TaskRead | null>(null);
+
+  const members = ref<ProjectMemberRead[]>([]);
+  const tags = ref<TagRead[]>([]);
 
   const activeColumnIdForTaskCreation = ref<number | null>(null);
 
@@ -32,12 +37,16 @@ export const useBoardStore = defineStore('board', () => {
   async function fetchBoard(projectId: number) {
     isLoading.value = true;
     try {
-      const [projectData, columnsData] = await Promise.all([
+      const [projectData, columnsData, membersData, tagsData] = await Promise.all([
         apiClient.projects.getProjectDetailsApiProjectsProjectIdGet(projectId),
-        apiClient.boards.getProjectBoardApiProjectsProjectIdColumnsGet(projectId)
+        apiClient.boards.getProjectBoardApiProjectsProjectIdColumnsGet(projectId),
+        apiClient.projects.getProjectMembersApiProjectsProjectIdMembersGet(projectId),
+        apiClient.tags.getProjectTagsApiProjectsProjectIdTagsGet(projectId)
       ]);
       project.value = projectData;
       columns.value = columnsData;
+      members.value = membersData;
+      tags.value = tagsData;
     } catch (error) {
       console.error('Ошибка загрузки доски:', error);
       throw error;
@@ -240,6 +249,8 @@ export const useBoardStore = defineStore('board', () => {
   return {
     project,
     columns,
+    members,
+    tags,
     selectedTask,
     activeColumnIdForTaskCreation,
     isLoading,

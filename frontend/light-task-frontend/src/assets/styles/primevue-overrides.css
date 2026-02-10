@@ -1,0 +1,62 @@
+
+
+:root {
+  --kantano-primary: #3b82f6;
+  --kantano-bg: #0f172a;
+  --kantano-surface: #1e293b;
+  --kantano-border: #334155;
+
+  --p-primary-500: var(--kantano-primary);
+  --p-surface-700: var(--kantano-border);
+  --p-surface-800: var(--kantano-surface);
+  --p-surface-900: var(--kantano-bg);
+}
+
+.dark {
+  --p-inputtext-background: var(--kantano-surface);
+  --p-dropdown-background: var(--kantano-surface);
+  --p-multiselect-background: var(--kantano-surface);
+
+  --p-dropdown-panel-background: var(--kantano-surface);
+  --p-multiselect-panel-background: var(--kantano-surface);
+
+  --p-dropdown-filter-container-background: var(--kantano-bg);
+  --p-multiselect-filter-container-background: var(--kantano-bg);
+}
+
+
+.p-dropdown-items-wrapper::-webkit-scrollbar,
+.p-multiselect-items-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+
+.p-dropdown-items-wrapper::-webkit-scrollbar-thumb,
+.p-multiselect-items-wrapper::-webkit-scrollbar-thumb {
+  background: var(--p-surface-700);
+  border-radius: 4px;
+}
+
+.p-focus {
+  outline: 0 none !important;
+  box-shadow: 0 0 0 1px var(--p-primary-500) !important;
+  border-color: var(--p-primary-500) !important;
+}
+
+.p-multiselect-chip {
+  background: var(--p-primary-500) !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 4px !important;
+}
+
+.dark .p-dropdown-item,
+.dark .p-multiselect-item {
+  color: #cbd5e1;
+}
+
+.dark .p-dropdown-item.p-highlight,
+.dark .p-multiselect-item.p-highlight {
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.1) !important;
+}

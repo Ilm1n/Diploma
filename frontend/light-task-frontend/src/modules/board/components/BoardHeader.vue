@@ -86,7 +86,7 @@ const goBack = () => {
       <Button
           label="Share"
           icon="pi pi-user-plus"
-          class="!bg-primary-600 hover:!bg-primary-700 !border-none !text-sm !py-2 !px-4 !rounded-lg"
+          class="!bg-primary-600 hover:!bg-primary-700 dark:!text-white !border-none !text-sm !py-2 !px-4 !rounded-lg"
       />
     </div>
   </div>

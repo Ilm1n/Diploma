@@ -102,7 +102,7 @@ const plans = [
           </button>
           <div class="hidden sm:flex items-center gap-3">
             <router-link to="/login" class="font-bold text-slate-600 dark:text-slate-400 hover:text-primary-600 px-4 no-underline">Войти</router-link>
-            <Button label="Начать" class="!bg-primary-600 !border-none !font-bold !px-6" @click="router.push('/register')" />
+            <Button label="Начать" class="!bg-primary-600 dark:!text-white !border-none !font-bold !px-6" @click="router.push('/register')" />
           </div>
           <button @click="isMobileMenuOpen = true" class="lg:hidden p-2 text-slate-600 dark:text-slate-400"><i class="pi pi-bars text-xl"></i></button>
         </div>
@@ -141,7 +141,7 @@ const plans = [
 
             <form @submit.prevent="navigateToRegister" class="flex flex-col sm:flex-row gap-3 max-w-md">
               <InputText v-model="email" placeholder="Email" class="flex-1 !py-3 !px-4 !text-lg !rounded-xl" aria-label="Ваш email для регистрации" />
-              <Button type="submit" label="Регистрация" class="!bg-primary-600 !border-none !py-3 !px-6 !font-bold !rounded-xl" />
+              <Button type="submit" label="Регистрация" class="!bg-primary-600 dark:!text-white  !border-none !py-3 !px-6 !font-bold !rounded-xl" />
             </form>
             <p class="mt-4 text-sm text-slate-400">Присоединяйтесь к 1,000+ пользователям сегодня.</p>
           </div>
@@ -431,7 +431,6 @@ const plans = [
 :deep(.p-accordionheader) { @apply !bg-transparent !border-none !py-6 !font-bold !text-lg; }
 :deep(.p-accordioncontent-content) { @apply !bg-transparent !border-none !pt-0 !pb-6; }
 
-/* Фикс заголовка в Drawer для темной темы */
 :deep(.p-drawer-header) {
   @apply dark:!bg-dark-bg dark:!text-slate-100;
 }
