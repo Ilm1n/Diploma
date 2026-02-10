@@ -6,6 +6,7 @@ import type {
   ProjectRead,
   TaskRead,
   TaskMove,
+  TaskUpdate,
   ColumnUpdate,
   ColumnCreate,
   TaskCreate
@@ -140,6 +141,53 @@ export const useBoardStore = defineStore('board', () => {
   }
 
 
+  async function updateTask(taskId: number, payload: TaskUpdate) {
+    try {
+      const updatedTask = await apiClient.boards.updateTaskApiTasksTaskIdPatch(taskId, payload);
+
+      if (selectedTask.value && selectedTask.value.id === taskId) {
+        Object.assign(selectedTask.value, updatedTask);
+      }
+
+      for (const col of columns.value) {
+        if (!col.tasks) continue;
+        const taskIndex = col.tasks.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+          col.tasks[taskIndex] = { ...col.tasks[taskIndex], ...updatedTask };
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка обновления задачи:', error);
+      throw error;
+    }
+  }
+
+
+  async function deleteTask(taskId: number) {
+    if (selectedTask.value?.id === taskId) {
+      selectedTask.value = null;
+    }
+
+    try {
+      await apiClient.boards.deleteTaskApiTasksTaskIdDelete(taskId);
+
+      for (const col of columns.value) {
+        if (!col.tasks) continue;
+        const index = col.tasks.findIndex(t => t.id === taskId);
+        if (index !== -1) {
+          col.tasks.splice(index, 1);
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка удаления задачи:', error);
+      throw error;
+    }
+  }
+
+
+
   async function moveTask(
     taskId: number,
     targetColumnId: number,
@@ -203,6 +251,8 @@ export const useBoardStore = defineStore('board', () => {
     deleteColumn,
     moveColumn,
     createTask,
+    updateTask,
+    deleteTask,
     moveTask,
     setActiveColumnForTaskCreation,
     clearState

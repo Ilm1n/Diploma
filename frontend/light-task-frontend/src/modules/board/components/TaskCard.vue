@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import type { TaskPreview } from '@/api/client';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
@@ -7,6 +8,13 @@ import Tag from 'primevue/tag';
 const props = defineProps<{
   task: TaskPreview;
 }>();
+
+const router = useRouter();
+const route = useRoute();
+
+const openTask = () => {
+  router.push({ query: { ...route.query, taskId: props.task.id } });
+};
 
 const priorityConfig = computed(() => {
   switch (props.task.priority) {
@@ -28,8 +36,16 @@ const assigneeInitials = computed(() => {
 
 <template>
   <div
+      @click="openTask"
       class="task-card bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing group relative select-none"
   >
+    <button
+        class="absolute top-2 right-2 p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
+        aria-label="Редактировать"
+        @click.stop="openTask"
+    >
+      <i class="pi pi-pencil text-xs"></i>
+    </button>
     <!-- Tags Row -->
     <div v-if="task.tags && task.tags.length > 0" class="flex flex-wrap gap-1 mb-2">
       <span

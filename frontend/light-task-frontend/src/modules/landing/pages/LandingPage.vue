@@ -109,15 +109,20 @@ const plans = [
       </div>
     </header>
 
-    <!-- MOBILE MENU -->
-    <Drawer v-model:visible="isMobileMenuOpen" position="right" header="Меню" class="!w-72">
+    <!-- MOBILE MENU (FIXED DARK THEME) -->
+    <Drawer
+        v-model:visible="isMobileMenuOpen"
+        position="right"
+        header="Меню"
+        class="!w-72 !bg-white dark:!bg-dark-bg dark:!text-slate-100 !border-none"
+    >
       <div class="flex flex-col gap-4 mt-4">
         <a href="#why" @click="isMobileMenuOpen = false" class="mobile-nav-link">Преимущества</a>
         <a href="#workflows" @click="isMobileMenuOpen = false" class="mobile-nav-link">Решения</a>
         <a href="#pricing" @click="isMobileMenuOpen = false" class="mobile-nav-link">Цены</a>
         <hr class="border-slate-100 dark:border-slate-800" />
-        <Button label="Войти" outlined class="w-full" @click="router.push('/login')" />
-        <Button label="Регистрация" class="w-full !bg-primary-600" @click="router.push('/register')" />
+        <Button label="Войти" outlined class="w-full !text-primary-600 !border-primary-600" @click="router.push('/login')" />
+        <Button label="Регистрация" class="w-full !bg-primary-600 !border-none" @click="router.push('/register')" />
       </div>
     </Drawer>
 
@@ -136,7 +141,7 @@ const plans = [
 
             <form @submit.prevent="navigateToRegister" class="flex flex-col sm:flex-row gap-3 max-w-md">
               <InputText v-model="email" placeholder="Email" class="flex-1 !py-3 !px-4 !text-lg !rounded-xl" aria-label="Ваш email для регистрации" />
-              <Button type="submit" label="Регистрация — это бесплатно!" class="!bg-primary-600 !border-none !py-3 !px-6 !font-bold !rounded-xl" />
+              <Button type="submit" label="Регистрация" class="!bg-primary-600 !border-none !py-3 !px-6 !font-bold !rounded-xl" />
             </form>
             <p class="mt-4 text-sm text-slate-400">Присоединяйтесь к 1,000+ пользователям сегодня.</p>
           </div>
@@ -147,16 +152,6 @@ const plans = [
                 <div class="w-1/3 h-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                  <div class="h-2 w-full bg-primary-100 dark:bg-primary-900/40 rounded mb-2"></div>
-                  <div class="h-2 w-2/3 bg-slate-100 dark:bg-slate-800 rounded"></div>
-                </div>
-                <div class="p-4 bg-primary-600 rounded-2xl shadow-lg text-white">
-                  <div class="h-2 w-full bg-white/30 rounded mb-2"></div>
-                  <div class="h-2 w-1/2 bg-white/20 rounded"></div>
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-4 mt-5">
                 <div class="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                   <div class="h-2 w-full bg-primary-100 dark:bg-primary-900/40 rounded mb-2"></div>
                   <div class="h-2 w-2/3 bg-slate-100 dark:bg-slate-800 rounded"></div>
@@ -211,7 +206,7 @@ const plans = [
                 <i class="pi pi-lock text-2xl"></i>
               </div>
               <h3 class="text-xl font-bold mb-3">Безопасность данных</h3>
-              <p class="text-slate-500 text-sm leading-relaxed">Ваши данные зашифрованы и принадлежат только вам. Мы используем современные стандарты JWT авторизации.</p>
+              <p class="text-slate-500 text-sm leading-relaxed">Ваши данные зашифрованы и принадлежат только вам. Мы используем современные стандарты JWT.</p>
             </div>
             <div class="text-center group">
               <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
@@ -288,7 +283,7 @@ const plans = [
         </div>
       </section>
 
-      <!-- PRICING -->
+      <!-- PRICING (FIXED BUTTONS) -->
       <section id="pricing" class="py-24 px-4 bg-slate-50 dark:bg-slate-900/20">
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
@@ -298,15 +293,23 @@ const plans = [
           <div class="grid md:grid-cols-3 gap-8 items-center">
             <div v-for="plan in plans" :key="plan.name"
                  class="p-8 rounded-[2.5rem] border transition-all duration-300"
-                 :class="plan.current ? ' bg-slate-50 dark:bg-slate-900 dark:border-slate-400 shadow-2xl scale-105 z-10' : 'border-slate-200 dark:border-dark-border bg-transparent opacity-80'">
+                 :class="plan.current ? ' bg-white dark:bg-slate-900 border-primary-500 shadow-2xl scale-105 z-10' : 'border-slate-200 dark:border-dark-border bg-transparent opacity-80'">
               <h3 class="text-xl font-bold mb-4">{{ plan.name }}</h3>
               <div class="text-4xl font-black mb-6">{{ plan.price }}₽ <span class="text-sm font-normal text-slate-500">/мес</span></div>
               <ul class="space-y-4 mb-8">
                 <li v-for="f in plan.features" :key="f" class="flex items-center gap-3 text-sm">
-                  <i class="pi pi-check text-green-500"></i> {{ f }}
+                  <i class="pi pi-check text-primary-500"></i> {{ f }}
                 </li>
               </ul>
-              <Button :label="plan.name === 'Free' ? 'Начать бесплатно' : 'Выбрать'" class="w-full !rounded-2xl !py-3 " :outlined="!plan.current" @click="router.push('/register')" />
+              <Button
+                  :label="plan.name === 'Free' ? 'Начать бесплатно' : 'Выбрать'"
+                  class="w-full !rounded-2xl !py-3 transition-all"
+                  :class="plan.current
+                  ? '!bg-primary-600 !border-none !text-white'
+                  : '!text-primary-600 !border-primary-600 !bg-transparent hover:!bg-primary-50 dark:hover:!bg-primary-900/10'"
+                  :outlined="!plan.current"
+                  @click="router.push('/register')"
+              />
             </div>
           </div>
         </div>
@@ -374,7 +377,7 @@ const plans = [
       <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
         <div class="col-span-2 md:col-span-1">
           <div class="flex items-center gap-2 mb-6"><i class="pi pi-bolt text-primary-500 text-2xl"></i><span class="text-xl font-black uppercase tracking-tighter">Kantano</span></div>
-          <p class="text-slate-400 text-sm">Сделано с любовью к коду и продуктивности в рамках дипломного проекта.</p>
+          <p class="text-slate-400 text-sm">Сделано с любовью к коду в рамках дипломного проекта.</p>
         </div>
         <div>
           <h4 class="font-bold mb-6">Продукт</h4>
@@ -427,4 +430,9 @@ const plans = [
 
 :deep(.p-accordionheader) { @apply !bg-transparent !border-none !py-6 !font-bold !text-lg; }
 :deep(.p-accordioncontent-content) { @apply !bg-transparent !border-none !pt-0 !pb-6; }
+
+/* Фикс заголовка в Drawer для темной темы */
+:deep(.p-drawer-header) {
+  @apply dark:!bg-dark-bg dark:!text-slate-100;
+}
 </style>

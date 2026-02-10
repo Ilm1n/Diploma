@@ -8,13 +8,13 @@ import { useDraggableScroll } from '@/composables/useDraggableScroll';
 import { onClickOutside } from '@vueuse/core';
 
 
-// UI
 import Skeleton from 'primevue/skeleton';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import ConfirmDialog from 'primevue/confirmdialog';
 import BoardHeader from '../components/BoardHeader.vue';
 import BoardColumn from '../components/BoardColumn.vue';
+import TaskDetailDrawer from '../components/task-details/TaskDetailDrawer.vue';
 
 const props = defineProps<{ projectId: string }>();
 const store = useBoardStore();
@@ -174,6 +174,7 @@ useDraggableScroll(scrollContainerRef);
 
       </div>
     </div>
+    <TaskDetailDrawer />
   </div>
 </template>
 
