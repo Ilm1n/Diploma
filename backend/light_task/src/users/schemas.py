@@ -29,3 +29,4 @@ class UserPublic(BaseSchema):
     username: str
     full_name: str | None
     avatar_url: str | None
+    email: EmailStr

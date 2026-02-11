@@ -2754,6 +2754,11 @@
               }
             ],
             "title": "Avatarurl"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
           }
         },
         "type": "object",
@@ -2761,7 +2766,8 @@
           "id",
           "username",
           "fullName",
-          "avatarUrl"
+          "avatarUrl",
+          "email"
         ],
         "title": "UserPublic"
       },

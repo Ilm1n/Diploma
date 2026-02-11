@@ -225,7 +225,7 @@ const onSubmit = handleSubmit(async (values) => {
                   label="Сохранить изменения"
                   icon="pi pi-check"
                   :loading="isSubmitting"
-                  class="!bg-primary-600 !border-none"
+                  class="!bg-primary-600 dark:!text-white !border-none"
               />
             </div>
 

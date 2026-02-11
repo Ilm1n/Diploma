@@ -7,5 +7,6 @@ export type UserPublic = {
     username: string;
     fullName: (string | null);
     avatarUrl: (string | null);
+    email: string;
 };
 

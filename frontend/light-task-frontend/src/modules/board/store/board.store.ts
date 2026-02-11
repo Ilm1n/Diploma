@@ -13,6 +13,10 @@ import type {
   ProjectMemberRead,
   TagRead,
   InvitationCreate,
+  ProjectUpdate,
+  InvitationRead,
+  TagCreate,
+  TagUpdate
 } from '@/api/client';
 
 export const useBoardStore = defineStore('board', () => {
@@ -28,6 +32,8 @@ export const useBoardStore = defineStore('board', () => {
 
   const isLoading = ref(false);
   const isTaskLoading = ref(false);
+
+  const activeInvitations = ref<InvitationRead[]>([]);
 
   // --- ACTIONS ---
 
@@ -243,11 +249,18 @@ export const useBoardStore = defineStore('board', () => {
 
   async function createInvitation(payload: InvitationCreate) {
     if (!project.value) throw new Error('Project not loaded');
+
     try {
-      return await apiClient.invitations.createInvitationApiProjectsProjectIdInvitePost(
+      const res = await apiClient.invitations.createInvitationApiProjectsProjectIdInvitePost(
         project.value.id,
         payload
       );
+
+      if (res) {
+        activeInvitations.value.unshift(res);
+      }
+
+      return res;
     } catch (error) {
       console.error('Ошибка создания приглашения:', error);
       throw error;
@@ -260,6 +273,112 @@ export const useBoardStore = defineStore('board', () => {
       return res;
     } catch (error) {
       console.error('Ошибка принятия приглашения:', error);
+      throw error;
+    }
+  }
+
+  // --- INVITATIONS ACTIONS ---
+  async function fetchInvitations() {
+    if (!project.value) return;
+    try {
+      activeInvitations.value = await apiClient.invitations.getProjectInvitationsApiProjectsProjectIdInvitationsGet(project.value.id);
+    } catch (error) {
+      console.error('Ошибка загрузки приглашений:', error);
+    }
+  }
+
+  async function deleteInvitation(invitationId: number) {
+    if (!project.value) return;
+    try {
+      await apiClient.invitations.deleteInvitationApiProjectsProjectIdInvitationsInvitationIdDelete(
+        project.value.id,
+        invitationId
+      );
+      activeInvitations.value = activeInvitations.value.filter(i => i.id !== invitationId);
+    } catch (error) {
+      console.error('Ошибка удаления приглашения:', error);
+      throw error;
+    }
+  }
+
+  async function updateProject(payload: ProjectUpdate) {
+    if (!project.value) return;
+    try {
+      const updated = await apiClient.projects.updateProjectApiProjectsProjectIdPatch(project.value.id, payload);
+      project.value = updated;
+    } catch (error) {
+      console.error('Ошибка обновления проекта:', error);
+      throw error;
+    }
+  }
+
+  async function deleteProject() {
+    if (!project.value) return;
+    try {
+      await apiClient.projects.deleteProjectApiProjectsProjectIdDelete(project.value.id);
+      // После удаления уходим на список проектов
+    } catch (error) {
+      console.error('Ошибка удаления проекта:', error);
+      throw error;
+    }
+  }
+
+  async function updateMemberRole(userId: number, role: any) {
+    if (!project.value) return;
+    try {
+      const updatedMember = await apiClient.projects.updateMemberRoleApiProjectsProjectIdMembersUserIdPatch(
+        project.value.id,
+        userId,
+        { role }
+      );
+      const index = members.value.findIndex(m => m.user.id === userId);
+      if (index !== -1) members.value[index] = updatedMember;
+    } catch (error) {
+      console.error('Ошибка смены роли:', error);
+      throw error;
+    }
+  }
+
+  async function removeMember(userId: number) {
+    if (!project.value) return;
+    try {
+      await apiClient.projects.removeProjectMemberApiProjectsProjectIdMembersUserIdDelete(project.value.id, userId);
+      members.value = members.value.filter(m => m.user.id !== userId);
+    } catch (error) {
+      console.error('Ошибка удаления участника:', error);
+      throw error;
+    }
+  }
+
+
+  async function createTag(payload: TagCreate) {
+    if (!project.value) return;
+    try {
+      const newTag = await apiClient.tags.createTagApiProjectsProjectIdTagsPost(project.value.id, payload);
+      tags.value.push(newTag);
+    } catch (error) {
+      console.error('Ошибка создания тега:', error);
+      throw error;
+    }
+  }
+
+  async function updateTag(tagId: number, payload: TagUpdate) {
+    try {
+      const updated = await apiClient.tags.updateTagApiTagsTagIdPatch(tagId, payload);
+      const index = tags.value.findIndex(t => t.id === tagId);
+      if (index !== -1) tags.value[index] = updated;
+    } catch (error) {
+      console.error('Ошибка обновления тега:', error);
+      throw error;
+    }
+  }
+
+  async function deleteTag(tagId: number) {
+    try {
+      await apiClient.tags.deleteTagApiTagsTagIdDelete(tagId);
+      tags.value = tags.value.filter(t => t.id !== tagId);
+    } catch (error) {
+      console.error('Ошибка удаления тега:', error);
       throw error;
     }
   }
@@ -277,6 +396,7 @@ export const useBoardStore = defineStore('board', () => {
     members,
     tags,
     selectedTask,
+    activeInvitations,
     activeColumnIdForTaskCreation,
     isLoading,
     isTaskLoading,
@@ -293,6 +413,15 @@ export const useBoardStore = defineStore('board', () => {
     setActiveColumnForTaskCreation,
     createInvitation,
     acceptInvitation,
-    clearState
+    clearState,
+    updateProject,
+    deleteProject,
+    updateMemberRole,
+    removeMember,
+    fetchInvitations,
+    deleteInvitation,
+    createTag,
+    updateTag,
+    deleteTag,
   };
 });

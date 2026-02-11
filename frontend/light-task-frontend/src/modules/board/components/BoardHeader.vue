@@ -1,13 +1,16 @@
 <script setup lang="ts">
 // import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import {ref} from "vue";
 import { useBoardStore } from '../store/board.store';
 import AvatarGroup from 'primevue/avatargroup';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
-import {ref} from "vue";
+import ProjectSettingsDialog from './ProjectSettingsDialog.vue';
+
+const isSettingsVisible = ref(false);
 
 const store = useBoardStore();
 const router = useRouter();
@@ -80,7 +83,8 @@ const goBack = () => {
           icon="pi pi-cog"
           text
           rounded
-          class="!text-slate-400 hover:!bg-gray-100 dark:hover:!bg-slate-700/50 hover:!text-slate-600 dark:hover:!text-slate-200"
+          class="!text-slate-400"
+          @click="isSettingsVisible = true"
       />
 
       <!-- Invite Button -->
@@ -92,6 +96,7 @@ const goBack = () => {
       />
     </div>
     <InviteMemberDialog v-model:visible="isInviteVisible" />
+    <ProjectSettingsDialog v-model:visible="isSettingsVisible" />
   </div>
 </template>
 
