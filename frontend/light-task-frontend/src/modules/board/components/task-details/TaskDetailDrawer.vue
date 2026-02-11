@@ -174,7 +174,6 @@ const deleteTask = () => {
 
 
       <!-- Sidebar Right -->
-      <!-- TODO: добавить реальные опции -->
       <div class="lg:col-span-1 flex flex-col gap-6">
         <TaskSidebar />
 
