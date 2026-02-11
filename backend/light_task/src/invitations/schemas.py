@@ -26,7 +26,7 @@ class InvitationRead(BaseSchema):
 
     @computed_field
     def link(self) -> str:
-        return f"{settings.invite.url}/{self.token}"
+        return f"{settings.invite.base_url}/{self.token}"
 
 
 class InvitationAcceptResponse(BaseSchema):

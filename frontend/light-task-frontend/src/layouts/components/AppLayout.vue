@@ -165,12 +165,12 @@ const isMobile = breakpoints.smaller('lg');
           >
             <!-- Аватар -->
             <div
-                class="flex items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900 w-10 h-10 flex-shrink-0"
+                class="flex items-center justify-center rounded-full  w-10 h-10 flex-shrink-0"
             >
               <Avatar
                   :image="avatarImage"
                   :label="avatarLabel"
-                  class="!bg-transparent !text-primary-600 flex-shrink-0 transition-all duration-300"
+                  class="!bg-transparent !text-primary-600 flex-shrink-0 transition-all duration-300 "
                   shape="circle"
                   style="background-color: transparent;"
               />

@@ -12,6 +12,7 @@ import type {
   TaskCreate,
   ProjectMemberRead,
   TagRead,
+  InvitationCreate,
 } from '@/api/client';
 
 export const useBoardStore = defineStore('board', () => {
@@ -240,6 +241,30 @@ export const useBoardStore = defineStore('board', () => {
     }
   }
 
+  async function createInvitation(payload: InvitationCreate) {
+    if (!project.value) throw new Error('Project not loaded');
+    try {
+      return await apiClient.invitations.createInvitationApiProjectsProjectIdInvitePost(
+        project.value.id,
+        payload
+      );
+    } catch (error) {
+      console.error('Ошибка создания приглашения:', error);
+      throw error;
+    }
+  }
+
+  async function acceptInvitation(token: string) {
+    try {
+      const res = await apiClient.invitations.acceptInvitationApiInvitationsTokenAcceptPost(token);
+      return res;
+    } catch (error) {
+      console.error('Ошибка принятия приглашения:', error);
+      throw error;
+    }
+  }
+
+
   function clearState() {
     project.value = null;
     columns.value = [];
@@ -266,6 +291,8 @@ export const useBoardStore = defineStore('board', () => {
     deleteTask,
     moveTask,
     setActiveColumnForTaskCreation,
+    createInvitation,
+    acceptInvitation,
     clearState
   };
 });

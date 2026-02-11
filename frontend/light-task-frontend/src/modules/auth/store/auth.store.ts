@@ -40,6 +40,15 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.accessToken) {
         setTokens(response.accessToken, response.refreshToken);
         await fetchUser();
+
+        const pendingInvite = sessionStorage.getItem('pendingInviteToken');
+        if (pendingInvite) {
+          sessionStorage.removeItem('pendingInviteToken');
+          await router.push(`/invite/${pendingInvite}`);
+          return true;
+        }
+
+        await router.push('/projects');
         return true;
       }
       return false;

@@ -38,9 +38,9 @@ const priorityConfig = computed(() => {
   }
 });
 
-const assigneeInitials = computed(() => {
-  return props.task.assigneeId ? String(props.task.assigneeId).slice(0, 2) : '?';
-});
+// const assigneeInitials = computed(() => {
+//   return props.task.assigneeId ? String(props.task.assigneeId).slice(0, 2) : '?';
+// });
 </script>
 
 <template>

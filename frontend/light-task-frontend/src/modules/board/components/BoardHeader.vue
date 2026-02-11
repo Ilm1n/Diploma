@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+// import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board.store';
 import AvatarGroup from 'primevue/avatargroup';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
+import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
+import {ref} from "vue";
 
 const store = useBoardStore();
 const router = useRouter();
 
-const getInitials = (name: string) => name.charAt(0).toUpperCase();
+// const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
-const members = computed(() => [
-  { id: 1, name: 'Alex', avatar: null },
-  { id: 2, name: 'Marie', avatar: null },
-]);
+
+const isInviteVisible = ref(false);
 
 const goBack = () => {
   router.push('/projects');
@@ -58,19 +58,20 @@ const goBack = () => {
     <div class="flex items-center gap-4">
 
       <!-- Team Avatars -->
-      <AvatarGroup class="mr-2">
+      <AvatarGroup v-if="store.members.length > 0">
         <Avatar
-            v-for="member in members.slice(0, 3)"
+            v-for="member in store.members.slice(0, 4)"
             :key="member.id"
-            :label="getInitials(member.name)"
+            :image="member.user.avatarUrl || undefined"
+            :label="!member.user.avatarUrl ? member.user.username.charAt(0).toUpperCase() : undefined"
             shape="circle"
-            class="!bg-primary-100 !text-primary-700  !border-solid !border-2 !border-white dark:!border-slate-800"
+            class="border-2 border-white dark:border-slate-800 !bg-primary-100 !text-primary-700"
         />
         <Avatar
-            v-if="members.length > 3"
-            :label="`+${members.length - 3}`"
+            v-if="store.members.length > 4"
+            :label="`+${store.members.length - 4}`"
             shape="circle"
-            class="!bg-gray-200 !text-slate-600 dark:!bg-slate-800 dark:!text-slate-100 !border-solid !border-2 !border-white dark:!border-slate-700 !text-xs"
+            class="border-2 border-white dark:border-slate-800 !bg-slate-200 !text-slate-600"
         />
       </AvatarGroup>
 
@@ -84,11 +85,13 @@ const goBack = () => {
 
       <!-- Invite Button -->
       <Button
-          label="Share"
           icon="pi pi-user-plus"
-          class="!bg-primary-600 hover:!bg-primary-700 dark:!text-white !border-none !text-sm !py-2 !px-4 !rounded-lg"
+          label="Пригласить"
+          class="!bg-primary-600 dark:!text-white !border-none !text-sm !px-4 !rounded-lg"
+          @click="isInviteVisible = true"
       />
     </div>
+    <InviteMemberDialog v-model:visible="isInviteVisible" />
   </div>
 </template>
 

@@ -11,6 +11,8 @@ const ProjectsList = () => import('@/modules/projects/components/ProjectsList.vu
 const BoardPage = () => import('@/modules/board/pages/BoardPage.vue');
 const ProfilePage = () => import('@/modules/profile/pages/ProfilePage.vue');
 const LandingPage = () => import('@/modules/landing/pages/LandingPage.vue');
+const AcceptInvitationPage = () => import('@/modules/invitations/pages/AcceptInvitationPage.vue');
+
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,23 +36,29 @@ const router = createRouter({
       meta: {requiresAuth: false}
     },
     {
+      path: '/invite/:token',
+      name: 'accept-invite',
+      component: AcceptInvitationPage,
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/',
       component: AppLayout,
       meta: { requiresAuth: true },
       children: [
         {
-          path: 'projects', // Итоговый путь: /projects
+          path: 'projects',
           name: 'home',
           component: ProjectsList
         },
         {
-          path: 'projects/:projectId/board', // Итоговый путь: /projects/1/board
+          path: 'projects/:projectId/board',
           name: 'project-board',
           component: BoardPage,
           props: true
         },
         {
-          path: 'profile', // Итоговый путь: /profile
+          path: 'profile',
           name: 'profile',
           component: ProfilePage
         }
