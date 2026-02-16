@@ -13,7 +13,7 @@ export type TaskRead = {
     projectId: number;
     position: number;
     tags?: Array<TagRead>;
-    description: (string | null);
+    description?: (string | null);
     authorId: (number | null);
     createdAt: string;
     updatedAt: string;
