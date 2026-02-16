@@ -2389,8 +2389,7 @@
         },
         "type": "object",
         "required": [
-          "title",
-          "description"
+          "title"
         ],
         "title": "TaskCreate"
       },
@@ -2600,7 +2599,6 @@
           "columnId",
           "projectId",
           "position",
-          "description",
           "authorId",
           "createdAt",
           "updatedAt"
@@ -2670,9 +2668,6 @@
           }
         },
         "type": "object",
-        "required": [
-          "description"
-        ],
         "title": "TaskUpdate"
       },
       "Token": {

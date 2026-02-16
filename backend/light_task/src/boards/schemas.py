@@ -14,13 +14,13 @@ class TaskBase(BaseSchema):
 
 
 class TaskCreate(TaskBase):
-    description: str | None
+    description: str | None = None
     tag_ids: list[int] = Field(default_factory=list)
 
 
 class TaskUpdate(BaseSchema):
     title: str | None = Field(None, min_length=1, max_length=200)
-    description: str | None
+    description: str | None = None
     priority: TaskPriority | None = None
     assignee_id: int | None = None
     tag_ids: list[int] | None = None
@@ -40,7 +40,7 @@ class TaskPreview(TaskBase):
 
 
 class TaskRead(TaskPreview):
-    description: str | None
+    description: str | None = None
     author_id: int | None
     created_at: datetime
     updated_at: datetime
