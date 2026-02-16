@@ -7,7 +7,6 @@ import {useRouter} from 'vue-router';
 import {useAuthStore} from '@/modules/auth/store/auth.store';
 import {useTheme} from '@/composables/useTheme';
 import SidebarLink from '@/layouts/components/SidebarLink.vue';
-import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
 import {useBreakpoints} from "@vueuse/core";
 import UserAvatar from "@/shared/ui/UserAvatar.vue"; //
@@ -167,12 +166,9 @@ const isMobile = breakpoints.smaller('lg');
             <div
                 class="flex items-center justify-center rounded-full  w-10 h-10 flex-shrink-0"
             >
-              <Avatar
+              <UserAvatar
                   :image="avatarImage"
                   :label="avatarLabel"
-                  class="!bg-transparent !text-primary-600 flex-shrink-0 transition-all duration-300 "
-                  shape="circle"
-                  style="background-color: transparent;"
               />
             </div>
 

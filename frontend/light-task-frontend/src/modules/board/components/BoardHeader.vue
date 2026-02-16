@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {ref} from "vue";
 import { useBoardStore } from '../store/board.store';
@@ -9,16 +8,17 @@ import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
 import ProjectSettingsDialog from './ProjectSettingsDialog.vue';
+import { ProjectRole } from '@/api/client';
+import UserAvatar from "@/shared/ui/UserAvatar.vue";
 
 const isSettingsVisible = ref(false);
+const isInviteVisible = ref(false);
 
 const store = useBoardStore();
 const router = useRouter();
 
-// const getInitials = (name: string) => name.charAt(0).toUpperCase();
 
 
-const isInviteVisible = ref(false);
 
 const goBack = () => {
   router.push('/projects');
@@ -62,24 +62,23 @@ const goBack = () => {
 
       <!-- Team Avatars -->
       <AvatarGroup v-if="store.members.length > 0">
-        <Avatar
+        <UserAvatar
             v-for="member in store.members.slice(0, 4)"
             :key="member.id"
             :image="member.user.avatarUrl || undefined"
             :label="!member.user.avatarUrl ? member.user.username.charAt(0).toUpperCase() : undefined"
-            shape="circle"
-            class="border-2 border-white dark:border-slate-800 !bg-primary-100 !text-primary-700"
+            size="md"
         />
-        <Avatar
+        <UserAvatar
             v-if="store.members.length > 4"
             :label="`+${store.members.length - 4}`"
-            shape="circle"
-            class="border-2 border-white dark:border-slate-800 !bg-slate-200 !text-slate-600"
+            size="sm"
         />
       </AvatarGroup>
 
-      <!-- Settings (Only for Owner - logic later) -->
+      <!-- Settings  -->
       <Button
+          v-if="store.project?.currentUserRole === ProjectRole.OWNER"
           icon="pi pi-cog"
           text
           rounded
@@ -89,6 +88,7 @@ const goBack = () => {
 
       <!-- Invite Button -->
       <Button
+          v-if="store.project?.currentUserRole !== ProjectRole.MEMBER"
           icon="pi pi-user-plus"
           label="Пригласить"
           class="!bg-primary-600 dark:!text-white !border-none !text-sm !px-4 !rounded-lg"

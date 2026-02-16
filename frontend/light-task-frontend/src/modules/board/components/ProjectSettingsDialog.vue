@@ -15,7 +15,7 @@ import TabPanel from 'primevue/tabpanel';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import ColorPicker from 'primevue/colorpicker';
 import UserAvatar from '@/shared/ui/UserAvatar.vue';
 import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
@@ -72,7 +72,9 @@ const confirmDeleteProject = () => {
     header: 'Удаление проекта',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Удалить навсегда',
-    acceptClass: 'p-button-danger',
+    acceptClass: 'p-button-danger !text-white',
+    rejectLabel: 'Отмена',
+    rejectClass: '!text-white',
     accept: async () => {
       await store.deleteProject();
       await router.push('/projects');
@@ -88,8 +90,9 @@ const confirmRoleChange = (member: any, newRole: ProjectRole) => {
     header: 'Подтверждение роли',
     icon: 'pi pi-user-edit',
     rejectLabel: 'Отмена',
-    acceptLabel: 'Изменить',
-    acceptClass: 'p-button-primary',
+    acceptLabel: 'Да',
+    rejectClass: 'p-button-secondary p-button-outlined ',
+    acceptClass: 'p-button-primary !text-white',
     accept: async () => {
       try {
         await store.updateMemberRole(member.user.id, newRole);
@@ -110,12 +113,23 @@ const confirmRemoveMember = (member: any) => {
     header: 'Исключение участника',
     icon: 'pi pi-user-minus',
     acceptLabel: 'Удалить',
-    acceptClass: 'p-button-danger',
+    rejectLabel: 'Нет',
+    acceptClass: 'p-button-danger !text-white',
+    rejectClass: 'p-button-primary !text-white',
     accept: async () => {
       await store.removeMember(member.user.id);
       toast.add({ severity: 'info', summary: 'Удален', detail: 'Участник покинул проект', life: 3000 });
     }
   });
+};
+
+const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.add({ severity: 'success', summary: 'Скопировано', detail: 'Ссылка скопирована в буфер обмена', life: 2000 });
+  } catch (err) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось скопировать', life: 3000 });
+  }
 };
 
 const roleOptions = [
@@ -157,12 +171,12 @@ const roleOptions = [
               <Textarea v-model="projectDesc" rows="4" autoResize class="w-full" />
             </div>
             <div class="flex justify-end">
-              <Button label="Сохранить" icon="pi pi-check" class="!bg-primary-600" @click="saveGeneral" />
+              <Button label="Сохранить" icon="pi pi-check" class="!bg-primary-600 !text-white" @click="saveGeneral" />
             </div>
 
             <div class="mt-12 p-6 border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 rounded-2xl">
               <h4 class="text-red-600 dark:text-red-400 font-bold mb-1">Удаление проекта</h4>
-              <p class="text-xs text-slate-500 mb-4">Будьте осторожны, это действие необратимо.</p>
+              <p class="text-xs text-slate-500 mb-4 !text-red-400">Будьте осторожны, это действие необратимо.</p>
               <Button label="Удалить проект..." severity="danger" outlined size="small" @click="confirmDeleteProject" />
             </div>
           </div>
@@ -174,7 +188,7 @@ const roleOptions = [
             <div v-for="member in store.members" :key="member.id"
                  class="flex items-center justify-between p-4 bg-slate-50 dark:bg-dark-bg/40 rounded-2xl border border-slate-100 dark:border-dark-border">
               <div class="flex items-center gap-4">
-                <UserAvatar :image="member.user.avatarUrl || member.user.username[0]" size="md" />
+                <UserAvatar :image="member.user.avatarUrl || undefined" :label="member.user.avatarUrl ? undefined : member.user.username[0]" size="md" />
                 <div class="flex flex-col">
                   <span class="font-bold text-sm">{{ member.user.username }}</span>
                   <span class="text-[11px] text-slate-500">{{ member.user.email }}</span>
@@ -182,7 +196,7 @@ const roleOptions = [
               </div>
 
               <div class="flex items-center gap-4">
-                <Dropdown
+                <Select
                     v-model="member.role"
                     :options="roleOptions"
                     optionLabel="label"
@@ -253,20 +267,33 @@ const roleOptions = [
               <i class="pi pi-link text-3xl mb-3"></i>
               <p>Активных ссылок пока нет</p>
             </div>
+
             <div v-for="invite in store.activeInvitations" :key="invite.id"
                  class="p-5 bg-slate-50 dark:bg-dark-bg/40 rounded-2xl border border-slate-100 dark:border-dark-border">
               <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-900/40 text-primary-600 text-[10px] font-black uppercase">
-                    {{ invite.role }}
-                  </span>
+          <span class="px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-900/40 text-primary-600 text-[10px] font-black uppercase">
+            {{ invite.role }}
+          </span>
                   <span v-if="invite.email" class="text-xs text-slate-500">для {{ invite.email }}</span>
                 </div>
                 <Button icon="pi pi-trash" severity="danger" text @click="store.deleteInvitation(invite.id)" />
               </div>
-              <div class="text-xs font-mono bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-dark-border truncate mb-3">
-                {{ invite.link }}
+
+              <!-- ЗАМЕНЕННЫЙ БЛОК: теперь ссылка в инпуте с кнопкой копирования -->
+              <div class="flex gap-2 mb-3">
+                <InputText
+                    :value="invite.link"
+                    readonly
+                    class="flex-1 text-xs font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-dark-border rounded-lg"
+                />
+                <Button
+                    icon="pi pi-copy"
+                    @click="copyToClipboard(invite.link)"
+                    class="p-button-outlined"
+                />
               </div>
+
               <div class="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                 <span>Использовано: {{ invite.usedCount }} / {{ invite.maxUses || '∞' }}</span>
                 <span>Истекает: {{ new Date(invite.expiresAt).toLocaleDateString() }}</span>

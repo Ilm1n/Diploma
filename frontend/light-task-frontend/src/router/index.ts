@@ -12,6 +12,7 @@ const BoardPage = () => import('@/modules/board/pages/BoardPage.vue');
 const ProfilePage = () => import('@/modules/profile/pages/ProfilePage.vue');
 const LandingPage = () => import('@/modules/landing/pages/LandingPage.vue');
 const AcceptInvitationPage = () => import('@/modules/invitations/pages/AcceptInvitationPage.vue');
+const NotFoundPage = () => import('@/modules/common/pages/NotFoundPage.vue');
 
 
 const router = createRouter({
@@ -64,6 +65,12 @@ const router = createRouter({
         }
       ]
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFoundPage,
+      meta: { requiresAuth: false }
+    }
   ]
 });
 

@@ -25,7 +25,7 @@ const isActive = computed(() => route.path === props.to);
       isActive
         ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 font-semibold'
         : 'text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-200 font-medium',
-      collapsed ? 'justify-center px-2' : '' // Центрируем иконку если свернуто
+      collapsed ? 'justify-center px-2' : ''
     ]"
   >
     <i

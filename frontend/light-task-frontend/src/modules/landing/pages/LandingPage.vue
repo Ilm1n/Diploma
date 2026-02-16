@@ -121,8 +121,8 @@ const plans = [
         <a href="#workflows" @click="isMobileMenuOpen = false" class="mobile-nav-link">Решения</a>
         <a href="#pricing" @click="isMobileMenuOpen = false" class="mobile-nav-link">Цены</a>
         <hr class="border-slate-100 dark:border-slate-800" />
-        <Button label="Войти" outlined class="w-full !text-primary-600 !border-primary-600" @click="router.push('/login')" />
-        <Button label="Регистрация" class="w-full !bg-primary-600 !border-none" @click="router.push('/register')" />
+        <Button label="Войти" outlined class="!text-white w-full !text-primary-600 !border-primary-600" @click="router.push('/login')" />
+        <Button label="Регистрация" class="!text-white w-full !bg-primary-600 !border-none" @click="router.push('/register')" />
       </div>
     </Drawer>
 
@@ -178,6 +178,9 @@ const plans = [
 
       <!-- LOGOS -->
       <section class="py-12 border-y border-slate-200 dark:border-dark-border opacity-80 grayscale hover:grayscale-0 transition-all duration-700">
+        <p class="text-center  text-2xl font-black mb-16">
+          Нам доверяют лучшие команды
+        </p>
         <div class="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-12 md:gap-24 items-center">
           <span class="text-2xl font-bold tracking-widest text-slate-400">ЯНДЕКС</span>
           <span class="text-2xl font-bold tracking-widest text-slate-400">SELECTEL</span>
@@ -239,11 +242,7 @@ const plans = [
                   <div>
                     <h3 class="text-3xl font-black mb-6 dark:text-slate-300">{{ w.title }}</h3>
                     <p class="text-slate-500 dark:text-slate-300 mb-8 text-lg leading-relaxed">{{ w.desc }}</p>
-                    <ul class="space-y-4">
-                      <li v-for="item in w.items" :key="item" class="flex items-center gap-3 font-bold dark:text-slate-300">
-                        <i class="pi pi-check text-primary-500"></i> {{ item }}
-                      </li>
-                    </ul>
+
                   </div>
                   <div class="bg-slate-50 dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
                     <div class="flex flex-col gap-3">
@@ -320,12 +319,12 @@ const plans = [
         <h2 class="text-center text-4xl font-black mb-12">FAQ</h2>
         <Accordion :value="['0']" multiple>
           <AccordionPanel value="0">
-            <AccordionHeader class="!text-slate-400">Можно ли использовать Kantano для личных целей?</AccordionHeader>
-            <AccordionContent><p class="text-slate-500">Да, бесплатный тариф идеально подходит для персональных проектов и списков дел.</p></AccordionContent>
+            <AccordionHeader>Можно ли использовать Kantano для личных целей?</AccordionHeader>
+            <AccordionContent><p>Да, бесплатный тариф идеально подходит для персональных проектов и списков дел.</p></AccordionContent>
           </AccordionPanel>
           <AccordionPanel value="1">
-            <AccordionHeader class="!text-slate-400">Как работает Real-time синхронизация?</AccordionHeader>
-            <AccordionContent><p class="text-slate-500">Мы используем современные технологии для мгновенной передачи изменений. Как только коллега передвинет задачу — вы увидите это без обновления страницы.</p></AccordionContent>
+            <AccordionHeader >Как работает Real-time синхронизация?</AccordionHeader>
+            <AccordionContent><p>Мы используем современные технологии для мгновенной передачи изменений. Как только коллега передвинет задачу — вы увидите это без обновления страницы.</p></AccordionContent>
           </AccordionPanel>
         </Accordion>
       </section>
@@ -360,13 +359,8 @@ const plans = [
                 @click="router.push('/register')"
             />
 
-            <Button
-                label="Узнать больше"
-                outlined
-                class="!py-4 !px-10 !text-lg !font-bold !rounded-2xl transition-all
-                     !text-white !border-white hover:!bg-white/10
-                     dark:!text-slate-300 dark:!border-slate-700 dark:hover:!bg-slate-800"
-            />
+
+
           </div>
         </div>
       </section>
@@ -390,7 +384,7 @@ const plans = [
         <div>
           <h4 class="font-bold mb-6">Ресурсы</h4>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
-            <a href="https://github.com" target="_blank" class="hover:text-white transition-colors no-underline">GitHub</a>
+            <a href="https://github.com/Ilm1n" target="_blank" class="hover:text-white transition-colors no-underline">GitHub</a>
             <a href="#" class="hover:text-white transition-colors no-underline">Документация</a>
           </nav>
         </div>

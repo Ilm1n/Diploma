@@ -73,7 +73,7 @@ const items = [
         rejectLabel: 'Отмена',
         acceptLabel: 'Удалить',
         rejectClass: 'p-button-secondary p-button-outlined',
-        acceptClass: 'p-button-danger',
+        acceptClass: 'p-button-danger !text-white',
         accept: async () => {
           await store.deleteColumn(props.column.id);
           toast.add({ severity: 'success', summary: 'Удалено', detail: 'Колонка удалена', life: 3000 });
@@ -248,7 +248,7 @@ const onTaskDrop = async (event: any) => {
               <Button
                   label="Добавить карточку"
                   size="small"
-                  class="!py-1.5 !px-3 !text-xs !bg-primary-600 !border-none !font-semibold"
+                  class="!py-1.5 !px-3 !text-xs !bg-primary-600 !text-white !border-none !font-semibold"
                   @click="saveTask"
               />
               <Button

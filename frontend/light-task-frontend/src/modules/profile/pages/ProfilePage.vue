@@ -10,8 +10,8 @@ import * as z from 'zod';
 // UI
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
-import Avatar from 'primevue/avatar';
 import ConfirmDialog from 'primevue/confirmdialog';
+import UserAvatar from "@/shared/ui/UserAvatar.vue";
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -20,7 +20,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 // --- 1. Avatar Logic ---
 const avatarUrl = computed(() => authStore.user?.avatarUrl);
-const userInitials = computed(() => authStore.user?.username?.slice(0, 2).toUpperCase() || 'ME');
+const userInitials = computed(() => authStore.user?.username?.slice(0, 1).toUpperCase() || 'ME');
 
 const triggerFileUpload = () => {
   fileInput.value?.click();
@@ -55,8 +55,8 @@ const onDeleteAvatar = () => {
     icon: 'pi pi-info-circle',
     rejectLabel: 'Отмена',
     acceptLabel: 'Удалить',
-    rejectClass: 'p-button-secondary p-button-outlined',
-    acceptClass: 'p-button-danger',
+    rejectClass: 'p-button-secondary p-button-outlined !text-white',
+    acceptClass: 'p-button-danger !text-white',
     accept: async () => {
       try {
         await authStore.deleteAvatar();
@@ -120,10 +120,9 @@ const onSubmit = handleSubmit(async (values) => {
         <div class="bg-white dark:bg-dark-surface p-6 rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm flex flex-col items-center text-center">
 
           <div class="relative group cursor-pointer mb-4" @click="triggerFileUpload">
-            <Avatar
+            <UserAvatar
                 :image="avatarUrl || undefined"
                 :label="avatarUrl ? undefined : userInitials"
-                size="xlarge"
                 shape="circle"
                 class="!w-32 !h-32 !text-3xl !bg-primary-100 !text-primary-600 border-4 border-white dark:border-slate-700 shadow-lg"
             />

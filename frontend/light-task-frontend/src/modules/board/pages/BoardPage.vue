@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board.store';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useToast } from 'primevue/usetoast';
@@ -15,10 +15,10 @@ import ConfirmDialog from 'primevue/confirmdialog';
 import BoardHeader from '../components/BoardHeader.vue';
 import BoardColumn from '../components/BoardColumn.vue';
 import TaskDetailDrawer from '../components/task-details/TaskDetailDrawer.vue';
+import { getErrorMessage } from '@/utils/error';
 
 const props = defineProps<{ projectId: string }>();
 const store = useBoardStore();
-const route = useRoute();
 const toast = useToast();
 
 // --- Create Column Logic ---
@@ -26,6 +26,8 @@ const isCreatingColumn = ref(false);
 const newColumnName = ref('');
 const createInput = ref();
 const createColumnFormRef = ref(null);
+
+const router = useRouter();
 
 const startCreateColumn = () => {
   isCreatingColumn.value = true;
@@ -93,11 +95,22 @@ watch(() => props.projectId, () => { loadData(); });
 
 async function loadData() {
   const id = parseInt(props.projectId);
-  if (isNaN(id)) return;
-  await store.fetchBoard(id);
-  if (route.query.taskId) {
-    const tId = parseInt(route.query.taskId as string);
-    if (!isNaN(tId)) await store.fetchTaskDetails(tId);
+  if (isNaN(id)) {
+    await router.push('/projects');
+    return;
+  }
+
+  try {
+    await store.fetchBoard(id);
+  } catch (error) {
+    const errorMsg = getErrorMessage(error);
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: errorMsg,
+      life: 5000
+    });
+    await router.push('/projects');
   }
 }
 
@@ -162,7 +175,7 @@ useDraggableScroll(scrollContainerRef);
             <div v-if="isCreatingColumn" ref="createColumnFormRef" class="bg-gray-50 dark:bg-dark-surface p-3 rounded-xl border border-gray-200 dark:border-dark-border shadow-sm">
               <InputText ref="createInput" v-model="newColumnName" placeholder="Название колонки..." class="w-full mb-2" @keydown.enter="saveColumn" @keydown.esc="cancelCreateColumn" />
               <div class="flex items-center gap-2">
-                <Button label="Добавить" size="small" class="!bg-primary-600 !border-none !text-xs !px-3 !py-2" @click="saveColumn" />
+                <Button label="Добавить" size="small" class="!bg-primary-600 !border-none !text-white !text-xs !px-3 !py-2" @click="saveColumn" />
                 <Button icon="pi pi-times" text rounded size="small" class="!text-slate-500 hover:!bg-gray-200 dark:hover:!bg-slate-700" @click="cancelCreateColumn" />
               </div>
             </div>

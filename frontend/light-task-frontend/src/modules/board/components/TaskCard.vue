@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { TaskPreview } from '@/api/client';
-import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import { useBoardStore } from '../store/board.store';
+import UserAvatar from "@/shared/ui/UserAvatar.vue";
 
 const props = defineProps<{
   task: TaskPreview;
@@ -19,7 +19,7 @@ const assignedMember = computed(() =>
 );
 
 const avatarUrl = computed(() => assignedMember.value?.user.avatarUrl);
-const initials = computed(() => assignedMember.value?.user.username?.slice(0, 2).toUpperCase() || '?');
+const initials = computed(() => assignedMember.value?.user.username?.slice(0, 1).toUpperCase() || '?');
 
 const openTask = () => {
   router.push({ query: { ...route.query, taskId: props.task.id } });
@@ -38,9 +38,6 @@ const priorityConfig = computed(() => {
   }
 });
 
-// const assigneeInitials = computed(() => {
-//   return props.task.assigneeId ? String(props.task.assigneeId).slice(0, 2) : '?';
-// });
 </script>
 
 <template>
@@ -49,7 +46,7 @@ const priorityConfig = computed(() => {
       class="task-card bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing group relative select-none"
   >
     <button
-        class="absolute top-2 right-2 p-1.5 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
+        class="absolute top-2 right-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
         aria-label="Редактировать"
         @click.stop="openTask"
     >
@@ -89,9 +86,8 @@ const priorityConfig = computed(() => {
 
       <!-- Assignee Avatar -->
       <div v-if="task.assigneeId" class="flex">
-        <Avatar
-            shape="circle"
-            class="!w-6 !h-6 !text-[10px] !bg-primary-100 !text-primary-700 border border-white dark:border-slate-800"
+        <UserAvatar
+            class="!w-6 !h-6 !text-[10px] "
             :image="avatarUrl || undefined"
             :label="avatarUrl ? undefined : initials"
         />

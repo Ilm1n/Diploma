@@ -3,7 +3,7 @@
     lang="ts"
 >
 import {useAuthStore} from '../store/auth.store';
-import {useRouter} from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {useToast} from 'primevue/usetoast';
 import {useForm} from 'vee-validate';
 import {toTypedSchema} from '@vee-validate/zod';
@@ -13,8 +13,10 @@ import {useTheme} from '@/composables/useTheme';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
+import {getErrorMessage} from "@/utils/error.ts";
 
 const authStore = useAuthStore();
+const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const {isDark, toggleTheme} = useTheme();
@@ -36,8 +38,14 @@ const validationSchema = toTypedSchema(
     })
 );
 
-const {defineField, handleSubmit, errors, isSubmitting} = useForm({
+const { defineField, handleSubmit, errors, isSubmitting } = useForm({
   validationSchema,
+  initialValues: {
+    email: (route.query.email as string) || '',
+    username: '',
+    password: '',
+    confirmPassword: ''
+  }
 });
 
 const [username, usernameAttrs] = defineField('username');
@@ -63,13 +71,7 @@ const onSubmit = handleSubmit(async (values) => {
     await router.push('/login');
 
   } catch (error: any) {
-    let errorMsg = 'Ошибка регистрации';
-    if (error.response?.data?.detail) {
-      errorMsg = error.response.data.detail;
-    }
-    if (Array.isArray(errorMsg)) {
-      errorMsg = errorMsg[0].msg || JSON.stringify(errorMsg);
-    }
+    const errorMsg = getErrorMessage(error);
 
     toast.add({
       severity: 'error',
@@ -85,8 +87,8 @@ const onSubmit = handleSubmit(async (values) => {
   <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
 
     <!-- Decorative Blobs -->
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary-500/20 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-[-5%] left-[-5%] w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 bg-primary-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-[-5%] right-[-5%] w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
     <!-- Theme Toggle -->
     <button

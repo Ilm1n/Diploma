@@ -10,7 +10,7 @@ import Button from 'primevue/button';
 import SelectButton from 'primevue/selectbutton';
 import InputText from 'primevue/inputtext';
 // import InputNumber from 'primevue/inputnumber';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 
 defineProps<{ visible: boolean }>();
 const emit = defineEmits(['update:visible']);
@@ -116,11 +116,11 @@ const close = () => {
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-2">
             <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Истекает через</label>
-            <Dropdown v-model="expiresInDays" :options="expireOptions" optionLabel="label" optionValue="value" class="w-full" />
+            <Select v-model="expiresInDays" :options="expireOptions" optionLabel="label" optionValue="value" class="w-full" />
           </div>
           <div class="flex flex-col gap-2">
             <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Использований</label>
-            <Dropdown v-model="maxUses" :options="usageOptions" optionLabel="label" optionValue="value" class="w-full" />
+            <Select v-model="maxUses" :options="usageOptions" optionLabel="label" optionValue="value" class="w-full" />
           </div>
         </div>
 

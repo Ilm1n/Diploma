@@ -9,6 +9,7 @@ import {useForm} from 'vee-validate';
 import {toTypedSchema} from '@vee-validate/zod';
 import * as z from 'zod';
 import {useTheme} from '@/composables/useTheme';
+import { getErrorMessage } from '@/utils/error';
 
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
@@ -46,15 +47,8 @@ const onSubmit = handleSubmit(async (values) => {
     toast.add({severity: 'success', summary: 'С возвращением!', life: 3000});
     await router.push('/projects');
   } catch (error: any) {
-    // Обработка ошибки
-    let errorMsg = 'Неверные данные для входа';
-    if (error.response?.data?.detail) {
-      errorMsg = error.response.data.detail;
-    }
-    if (Array.isArray(errorMsg)) {
-      errorMsg = errorMsg[0].msg || JSON.stringify(errorMsg);
-    }
 
+    const errorMsg = getErrorMessage(error);
     toast.add({
       severity: 'error',
       summary: 'Ошибка входа',
@@ -69,8 +63,8 @@ const onSubmit = handleSubmit(async (values) => {
   <div class="min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
 
     <!-- Decorative Blobs -->
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary-500/20 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-[-5%] left-[-5%] w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 bg-primary-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-[-5%] right-[-5%] w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
     <!-- Theme Toggle -->
     <button

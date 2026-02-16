@@ -22,21 +22,18 @@ const sizeClass = computed(() => {
       return '!w-10 !h-10 text-base';
   }
 });
+
+const hasImage = computed(() => !!props.image);
 </script>
 
 <template>
-  <div
-      class="flex items-center justify-center rounded-full
-           bg-primary-100 dark:bg-primary-900
-           text-primary-600
-           flex-shrink-0"
-      :class="sizeClass"
-  >
-    <Avatar
-        :image="image"
-        :label="label"
-        shape="circle"
-        class="!bg-transparent !text-primary-600"
-    />
-  </div>
+  <Avatar
+      :image="image"
+      :label="label"
+      shape="circle"
+      :class="[
+        sizeClass,
+        hasImage ? '!bg-transparent' : '!bg-primary-100 dark:!bg-primary-900 !text-primary-600'
+      ]"
+  />
 </template>

@@ -7,7 +7,7 @@ export type TaskCreate = {
     title: string;
     priority?: TaskPriority;
     assigneeId?: (number | null);
-    description?: (string | null);
+    description: (string | null);
     tagIds?: Array<number>;
 };
 
