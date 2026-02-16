@@ -3,7 +3,6 @@ import { useRouter } from 'vue-router';
 import {ref} from "vue";
 import { useBoardStore } from '../store/board.store';
 import AvatarGroup from 'primevue/avatargroup';
-import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
 import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
