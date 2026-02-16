@@ -2371,8 +2371,7 @@
           "description": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2390,7 +2389,8 @@
         },
         "type": "object",
         "required": [
-          "title"
+          "title",
+          "description"
         ],
         "title": "TaskCreate"
       },
@@ -2563,8 +2563,7 @@
           "description": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2601,6 +2600,7 @@
           "columnId",
           "projectId",
           "position",
+          "description",
           "authorId",
           "createdAt",
           "updatedAt"
@@ -2625,8 +2625,7 @@
           "description": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2671,6 +2670,9 @@
           }
         },
         "type": "object",
+        "required": [
+          "description"
+        ],
         "title": "TaskUpdate"
       },
       "Token": {
