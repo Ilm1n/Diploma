@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import Toast from 'primevue/toast';
 import { useAuthStore } from '@/modules/auth/store/auth.store';
+import ConfirmDialog from 'primevue/confirmdialog';
 import CookieBanner from "@/shared/ui/CookieBanner.vue";
 
 const authStore = useAuthStore();

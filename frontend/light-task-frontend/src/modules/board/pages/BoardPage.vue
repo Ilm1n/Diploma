@@ -11,7 +11,6 @@ import { onClickOutside } from '@vueuse/core';
 import Skeleton from 'primevue/skeleton';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import ConfirmDialog from 'primevue/confirmdialog';
 import BoardHeader from '../components/BoardHeader.vue';
 import BoardColumn from '../components/BoardColumn.vue';
 import TaskDetailDrawer from '../components/task-details/TaskDetailDrawer.vue';
@@ -122,7 +121,6 @@ useDraggableScroll(scrollContainerRef);
 <template>
   <div class="h-full flex flex-col bg-white dark:bg-dark-bg transition-colors duration-300">
     <BoardHeader />
-<!--    <ConfirmDialog />-->
 
     <div
         id="board-scroll-container"
