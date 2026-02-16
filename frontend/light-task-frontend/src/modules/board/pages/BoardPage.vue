@@ -122,7 +122,7 @@ useDraggableScroll(scrollContainerRef);
 <template>
   <div class="h-full flex flex-col bg-white dark:bg-dark-bg transition-colors duration-300">
     <BoardHeader />
-    <ConfirmDialog />
+<!--    <ConfirmDialog />-->
 
     <div
         id="board-scroll-container"

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import Toast from 'primevue/toast';
 import { useAuthStore } from '@/modules/auth/store/auth.store';
+import CookieBanner from "@/shared/ui/CookieBanner.vue";
 
 const authStore = useAuthStore();
 const isAppReady = ref(false);
@@ -22,6 +23,7 @@ onMounted(async () => {
 
 <template>
   <Toast />
+  <ConfirmDialog />
 
   <Transition name="fade">
     <div v-if="!isAppReady" class="loading-overlay">
@@ -30,6 +32,8 @@ onMounted(async () => {
   </Transition>
 
   <router-view v-if="isAppReady" />
+
+  <CookieBanner />
 </template>
 
 <style>
