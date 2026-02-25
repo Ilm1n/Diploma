@@ -209,7 +209,7 @@ const deleteTask = () => {
       </div>
 
       <!-- CONTENT -->
-      <div v-else class="flex flex-col gap-8 pb-4">
+      <div v-else class="flex flex-col gap-8 pb-20">
 
         <!-- Task Title Section -->
         <div class="group flex flex-col gap-1">
@@ -238,7 +238,7 @@ const deleteTask = () => {
                   class="w-full !bg-gray-50 dark:!bg-dark-bg/40 !border-gray-200 dark:!border-dark-border
                          focus:!bg-white dark:focus:!bg-dark-bg focus:!ring-1 focus:!ring-primary-500
                          !text-slate-700 dark:!text-slate-300
-                         !transition-all !rounded-lg !p-3 !text-sm !leading-relaxed"
+                         !transition-colors !rounded-lg !p-3 !text-sm !leading-relaxed"
               />
               <div class="flex justify-between items-center text-[11px] text-slate-400">
                 <span class="flex items-center gap-1"><i class="pi pi-info-circle"></i> Markdown</span>

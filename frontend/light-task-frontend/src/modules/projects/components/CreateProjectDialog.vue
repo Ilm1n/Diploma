@@ -71,7 +71,7 @@ const onSubmit = handleSubmit(async (values) => {
       header="Новый проект"
       :style="{ width: '450px' }"
       :draggable="false"
-      class="p-dialog-custom"
+      class="p-dialog-custom !w-[95vw] md:!w-[850px]"
   >
     <!-- Убрали все классы цветов из Dialog, оставили только логику -->
 

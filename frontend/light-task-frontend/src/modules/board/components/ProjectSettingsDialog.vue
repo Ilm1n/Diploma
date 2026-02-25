@@ -123,6 +123,22 @@ const confirmRemoveMember = (member: any) => {
   });
 };
 
+const confirmDeleteInvitation = (invite: any) => {
+  confirm.require({
+    message: `Удалить приглашение?`,
+    header: 'Удаление приглашения',
+    icon: 'pi pi-link',
+    acceptLabel: 'Удалить',
+    rejectLabel: 'Нет',
+    acceptClass: 'p-button-danger !text-white',
+    rejectClass: 'p-button-primary !text-white',
+    accept: async () => {
+      await store.deleteInvitation(invite.id);
+      toast.add({ severity: 'success', summary: 'Удалено', detail: 'Приглашение удалено', life: 3000 });
+    }
+  });
+};
+
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text);
@@ -145,20 +161,19 @@ const roleOptions = [
       @update:visible="emit('update:visible', $event)"
       modal
       header="Настройки проекта"
-      :style="{ width: '850px' }"
       :contentStyle="{ minHeight: '550px' }"
-      class="p-dialog-custom"
+      class="p-dialog-custom !w-[95vw] md:!w-[850px]"
       :draggable="false"
   >
     <Tabs value="general">
-      <TabList>
+      <TabList class="overflow-x-auto whitespace-nowrap custom-scrollbar pb-1">
         <Tab value="general"><i class="pi pi-cog mr-2"></i>Общие</Tab>
         <Tab value="members"><i class="pi pi-users mr-2"></i>Участники</Tab>
         <Tab value="tags"><i class="pi pi-tags mr-2"></i>Теги</Tab>
         <Tab value="invites"><i class="pi pi-link mr-2"></i>Приглашения</Tab>
       </TabList>
 
-      <TabPanels>
+      <TabPanels class="!px-0 sm:!px-4">
         <!-- ОБЩИЕ -->
         <TabPanel value="general">
           <div class="flex flex-col gap-6 py-6 max-w-2xl">
@@ -168,7 +183,7 @@ const roleOptions = [
             </div>
             <div class="flex flex-col gap-2">
               <label class="text-xs font-bold uppercase text-slate-400">Описание</label>
-              <Textarea v-model="projectDesc" rows="4" autoResize class="w-full" />
+              <Textarea v-model="projectDesc" rows="4" class="w-full" />
             </div>
             <div class="flex justify-end">
               <Button label="Сохранить" icon="pi pi-check" class="!bg-primary-600 !text-white" @click="saveGeneral" />
@@ -176,7 +191,7 @@ const roleOptions = [
 
             <div class="mt-12 p-6 border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 rounded-2xl">
               <h4 class="text-red-600 dark:text-red-400 font-bold mb-1">Удаление проекта</h4>
-              <p class="text-xs text-slate-500 mb-4 !text-red-400">Будьте осторожны, это действие необратимо.</p>
+              <p class="text-xs  mb-4 !text-red-400">Будьте осторожны, это действие необратимо.</p>
               <Button label="Удалить проект..." severity="danger" outlined size="small" @click="confirmDeleteProject" />
             </div>
           </div>
@@ -184,58 +199,61 @@ const roleOptions = [
 
         <!-- УЧАСТНИКИ -->
         <TabPanel value="members">
-          <div class="flex flex-col gap-3 py-6">
+          <div class="flex flex-col gap-3 py-4 sm:py-6">
             <div v-for="member in store.members" :key="member.id"
-                 class="flex items-center justify-between p-4 bg-slate-50 dark:bg-dark-bg/40 rounded-2xl border border-slate-100 dark:border-dark-border">
-              <div class="flex items-center gap-4">
-                <UserAvatar :image="member.user.avatarUrl || undefined" :label="member.user.avatarUrl ? undefined : member.user.username[0]" size="md" />
-                <div class="flex flex-col">
-                  <span class="font-bold text-sm">{{ member.user.username }}</span>
-                  <span class="text-[11px] text-slate-500">{{ member.user.email }}</span>
-                </div>
-              </div>
+            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-dark-bg/40 rounded-2xl border border-slate-100 dark:border-dark-border">
 
-              <div class="flex items-center gap-4">
-                <Select
-                    v-model="member.role"
-                    :options="roleOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    class="!text-xs !bg-transparent"
-                    @change="confirmRoleChange(member, $event.value)"
-                    :disabled="member.role === 'OWNER' || store.project?.currentUserRole !== 'OWNER'"
-                />
-                <Button
-                    icon="pi pi-user-minus"
-                    severity="danger"
-                    text
-                    rounded
-                    v-if="member.role !== 'OWNER' && store.project?.currentUserRole === 'OWNER'"
-                    @click="confirmRemoveMember(member)"
-                />
+            <div class="flex items-center gap-4">
+              <UserAvatar :image="member.user.avatarUrl || undefined" :label="member.user.avatarUrl ? undefined : member.user.username[0]" size="md" />
+              <div class="flex flex-col">
+                <span class="font-bold text-sm">{{ member.user.username }}</span>
+                <span class="text-[11px] text-slate-500 break-all">{{ member.user.email }}</span>
               </div>
             </div>
+
+            <div class="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <Select
+                  v-model="member.role"
+                  :options="roleOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  class="!text-xs !bg-transparent flex-1 sm:flex-none"
+                  @change="confirmRoleChange(member, $event.value)"
+                  :disabled="member.role === 'OWNER' || store.project?.currentUserRole !== 'OWNER'"
+              />
+              <Button
+                  icon="pi pi-user-minus"
+                  severity="danger"
+                  text
+                  rounded
+                  class="shrink-0"
+                  v-if="member.role !== 'OWNER' && store.project?.currentUserRole === 'OWNER'"
+                  @click="confirmRemoveMember(member)"
+              />
+            </div>
+          </div>
           </div>
         </TabPanel>
 
         <!-- ТЕГИ -->
         <TabPanel value="tags">
-          <div class="flex flex-col gap-6 py-6">
-            <!-- Форма создания -->
-            <div class="flex items-end gap-3 p-4 bg-primary-50/50 dark:bg-dark-bg/40 rounded-2xl border border-primary-100 dark:border-dark-border">
-              <div class="flex-1 flex flex-col gap-2">
+          <div class="flex flex-col gap-6 py-4 sm:py-6">
+            <div class="flex flex-col sm:flex-row sm:items-end gap-3 p-4 bg-primary-50/50 dark:bg-dark-bg/40 rounded-2xl border border-primary-100 dark:border-dark-border">
+              <div class="w-full sm:flex-1 flex flex-col gap-2">
                 <label class="text-[10px] font-bold uppercase text-primary-600">Новый тег</label>
                 <InputText v-model="newTagName" placeholder="Название тега..." class="w-full" @keydown.enter="handleCreateTag" />
               </div>
-              <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-bold uppercase text-primary-600">Цвет</label>
-                <ColorPicker v-model="newTagColor"  />
+              <div class="flex items-center sm:items-end gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                <div class="flex flex-col gap-2">
+                  <label class="text-[10px] font-bold uppercase text-primary-600 hidden sm:block">Цвет</label>
+                  <ColorPicker v-model="newTagColor" />
+                </div>
+                <Button icon="pi pi-plus" class="!bg-primary-600 dark:!text-white flex-1 sm:flex-none" @click="handleCreateTag" :disabled="!newTagName" />
               </div>
-              <Button icon="pi pi-plus" class="!bg-primary-600 dark:!text-white dark:!bg-primary-100/15 dark:!border-primary-100" @click="handleCreateTag" :disabled="!newTagName" />
             </div>
 
             <!-- Список тегов -->
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div v-for="tag in store.tags" :key="tag.id"
                    class="flex items-center justify-between p-3 border border-slate-200 dark:border-dark-border rounded-xl">
                 <div class="flex items-center gap-2">
@@ -277,10 +295,9 @@ const roleOptions = [
           </span>
                   <span v-if="invite.email" class="text-xs text-slate-500">для {{ invite.email }}</span>
                 </div>
-                <Button icon="pi pi-trash" severity="danger" text @click="store.deleteInvitation(invite.id)" />
+                <Button icon="pi pi-trash" severity="danger" text @click="confirmDeleteInvitation(invite)" />
               </div>
 
-              <!-- ЗАМЕНЕННЫЙ БЛОК: теперь ссылка в инпуте с кнопкой копирования -->
               <div class="flex gap-2 mb-3">
                 <InputText
                     :value="invite.link"

@@ -91,66 +91,63 @@ const close = () => {
       @update:visible="emit('update:visible', $event)"
       modal
       header="Пригласить в проект"
-      :style="{ width: '500px' }"
-      :draggable="false"
-      class="p-dialog-custom"
       @hide="close"
   >
-    <div class="flex flex-col gap-6 pt-2">
+  <div class="flex flex-col gap-6 pt-2">
 
-      <template v-if="!invitationLink">
-        <!-- Роль -->
+    <template v-if="!invitationLink">
+      <!-- Роль -->
+      <div class="flex flex-col gap-2">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Роль нового участника</label>
+        <SelectButton v-model="selectedRole" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
+      </div>
+
+      <!-- Email -->
+      <div class="flex flex-col gap-2">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Email (необязательно)</label>
+        <InputText v-model="targetEmail" placeholder="example@mail.com" class="w-full" />
+        <p class="text-[10px] text-slate-400">Только этот пользователь сможет принять приглашение</p>
+      </div>
+
+      <!-- Настройки времени и лимита -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="flex flex-col gap-2">
-          <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Роль нового участника</label>
-          <SelectButton v-model="selectedRole" :options="roleOptions" optionLabel="label" optionValue="value" class="w-full" />
+          <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Истекает через</label>
+          <Select v-model="expiresInDays" :options="expireOptions" optionLabel="label" optionValue="value" class="w-full" />
         </div>
-
-        <!-- Email (Опционально) -->
         <div class="flex flex-col gap-2">
-          <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Email (необязательно)</label>
-          <InputText v-model="targetEmail" placeholder="example@mail.com" class="w-full" />
-          <p class="text-[10px] text-slate-400">Только этот пользователь сможет принять приглашение</p>
+          <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Использований</label>
+          <Select v-model="maxUses" :options="usageOptions" optionLabel="label" optionValue="value" class="w-full" />
+        </div>
+      </div>
+
+      <Button
+          label="Создать ссылку"
+          icon="pi pi-link"
+          class="w-full dark:!text-white !bg-primary-600 !border-none !py-3 !mt-2"
+          :loading="isLoading"
+          @click="generateLink"
+      />
+    </template>
+
+    <template v-else>
+      <div class="flex flex-col gap-4 py-4 text-center animate-fade-in">
+        <div class="w-16 h-16 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+          <i class="pi pi-check text-2xl"></i>
+        </div>
+        <h3 class="font-bold text-xl">Ссылка готова!</h3>
+        <p class="text-sm text-slate-500">Отправьте её коллеге. Она будет активна {{ expireOptions.find(o => o.value === expiresInDays)?.label }}.</p>
+
+        <div class="flex gap-2 mt-4">
+          <InputText :value="invitationLink" readonly class="flex-1 !bg-slate-50 dark:!bg-dark-bg" />
+          <Button icon="pi pi-copy" @click="copyToClipboard" />
         </div>
 
-        <!-- Настройки времени и лимита -->
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Истекает через</label>
-            <Select v-model="expiresInDays" :options="expireOptions" optionLabel="label" optionValue="value" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Использований</label>
-            <Select v-model="maxUses" :options="usageOptions" optionLabel="label" optionValue="value" class="w-full" />
-          </div>
-        </div>
+        <Button label="Создать другое приглашение" text class="!mt-4 !text-xs" @click="invitationLink = ''" />
+      </div>
+    </template>
 
-        <Button
-            label="Создать ссылку"
-            icon="pi pi-link"
-            class="w-full dark:!text-white !bg-primary-600 !border-none !py-3 !mt-2"
-            :loading="isLoading"
-            @click="generateLink"
-        />
-      </template>
-
-      <template v-else>
-        <div class="flex flex-col gap-4 py-4 text-center animate-fade-in">
-          <div class="w-16 h-16 bg-green-50 dark:bg-green-900/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
-            <i class="pi pi-check text-2xl"></i>
-          </div>
-          <h3 class="font-bold text-xl">Ссылка готова!</h3>
-          <p class="text-sm text-slate-500">Отправьте её коллеге. Она будет активна {{ expireOptions.find(o => o.value === expiresInDays)?.label }}.</p>
-
-          <div class="flex gap-2 mt-4">
-            <InputText :value="invitationLink" readonly class="flex-1 !bg-slate-50 dark:!bg-dark-bg" />
-            <Button icon="pi pi-copy" @click="copyToClipboard" />
-          </div>
-
-          <Button label="Создать другое приглашение" text class="!mt-4 !text-xs" @click="invitationLink = ''" />
-        </div>
-      </template>
-
-    </div>
+  </div>
   </Dialog>
 </template>
 
