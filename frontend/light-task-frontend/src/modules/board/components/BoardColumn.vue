@@ -8,22 +8,17 @@ import { getPlural } from '@/utils/plural';
 import { VueDraggable } from 'vue-draggable-plus';
 import { onClickOutside } from '@vueuse/core';
 
-// UI Components
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import TaskCard from './TaskCard.vue';
 
-const props = defineProps<{
-  column: ColumnRead;
-}>();
-
+const props = defineProps<{ column: ColumnRead; }>();
 const store = useBoardStore();
 const confirm = useConfirm();
 const toast = useToast();
 
-// --- Rename Logic ---
 const isRenaming = ref(false);
 const newName = ref(props.column.name);
 const nameInput = ref();
@@ -52,13 +47,10 @@ const cancelRename = () => {
   newName.value = props.column.name;
 };
 
-// --- Column Actions Menu ---
 const menu = ref();
-const onMenuClick = (event: Event) => {
-  menu.value.toggle(event);
-};
+const onMenuClick = (event: Event) => menu.value.toggle(event);
 
-const items = [
+const items =[
   { label: 'Переименовать', icon: 'pi pi-pencil', command: startRename },
   { separator: true },
   {
@@ -85,25 +77,19 @@ const items = [
 
 const tasksCountLabel = computed(() => {
   const count = props.column.tasks?.length || 0;
-  const word = getPlural(count, ['задача', 'задачи', 'задач']);
-  return `${count} ${word}`;
+  return `${count} ${getPlural(count, ['задача', 'задачи', 'задач'])}`;
 });
 
-// --- Create Task Logic ---
 const newTaskTitle = ref('');
 const createTaskInput = ref();
 const createFormRef = ref(null);
 
-
 const isCreatingTask = computed(() => store.activeColumnIdForTaskCreation === props.column.id);
 
 const startCreateTask = () => {
-
   store.setActiveColumnForTaskCreation(props.column.id);
-
   nextTick(() => {
     createTaskInput.value?.$el?.focus();
-
     const container = document.getElementById(`column-tasks-${props.column.id}`);
     if (container) container.scrollTop = container.scrollHeight;
   });
@@ -115,9 +101,7 @@ const cancelCreateTask = () => {
 };
 
 onClickOutside(createFormRef, () => {
-  if (isCreatingTask.value) {
-    cancelCreateTask();
-  }
+  if (isCreatingTask.value) cancelCreateTask();
 });
 
 const saveTask = async () => {
@@ -128,7 +112,6 @@ const saveTask = async () => {
   try {
     await store.createTask(props.column.id, { title: newTaskTitle.value });
     newTaskTitle.value = '';
-
     nextTick(() => {
       const container = document.getElementById(`column-tasks-${props.column.id}`);
       if (container) container.scrollTop = container.scrollHeight;
@@ -139,12 +122,9 @@ const saveTask = async () => {
   }
 };
 
-// --- Drag & Drop Logic ---
 const tasksList = computed({
-  get: () => props.column.tasks || [],
-  set: (val) => {
-    props.column.tasks = val;
-  }
+  get: () => props.column.tasks ||[],
+  set: (val) => { props.column.tasks = val; }
 });
 
 const onTaskDrop = async (event: any) => {
@@ -163,14 +143,12 @@ const onTaskDrop = async (event: any) => {
 </script>
 
 <template>
-  <div class="w-80  shrink-0 flex flex-col max-h-full">
+  <div class="w-[280px] sm:w-80 shrink-0 flex flex-col max-h-full">
 
-    <div class="w-full  max-h-full flex flex-col bg-gray-50 dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border shadow-sm transition-colors duration-300">
+    <div class="w-full max-h-full flex flex-col bg-gray-50 dark:bg-dark-surface rounded-xl border border-gray-200 dark:border-dark-border shadow-sm transition-colors duration-300">
 
-      <!-- HEADER (Fixed height) -->
-      <div
-          class="column-drag-handle flex-none p-3 border-b border-gray-200 dark:border-dark-border/50 flex justify-between items-start gap-2 cursor-grab active:cursor-grabbing group"
-      >
+      <!-- HEADER -->
+      <div class="column-drag-handle flex-none p-3 border-b border-gray-200 dark:border-dark-border/50 flex justify-between items-start gap-2 cursor-grab active:cursor-grabbing group">
         <div v-if="!isRenaming" class="flex-1 min-w-0" @dblclick="startRename">
           <h3 class="font-bold text-slate-700 dark:text-slate-200 truncate leading-6">
             {{ column.name }}
@@ -205,14 +183,17 @@ const onTaskDrop = async (event: any) => {
         <Menu ref="menu" id="column_menu" :model="items" :popup="true" />
       </div>
 
-      <div
-          :id="`column-tasks-${column.id}`"
-          class="flex-1 overflow-y-auto min-h-0 p-2 custom-scrollbar"
-      >
+      <div :id="`column-tasks-${column.id}`" class="flex-1 overflow-y-auto min-h-0 p-2 custom-scrollbar">
         <VueDraggable
             v-model="tasksList"
             group="tasks"
             :animation="150"
+            :delay="150"
+            :delay-on-touch-only="true"
+            :force-fallback="true"
+            :fallback-tolerance="5"
+            :fallback-on-body="true"
+            fallback-class="task-fallback"
             ghost-class="task-ghost"
             drag-class="task-drag"
             class="flex flex-col gap-2 min-h-[50px] pb-2"
@@ -228,10 +209,8 @@ const onTaskDrop = async (event: any) => {
         </VueDraggable>
       </div>
 
-      <!-- FOOTER (Fixed at bottom) -->
+      <!-- FOOTER -->
       <div class="flex-none p-2 pt-0 bg-gray-50 dark:bg-dark-surface rounded-b-xl">
-
-        <!-- Inline Create Form -->
         <div v-if="isCreatingTask" ref="createFormRef" class="mt-1">
           <div class="bg-white dark:bg-slate-800 p-2 rounded-lg border border-primary-500 shadow-sm">
              <Textarea
@@ -245,32 +224,14 @@ const onTaskDrop = async (event: any) => {
                  @keydown.esc="cancelCreateTask"
              />
             <div class="flex justify-between items-center mt-2">
-              <Button
-                  label="Добавить карточку"
-                  size="small"
-                  class="!py-1.5 !px-3 !text-xs !bg-primary-600 !text-white !border-none !font-semibold"
-                  @click="saveTask"
-              />
-              <Button
-                  icon="pi pi-times"
-                  text
-                  rounded
-                  size="small"
-                  class="!w-7 !h-7 !text-slate-400 hover:!bg-slate-100 dark:hover:!bg-slate-700"
-                  @click="cancelCreateTask"
-              />
+              <Button label="Добавить карточку" size="small" class="!py-1.5 !px-3 !text-xs !bg-primary-600 !text-white !border-none !font-semibold" @click="saveTask" />
+              <Button icon="pi pi-times" text rounded size="small" class="!w-7 !h-7 !text-slate-400 hover:!bg-slate-100 dark:hover:!bg-slate-700" @click="cancelCreateTask" />
             </div>
           </div>
         </div>
 
-        <!-- Add Button -->
-        <button
-            v-else
-            @click.stop="startCreateTask"
-            class="w-full py-2 flex items-center justify-start px-2 gap-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-gray-200/50 dark:hover:bg-slate-700/50 rounded-lg transition-colors text-sm font-medium"
-        >
-          <i class="pi pi-plus"></i>
-          Добавить карточку
+        <button v-else @click.stop="startCreateTask" class="w-full py-2 flex items-center justify-start px-2 gap-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-gray-200/50 dark:hover:bg-slate-700/50 rounded-lg transition-colors text-sm font-medium">
+          <i class="pi pi-plus"></i> Добавить карточку
         </button>
       </div>
     </div>
@@ -278,25 +239,11 @@ const onTaskDrop = async (event: any) => {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #475569;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
 
-/* Draggable Styles */
-.task-ghost {
-  @apply bg-slate-200 dark:bg-slate-700 opacity-50 border-dashed border-2 border-slate-400;
-}
-.task-ghost > * {
-  visibility: hidden;
-}
-.task-drag {
-  @apply rotate-2 shadow-xl cursor-grabbing;
-}
+.task-ghost { @apply bg-slate-200 dark:bg-slate-700 opacity-50 border-dashed border-2 border-slate-400;}
+.task-ghost > * { visibility: hidden; }
+.task-drag { @apply rotate-2 shadow-xl cursor-grabbing;}
 </style>

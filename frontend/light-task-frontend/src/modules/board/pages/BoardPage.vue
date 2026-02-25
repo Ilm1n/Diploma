@@ -7,7 +7,6 @@ import { useToast } from 'primevue/usetoast';
 import { useDraggableScroll } from '@/composables/useDraggableScroll';
 import { onClickOutside } from '@vueuse/core';
 
-
 import Skeleton from 'primevue/skeleton';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -20,12 +19,10 @@ const props = defineProps<{ projectId: string }>();
 const store = useBoardStore();
 const toast = useToast();
 
-// --- Create Column Logic ---
 const isCreatingColumn = ref(false);
 const newColumnName = ref('');
 const createInput = ref();
 const createColumnFormRef = ref(null);
-
 const router = useRouter();
 
 const startCreateColumn = () => {
@@ -39,9 +36,7 @@ const cancelCreateColumn = () => {
 };
 
 onClickOutside(createColumnFormRef, () => {
-  if (isCreatingColumn.value) {
-    cancelCreateColumn();
-  }
+  if (isCreatingColumn.value) cancelCreateColumn();
 });
 
 const saveColumn = async () => {
@@ -49,45 +44,32 @@ const saveColumn = async () => {
     cancelCreateColumn();
     return;
   }
-
   try {
-
     await store.createColumn({ name: newColumnName.value });
-
-
     cancelCreateColumn();
-
-
     await nextTick();
-
     if (scrollContainerRef.value) {
       scrollContainerRef.value.scrollTo({
         left: scrollContainerRef.value.scrollWidth,
         behavior: 'smooth'
       });
     }
-
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось создать колонку', life: 3000 });
   }
 };
 
-// --- DnD Events ---
 const onColumnDragStart = () => {
-
   document.body.style.userSelect = 'none';
   document.body.style.cursor = 'grabbing';
 };
 
 const onColumnDrop = () => {
-
   document.body.style.userSelect = '';
   document.body.style.cursor = '';
-
   store.moveColumn(store.columns);
 };
 
-// --- Init ---
 onMounted(() => { loadData(); });
 onUnmounted(() => { store.clearState(); });
 watch(() => props.projectId, () => { loadData(); });
@@ -98,21 +80,14 @@ async function loadData() {
     await router.push('/projects');
     return;
   }
-
   try {
     await store.fetchBoard(id);
   } catch (error) {
     const errorMsg = getErrorMessage(error);
-    toast.add({
-      severity: 'error',
-      summary: 'Ошибка',
-      detail: errorMsg,
-      life: 5000
-    });
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: errorMsg, life: 5000 });
     await router.push('/projects');
   }
 }
-
 
 const scrollContainerRef = ref<HTMLElement | null>(null);
 useDraggableScroll(scrollContainerRef);
@@ -127,37 +102,29 @@ useDraggableScroll(scrollContainerRef);
         ref="scrollContainerRef"
         class="flex-1 overflow-x-auto overflow-y-hidden bg-gray-100 dark:bg-[#0b1120] relative active:cursor-grabbing"
     >
-      <div class="h-full flex items-start p-6 gap-6">
+      <div class="h-full flex items-start p-4 sm:p-6 gap-4 sm:gap-6">
 
-        <!-- Loading -->
         <template v-if="store.isLoading && store.columns.length === 0">
-          <div v-for="i in 3" :key="i" class="w-80 h-full shrink-0">
+          <div v-for="i in 3" :key="i" class="w-[280px] sm:w-80 h-full shrink-0">
             <Skeleton height="100%" borderRadius="12px" class="!bg-gray-200 dark:!bg-slate-800" />
           </div>
         </template>
 
         <template v-else>
-
           <VueDraggable
               v-model="store.columns"
               :animation="150"
               group="columns"
               handle=".column-drag-handle"
-
               :force-fallback="true"
               :fallback-tolerance="3"
-
               :scroll="(scrollContainerRef as any)"
               :scroll-sensitivity="100"
               :scroll-speed="50"
-
               :direction="'horizontal'"
-
-              class="flex gap-6 h-full items-start"
-
+              class="flex gap-4 sm:gap-6 h-full items-start"
               ghost-class="column-ghost"
               drag-class="column-drag"
-
               @start="onColumnDragStart"
               @end="onColumnDrop"
           >
@@ -169,7 +136,7 @@ useDraggableScroll(scrollContainerRef);
           </VueDraggable>
 
           <!-- CREATE COLUMN BUTTON -->
-          <div class="w-80 shrink-0">
+          <div class="w-[280px] sm:w-80 shrink-0">
             <div v-if="isCreatingColumn" ref="createColumnFormRef" class="bg-gray-50 dark:bg-dark-surface p-3 rounded-xl border border-gray-200 dark:border-dark-border shadow-sm">
               <InputText ref="createInput" v-model="newColumnName" placeholder="Название колонки..." class="w-full mb-2" @keydown.enter="saveColumn" @keydown.esc="cancelCreateColumn" />
               <div class="flex items-center gap-2">

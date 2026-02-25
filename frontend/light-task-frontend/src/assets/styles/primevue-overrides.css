@@ -60,3 +60,20 @@
   color: #60a5fa;
   background: rgba(59, 130, 246, 0.1) !important;
 }
+
+.task-fallback {
+  transition: none !important;
+
+  opacity: 0.9 !important;
+
+  pointer-events: none !important;
+
+  z-index: 9999 !important;
+
+
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.dark .task-fallback {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
+}
