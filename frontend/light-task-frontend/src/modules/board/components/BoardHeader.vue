@@ -25,31 +25,30 @@ const goBack = () => {
 </script>
 
 <template>
-  <div class="h-16 px-6 border-b border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface flex items-center justify-between shrink-0 transition-colors duration-300">
+  <div class="h-16 px-3 sm:px-6 border-b border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface flex items-center justify-between shrink-0 transition-colors duration-300">
 
     <!-- LEFT: Back & Title -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 sm:gap-4 min-w-0">
       <Button
           icon="pi pi-arrow-left"
           text
           rounded
           aria-label="Назад"
-          class="!text-slate-500 hover:!bg-slate-100 dark:hover:!bg-slate-800"
+          class="!text-slate-500 hover:!bg-slate-100 dark:hover:!bg-slate-800 shrink-0"
           @click="goBack"
       />
 
       <div v-if="store.isLoading && !store.project" class="flex flex-col gap-1">
-        <Skeleton width="8rem" height="1.5rem" />
-        <Skeleton width="4rem" height="0.8rem" />
+        <Skeleton width="6rem" height="1.5rem" />
       </div>
 
-      <div v-else-if="store.project">
-        <h1 class="text-xl max-w-[20vw] truncate font-bold text-slate-800 dark:text-white leading-tight ">
+      <div v-else-if="store.project" class="min-w-0 flex flex-col">
+        <h1 class="text-lg sm:text-xl truncate font-bold text-slate-800 dark:text-white leading-tight">
           {{ store.project.name }}
         </h1>
         <div class="flex items-center gap-2 text-xs text-slate-500">
-          <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: store.project.color }"></span>
-          <span class="truncate flex-1 max-w-[20vw]">
+          <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: store.project.color }"></span>
+          <span class="truncate hidden sm:block">
             {{ store.project.description || 'Без описания' }}
           </span>
         </div>
@@ -57,10 +56,10 @@ const goBack = () => {
     </div>
 
     <!-- RIGHT: Members & Actions -->
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
 
-      <!-- Team Avatars -->
-      <AvatarGroup v-if="store.members.length > 0">
+      <!-- Team Avatars (Скрыты на мобилках для экономии места) -->
+      <AvatarGroup v-if="store.members.length > 0" class="hidden md:flex">
         <UserAvatar
             v-for="member in store.members.slice(0, 4)"
             :key="member.id"
@@ -81,18 +80,19 @@ const goBack = () => {
           icon="pi pi-cog"
           text
           rounded
-          class="!text-slate-400"
+          class="!text-slate-400 !w-10 !h-10 !p-0"
           @click="isSettingsVisible = true"
       />
 
-      <!-- Invite Button -->
+      <!-- Invite Button (Текст скрыт на мобилках) -->
       <Button
           v-if="store.project?.currentUserRole !== ProjectRole.MEMBER"
-          icon="pi pi-user-plus"
-          label="Пригласить"
-          class="!bg-primary-600 dark:!text-white !border-none !text-sm !px-4 !rounded-lg"
+          class="!bg-primary-600 dark:!text-white !border-none !text-sm !px-3 sm:!px-4 !rounded-lg"
           @click="isInviteVisible = true"
-      />
+      >
+        <i class="pi pi-user-plus sm:mr-2"></i>
+        <span class="hidden sm:inline">Пригласить</span>
+      </Button>
     </div>
     <InviteMemberDialog v-model:visible="isInviteVisible" />
     <ProjectSettingsDialog v-model:visible="isSettingsVisible" />
