@@ -233,7 +233,6 @@ const deleteTask = () => {
               </div>
               <Textarea
                   v-model="localDescription"
-                  autoResize
                   rows="6"
                   placeholder="Добавьте описание задачи (Markdown...)"
                   class="w-full !bg-gray-50 dark:!bg-dark-bg/40 !border-gray-200 dark:!border-dark-border
