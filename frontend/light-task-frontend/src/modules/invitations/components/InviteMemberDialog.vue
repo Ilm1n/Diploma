@@ -82,6 +82,9 @@ const close = () => {
   targetEmail.value = '';
   maxUses.value = 1;
   expiresInDays.value = 7;
+
+  isQrVisible.value = false;
+
   emit('update:visible', false);
 };
 </script>

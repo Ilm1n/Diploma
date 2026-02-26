@@ -44,6 +44,9 @@ watch(() => props.visible, (val) => {
     projectName.value = store.project.name;
     projectDesc.value = store.project.description || '';
     store.fetchInvitations();
+  } else {
+    isInviteDialogVisible.value = false;
+    isQrVisible.value = false;
   }
 });
 
