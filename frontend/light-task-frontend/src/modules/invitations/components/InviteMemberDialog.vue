@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useBoardStore } from '../store/board.store';
+import { useBoardStore } from '../../board/store/board.store.ts';
 import { useToast } from 'primevue/usetoast';
 import { ProjectRole } from '@/api/client';
 
@@ -9,8 +9,8 @@ import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import SelectButton from 'primevue/selectbutton';
 import InputText from 'primevue/inputtext';
-// import InputNumber from 'primevue/inputnumber';
 import Select from 'primevue/select';
+import InviteQrDialog from '@/modules/invitations/components/InviteQrDialog.vue';
 
 defineProps<{ visible: boolean }>();
 const emit = defineEmits(['update:visible']);
@@ -20,6 +20,7 @@ const toast = useToast();
 
 const isLoading = ref(false);
 const invitationLink = ref('');
+const isQrVisible = ref(false);
 
 const selectedRole = ref(ProjectRole.MEMBER);
 const targetEmail = ref('');
@@ -141,6 +142,7 @@ const close = () => {
         <div class="flex gap-2 mt-4">
           <InputText :value="invitationLink" readonly class="flex-1 !bg-slate-50 dark:!bg-dark-bg" />
           <Button icon="pi pi-copy" @click="copyToClipboard" />
+          <Button icon="pi pi-qrcode" severity="secondary" @click="isQrVisible = true" />
         </div>
 
         <Button label="Создать другое приглашение" text class="!mt-4 !text-xs" @click="invitationLink = ''" />
@@ -148,6 +150,10 @@ const close = () => {
     </template>
 
   </div>
+    <InviteQrDialog
+        v-model:visible="isQrVisible"
+        :value="invitationLink"
+    />
   </Dialog>
 </template>
 

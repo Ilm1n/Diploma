@@ -18,7 +18,8 @@ import Button from 'primevue/button';
 import Select from 'primevue/select';
 import ColorPicker from 'primevue/colorpicker';
 import UserAvatar from '@/shared/ui/UserAvatar.vue';
-import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
+import InviteMemberDialog from '@/modules/invitations/components/InviteMemberDialog.vue';
+import InviteQrDialog from '@/modules/invitations/components/InviteQrDialog.vue';
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits(['update:visible']);
@@ -29,6 +30,9 @@ const toast = useToast();
 const confirm = useConfirm();
 
 const isInviteDialogVisible = ref(false);
+const qrLink = ref('');
+const isQrVisible = ref(false);
+
 const projectName = ref('');
 const projectDesc = ref('');
 
@@ -137,6 +141,11 @@ const confirmDeleteInvitation = (invite: any) => {
       toast.add({ severity: 'success', summary: 'Удалено', detail: 'Приглашение удалено', life: 3000 });
     }
   });
+};
+
+const openQr = (link: string) => {
+  qrLink.value = link;
+  isQrVisible.value = true;
 };
 
 const copyToClipboard = async (text: string) => {
@@ -309,6 +318,7 @@ const roleOptions = [
                     @click="copyToClipboard(invite.link)"
                     class="p-button-outlined"
                 />
+                <Button icon="pi pi-qrcode" severity="secondary" outlined @click="openQr(invite.link)" />
               </div>
 
               <div class="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest">
@@ -321,6 +331,7 @@ const roleOptions = [
       </TabPanels>
     </Tabs>
     <InviteMemberDialog v-model:visible="isInviteDialogVisible" />
+    <InviteQrDialog v-model:visible="isQrVisible" :value="qrLink" />
   </Dialog>
 </template>
 

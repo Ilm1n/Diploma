@@ -5,7 +5,7 @@ import { useBoardStore } from '../store/board.store';
 import AvatarGroup from 'primevue/avatargroup';
 import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
-import InviteMemberDialog from '@/modules/board/components/InviteMemberDialog.vue';
+import InviteMemberDialog from '@/modules/invitations/components/InviteMemberDialog.vue';
 import ProjectSettingsDialog from './ProjectSettingsDialog.vue';
 import { ProjectRole } from '@/api/client';
 import UserAvatar from "@/shared/ui/UserAvatar.vue";
