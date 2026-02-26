@@ -4,7 +4,10 @@ import { useBoardStore } from '../store/board.store';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
-import { ProjectRole } from '@/api/client';
+import {
+  ProjectRole,
+  type TagRead
+} from '@/api/client';
 
 import Dialog from 'primevue/dialog';
 import Tabs from 'primevue/tabs';
@@ -44,6 +47,10 @@ const newTagName = ref('');
 const newTagColor = ref('3b82f6');
 
 const memberSearch = ref('');
+
+const editingTagId = ref<number | null>(null);
+const editTagName = ref('');
+const editTagColor = ref('');
 
 
 watch(() => props.visible, (val) => {
@@ -119,6 +126,33 @@ const confirmRoleChange = (member: any, newRole: ProjectRole) => {
       store.fetchBoard(store.project!.id);
     }
   });
+};
+
+const startEditTag = (tag: TagRead) => {
+  editingTagId.value = tag.id;
+  editTagName.value = tag.name;
+  editTagColor.value = tag.color ? tag.color.replace('#', '') : '3b82f6';
+};
+
+const cancelEditTag = () => {
+  editingTagId.value = null;
+  editTagName.value = '';
+  editTagColor.value = '';
+};
+
+const handleUpdateTag = async (tagId: number) => {
+  if (!editTagName.value.trim()) return;
+
+  try {
+    await store.updateTag(tagId, {
+      name: editTagName.value,
+      color: '#' + editTagColor.value
+    });
+    editingTagId.value = null;
+    toast.add({ severity: 'success', summary: 'Обновлено', detail: 'Тег изменен', life: 2000 });
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось обновить тег' });
+  }
 };
 
 const confirmRemoveMember = (member: any) => {
@@ -296,14 +330,30 @@ const roleOptions = [
             </div>
 
             <!-- Список тегов -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 gap-3">
               <div v-for="tag in store.tags" :key="tag.id"
-                   class="flex items-center justify-between p-3 border border-slate-200 dark:border-dark-border rounded-xl">
-                <div class="flex items-center gap-2">
-                  <span class="w-3 h-3 rounded-full" :style="{ backgroundColor: tag.color }"></span>
-                  <span class="text-sm font-medium">{{ tag.name }}</span>
+                   class="flex items-center justify-between p-3 border border-slate-200 dark:border-dark-border rounded-xl transition-all"
+                   :class="{'ring-1 ring-primary-500 border-primary-500': editingTagId === tag.id}"
+              >
+                <div v-if="editingTagId === tag.id" class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                  <ColorPicker v-model="editTagColor" />
+                  <InputText v-model="editTagName" class="flex-1 w-full !text-sm" @keydown.enter="handleUpdateTag(tag.id)" />
+                  <div class="flex gap-2 w-full sm:w-auto">
+                    <Button icon="pi pi-check" severity="primary" class="!bg-primary-600 dark:!text-white flex-1 sm:flex-none" @click="handleUpdateTag(tag.id)" />
+                    <Button icon="pi pi-times" severity="secondary" text class="flex-1 sm:flex-none" @click="cancelEditTag" />
+                  </div>
                 </div>
-                <Button icon="pi pi-times" text severity="secondary" size="small" @click="store.deleteTag(tag.id)" />
+
+                <template v-else>
+                  <div class="flex items-center gap-3">
+                    <span class="w-4 h-4 rounded-full shadow-sm" :style="{ backgroundColor: tag.color }"></span>
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">{{ tag.name }}</span>
+                  </div>
+                  <div class="flex gap-1">
+                    <Button icon="pi pi-pencil" text severity="secondary" size="small" @click="startEditTag(tag)" />
+                    <Button icon="pi pi-trash" text severity="danger" size="small" @click="store.deleteTag(tag.id)" />
+                  </div>
+                </template>
               </div>
             </div>
           </div>

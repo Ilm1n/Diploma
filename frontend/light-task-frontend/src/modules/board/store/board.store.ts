@@ -435,7 +435,9 @@ export const useBoardStore = defineStore('board', () => {
     try {
       const updated = await apiClient.tags.updateTagApiTagsTagIdPatch(tagId, payload);
       const index = tags.value.findIndex(t => t.id === tagId);
-      if (index !== -1) tags.value[index] = updated;
+      if (index !== -1) {
+        tags.value[index] = updated;
+      }
     } catch (error) {
       console.error('Ошибка обновления тега:', error);
       throw error;
