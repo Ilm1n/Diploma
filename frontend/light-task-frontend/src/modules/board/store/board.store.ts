@@ -1,23 +1,31 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { apiClient } from '@/api/config';
-import type {
-  ColumnRead,
-  ProjectRead,
-  TaskRead,
-  TaskMove,
-  TaskUpdate,
-  ColumnUpdate,
-  ColumnCreate,
-  TaskCreate,
-  ProjectMemberRead,
-  TagRead,
-  InvitationCreate,
-  ProjectUpdate,
-  InvitationRead,
-  TagCreate,
-  TagUpdate
+import {
+  TaskPriority,
+  type ColumnRead,
+  type ProjectRead,
+  type TaskRead,
+  type TaskMove,
+  type TaskUpdate,
+  type ColumnUpdate,
+  type ColumnCreate,
+  type TaskCreate,
+  type ProjectMemberRead,
+  type TagRead,
+  type InvitationCreate,
+  type ProjectUpdate,
+  type InvitationRead,
+  type TagCreate,
+  type TagUpdate,
 } from '@/api/client';
+
+interface BoardFilters {
+  search: string;
+  assigneeIds: number[];
+  tagIds: number[];
+  priorities: TaskPriority[];
+}
 
 export const useBoardStore = defineStore('board', () => {
   // --- STATE ---
@@ -35,7 +43,68 @@ export const useBoardStore = defineStore('board', () => {
 
   const activeInvitations = ref<InvitationRead[]>([]);
 
+  const filters = reactive<BoardFilters>({
+    search: '',
+    assigneeIds: [],
+    tagIds: [],
+    priorities: []
+  });
+
+  const isFilterActive = computed(() => {
+    return (
+      filters.search.trim().length > 0 ||
+      filters.assigneeIds.length > 0 ||
+      filters.tagIds.length > 0 ||
+      filters.priorities.length > 0
+    );
+  });
+
+  const filteredColumns = computed(() => {
+    if (!isFilterActive.value) {
+      return columns.value;
+    }
+
+    const query = filters.search.toLowerCase().trim();
+
+    return columns.value.map(col => ({
+      ...col,
+      tasks: (col.tasks || []).filter(task => {
+        if (query) {
+          const inTitle = task.title.toLowerCase().includes(query);
+          const inDesc = (task as any).description?.toLowerCase().includes(query);
+
+          if (!inTitle && !inDesc) return false;
+        }
+
+        if (filters.assigneeIds.length > 0) {
+          if (!task.assigneeId) return false;
+          if (!filters.assigneeIds.includes(task.assigneeId)) return false;
+        }
+
+        if (filters.tagIds.length > 0) {
+          if (!task.tags || task.tags.length === 0) return false;
+          const taskTagIds = task.tags.map(t => t.id);
+          const hasTag = filters.tagIds.some(id => taskTagIds.includes(id));
+          if (!hasTag) return false;
+        }
+
+        if (filters.priorities.length > 0) {
+          if (!task.priority || !filters.priorities.includes(task.priority)) return false;
+        }
+
+        return true;
+      })
+    }));
+  });
+
   // --- ACTIONS ---
+
+  function resetFilters() {
+    filters.search = '';
+    filters.assigneeIds = [];
+    filters.tagIds = [];
+    filters.priorities = [];
+  }
 
   function setActiveColumnForTaskCreation(columnId: number | null) {
     activeColumnIdForTaskCreation.value = columnId;
@@ -423,5 +492,9 @@ export const useBoardStore = defineStore('board', () => {
     createTag,
     updateTag,
     deleteTag,
+    filters,
+    filteredColumns,
+    isFilterActive,
+    resetFilters,
   };
 });

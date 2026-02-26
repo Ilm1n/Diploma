@@ -122,6 +122,7 @@ useDraggableScroll(scrollContainerRef);
               :scroll-sensitivity="100"
               :scroll-speed="50"
               :direction="'horizontal'"
+              :disabled="store.isFilterActive"
               class="flex gap-4 sm:gap-6 h-full items-start"
               ghost-class="column-ghost"
               drag-class="column-drag"
@@ -129,7 +130,7 @@ useDraggableScroll(scrollContainerRef);
               @end="onColumnDrop"
           >
             <BoardColumn
-                v-for="col in store.columns"
+                v-for="col in store.filteredColumns"
                 :key="col.id"
                 :column="col"
             />

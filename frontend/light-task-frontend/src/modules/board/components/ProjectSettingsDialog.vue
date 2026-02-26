@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useBoardStore } from '../store/board.store';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
@@ -17,9 +17,13 @@ import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import ColorPicker from 'primevue/colorpicker';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+
 import UserAvatar from '@/shared/ui/UserAvatar.vue';
 import InviteMemberDialog from '@/modules/invitations/components/InviteMemberDialog.vue';
 import InviteQrDialog from '@/modules/invitations/components/InviteQrDialog.vue';
+
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits(['update:visible']);
@@ -38,6 +42,9 @@ const projectDesc = ref('');
 
 const newTagName = ref('');
 const newTagColor = ref('3b82f6');
+
+const memberSearch = ref('');
+
 
 watch(() => props.visible, (val) => {
   if (val && store.project) {
@@ -130,6 +137,17 @@ const confirmRemoveMember = (member: any) => {
   });
 };
 
+const filteredMembers = computed(() => {
+  const query = memberSearch.value.toLowerCase().trim();
+  if (!query) return store.members;
+
+  return store.members.filter(m =>
+      m.user.username.toLowerCase().includes(query) ||
+      m.user.email.toLowerCase().includes(query) ||
+      m.user.fullName?.toLowerCase().includes(query)
+  );
+});
+
 const confirmDeleteInvitation = (invite: any) => {
   confirm.require({
     message: `Удалить приглашение?`,
@@ -173,7 +191,7 @@ const roleOptions = [
       @update:visible="emit('update:visible', $event)"
       modal
       header="Настройки проекта"
-      :contentStyle="{ minHeight: '550px' }"
+      :contentStyle="{ minHeight: '650px', height: '650px' }"
       class="p-dialog-custom !w-[95vw] md:!w-[850px]"
       :draggable="false"
   >
@@ -195,24 +213,37 @@ const roleOptions = [
             </div>
             <div class="flex flex-col gap-2">
               <label class="text-xs font-bold uppercase text-slate-400">Описание</label>
-              <Textarea v-model="projectDesc" rows="4" class="w-full" />
+              <Textarea v-model="projectDesc" rows="4"  class="w-full min-h-60" />
             </div>
             <div class="flex justify-end">
+              <Button label="Удалить проект..." severity="danger" class="mr-3" outlined size="small" @click="confirmDeleteProject" />
               <Button label="Сохранить" icon="pi pi-check" class="!bg-primary-600 !text-white" @click="saveGeneral" />
             </div>
 
-            <div class="mt-12 p-6 border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 rounded-2xl">
-              <h4 class="text-red-600 dark:text-red-400 font-bold mb-1">Удаление проекта</h4>
-              <p class="text-xs  mb-4 !text-red-400">Будьте осторожны, это действие необратимо.</p>
-              <Button label="Удалить проект..." severity="danger" outlined size="small" @click="confirmDeleteProject" />
-            </div>
+
           </div>
         </TabPanel>
 
         <!-- УЧАСТНИКИ -->
         <TabPanel value="members">
           <div class="flex flex-col gap-3 py-4 sm:py-6">
-            <div v-for="member in store.members" :key="member.id"
+
+            <div class="mb-2">
+              <IconField>
+                <InputIcon class="pi pi-search" />
+                <InputText
+                    v-model="memberSearch"
+                    placeholder="Поиск по имени или email..."
+                    class="w-full !text-sm !py-2.5"
+                />
+              </IconField>
+            </div>
+
+            <div v-if="filteredMembers.length === 0" class="text-center py-8 text-slate-400">
+              Участники не найдены
+            </div>
+
+            <div v-for="member in filteredMembers" :key="member.id"
             class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-dark-bg/40 rounded-2xl border border-slate-100 dark:border-dark-border">
 
             <div class="flex items-center gap-4">

@@ -9,6 +9,7 @@ import InviteMemberDialog from '@/modules/invitations/components/InviteMemberDia
 import ProjectSettingsDialog from './ProjectSettingsDialog.vue';
 import { ProjectRole } from '@/api/client';
 import UserAvatar from "@/shared/ui/UserAvatar.vue";
+import BoardFilters from './BoardFilters.vue';
 
 const isSettingsVisible = ref(false);
 const isInviteVisible = ref(false);
@@ -57,26 +58,28 @@ const goBack = () => {
 
     <!-- RIGHT: Members & Actions -->
     <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+      <BoardFilters />
+      <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
 
-      <!-- Team Avatars (Скрыты на мобилках для экономии места) -->
+      <!-- Team Avatars  -->
       <AvatarGroup v-if="store.members.length > 0" class="hidden md:flex">
         <UserAvatar
-            v-for="member in store.members.slice(0, 4)"
+            v-for="member in store.members.slice(0, 2)"
             :key="member.id"
             :image="member.user.avatarUrl || undefined"
             :label="!member.user.avatarUrl ? member.user.username.charAt(0).toUpperCase() : undefined"
             size="md"
         />
         <UserAvatar
-            v-if="store.members.length > 4"
-            :label="`+${store.members.length - 4}`"
+            v-if="store.members.length > 2"
+            :label="`+${store.members.length - 2}`"
             size="sm"
         />
       </AvatarGroup>
 
       <!-- Settings  -->
       <Button
-          v-if="store.project?.currentUserRole === ProjectRole.OWNER"
+          v-if="store.project?.currentUserRole === ProjectRole.OWNER || ProjectRole.MANAGER"
           icon="pi pi-cog"
           text
           rounded
@@ -84,7 +87,7 @@ const goBack = () => {
           @click="isSettingsVisible = true"
       />
 
-      <!-- Invite Button (Текст скрыт на мобилках) -->
+      <!-- Invite Button  -->
       <Button
           v-if="store.project?.currentUserRole !== ProjectRole.MEMBER"
           class="!bg-primary-600 dark:!text-white !border-none !text-sm !px-3 sm:!px-4 !rounded-lg"

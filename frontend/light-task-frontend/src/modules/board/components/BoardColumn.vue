@@ -193,6 +193,7 @@ const onTaskDrop = async (event: any) => {
             :force-fallback="true"
             :fallback-tolerance="5"
             :fallback-on-body="true"
+            :disabled="store.isFilterActive"
             fallback-class="task-fallback"
             ghost-class="task-ghost"
             drag-class="task-drag"
