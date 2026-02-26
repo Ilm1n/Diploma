@@ -77,3 +77,27 @@
 .dark .task-fallback {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
 }
+
+
+.p-toast {
+  width: calc(100vw - 2rem) !important;
+  left: 1rem !important;
+}
+
+
+@media (min-width: 640px) {
+  .p-toast {
+    width: 25rem !important;
+    left: auto !important;
+  }
+}
+
+
+.p-dialog, .p-confirm-dialog {
+  overflow: hidden !important;
+  border-radius: 1.5rem !important;
+}
+
+.p-dialog-content {
+  border-radius: 0 !important;
+}

@@ -43,12 +43,12 @@ const goBack = () => {
       </div>
 
       <div v-else-if="store.project" class="min-w-0 flex flex-col">
-        <h1 class="text-lg sm:text-xl truncate font-bold text-slate-800 dark:text-white leading-tight">
+        <h1 class="text-lg sm:text-xl font-bold text-slate-800 dark:text-white leading-tight truncate max-w-[200px] sm:max-w-[400px]">
           {{ store.project.name }}
         </h1>
         <div class="flex items-center gap-2 text-xs text-slate-500">
           <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: store.project.color }"></span>
-          <span class="truncate hidden sm:block">
+          <span class="truncate hidden sm:block max-w-[250px] italic opacity-80" :title="store.project.description || ''">
             {{ store.project.description || 'Без описания' }}
           </span>
         </div>

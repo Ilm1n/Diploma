@@ -52,7 +52,7 @@ const downloadQr = () => {
       <Button
           label="Скачать PNG"
           icon="pi pi-download"
-          class="!bg-primary-600 !border-none !w-full"
+          class="!bg-primary-600 !border-none !w-full dark:!text-white"
           @click="downloadQr"
       />
     </div>
