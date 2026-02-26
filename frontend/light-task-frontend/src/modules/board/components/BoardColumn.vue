@@ -6,7 +6,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { getPlural } from '@/utils/plural';
 import { VueDraggable } from 'vue-draggable-plus';
-import { onClickOutside } from '@vueuse/core';
+import { breakpointsTailwind, onClickOutside, useBreakpoints } from '@vueuse/core';
 
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
@@ -22,6 +22,23 @@ const toast = useToast();
 const isRenaming = ref(false);
 const newName = ref(props.column.name);
 const nameInput = ref();
+
+const breakpoints = useBreakpoints(breakpointsTailwind);
+const isMobile = breakpoints.smaller('lg');
+
+
+const dragOptions = computed(() => {
+  if (isMobile.value) {
+    return {
+      sensitivity: 35,
+      speed: 15,
+    };
+  }
+  return {
+    sensitivity: 120,
+    speed: 40,
+  };
+});
 
 const startRename = () => {
   newName.value = props.column.name;
@@ -193,6 +210,8 @@ const onTaskDrop = async (event: any) => {
             :force-fallback="true"
             :fallback-tolerance="5"
             :fallback-on-body="true"
+                          :scroll-sensitivity="dragOptions.sensitivity" 
+              :scroll-speed="dragOptions.speed"
             :disabled="store.isFilterActive"
             fallback-class="task-fallback"
             ghost-class="task-ghost"

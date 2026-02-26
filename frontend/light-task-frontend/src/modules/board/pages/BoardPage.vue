@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board.store';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useToast } from 'primevue/usetoast';
 import { useDraggableScroll } from '@/composables/useDraggableScroll';
-import { onClickOutside } from '@vueuse/core';
+import { onClickOutside, useBreakpoints, breakpointsTailwind } from '@vueuse/core';
 
 import Skeleton from 'primevue/skeleton';
 import Button from 'primevue/button';
@@ -24,6 +24,23 @@ const newColumnName = ref('');
 const createInput = ref();
 const createColumnFormRef = ref(null);
 const router = useRouter();
+
+const breakpoints = useBreakpoints(breakpointsTailwind);
+const isMobile = breakpoints.smaller('lg');
+
+
+const dragOptions = computed(() => {
+  if (isMobile.value) {
+    return {
+      sensitivity: 35,
+      speed: 15,
+    };
+  }
+  return {
+    sensitivity: 120,
+    speed: 40,
+  };
+});
 
 const startCreateColumn = () => {
   isCreatingColumn.value = true;
@@ -116,16 +133,20 @@ useDraggableScroll(scrollContainerRef);
               :animation="150"
               group="columns"
               handle=".column-drag-handle"
+              :delay="150"
+              :delay-on-touch-only="true"
               :force-fallback="true"
-              :fallback-tolerance="3"
+              :fallback-tolerance="5"
+              :fallback-on-body="true"
               :scroll="(scrollContainerRef as any)"
-              :scroll-sensitivity="100"
-              :scroll-speed="50"
+              :scroll-sensitivity="dragOptions.sensitivity" 
+              :scroll-speed="dragOptions.speed"
               :direction="'horizontal'"
               :disabled="store.isFilterActive"
               class="flex gap-4 sm:gap-6 h-full items-start"
               ghost-class="column-ghost"
               drag-class="column-drag"
+              fallback-class="column-fallback" 
               @start="onColumnDragStart"
               @end="onColumnDrop"
           >
