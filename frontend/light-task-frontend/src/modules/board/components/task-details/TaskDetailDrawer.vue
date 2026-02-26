@@ -177,7 +177,7 @@ const deleteTask = () => {
   <Drawer
       v-model:visible="isVisible"
       position="right"
-      class="!w-full md:!w-[600px] !bg-white dark:!bg-dark-surface !border-l dark:!border-dark-border !transition-colors !duration-100"
+      class="!w-full md:!w-[700px] !bg-white dark:!bg-dark-surface !border-l dark:!border-dark-border !transition-colors !duration-100"
       :pt="{
       mask: { class: 'backdrop-blur-[1px]' },
       header: { class: '!bg-white dark:!bg-dark-surface !border-b !border-gray-200 dark:!border-dark-border !p-5' },
@@ -235,7 +235,7 @@ const deleteTask = () => {
                   v-model="localDescription"
                   rows="6"
                   placeholder="Добавьте описание задачи (Markdown...)"
-                  class="w-full !bg-gray-50 dark:!bg-dark-bg/40 !border-gray-200 dark:!border-dark-border
+                  class="w-full min-h-60 !bg-gray-50 dark:!bg-dark-bg/40 !border-gray-200 dark:!border-dark-border
                          focus:!bg-white dark:focus:!bg-dark-bg focus:!ring-1 focus:!ring-primary-500
                          !text-slate-700 dark:!text-slate-300
                          !transition-colors !rounded-lg !p-3 !text-sm !leading-relaxed"
