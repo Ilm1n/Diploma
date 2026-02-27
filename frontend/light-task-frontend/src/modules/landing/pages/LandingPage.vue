@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref} from 'vue';
 import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useWindowScroll } from '@vueuse/core';
@@ -70,6 +70,29 @@ const plans = [
   { name: 'Pro', price: '490', features: ['Безлимит проектов', 'Умные теги', 'Приоритетная поддержка'], current: true },
   { name: 'Team', price: '1200', features: ['Все из Pro', 'Админ-панель', 'API доступ'], current: false }
 ];
+
+const faqList = [
+  {
+    q: "Какие ограничения у бесплатной версии?",
+    a: "Бесплатный тариф 'Free' навсегда останется бесплатным. Он включает создание до 3 проектов и командную работу до 5 человек. Этого достаточно для стартапов, студентов и личного планирования."
+  },
+  {
+    q: "Нужно ли обновлять страницу, чтобы увидеть изменения?",
+    a: "Нет. Kantano использует технологию WebSockets для мгновенной синхронизации. Если ваш коллега передвинет задачу или изменит описание, вы увидите это в ту же секунду без перезагрузки."
+  },
+  {
+    q: "Работает ли Kantano на телефоне?",
+    a: "Да, интерфейс полностью адаптирован для мобильных устройств. Вы можете управлять задачами через браузер или добавить сайт на главный экран как приложение (PWA)."
+  },
+  {
+    q: "Насколько безопасны мои данные?",
+    a: "Мы используем современные стандарты шифрования (SSL) и защищенные протоколы авторизации (JWT). Ваши проекты доступны только тем участникам, которых вы лично пригласили."
+  },
+  {
+    q: "Как быстро пригласить команду?",
+    a: "Очень просто. Зайдите в настройки проекта, сгенерируйте пригласительную ссылку (или QR-код) и отправьте коллегам в мессенджер. Им останется только зарегистрироваться."
+  }
+];
 </script>
 
 <template>
@@ -120,9 +143,10 @@ const plans = [
         <a href="#why" @click="isMobileMenuOpen = false" class="mobile-nav-link">Преимущества</a>
         <a href="#workflows" @click="isMobileMenuOpen = false" class="mobile-nav-link">Решения</a>
         <a href="#pricing" @click="isMobileMenuOpen = false" class="mobile-nav-link">Цены</a>
+        <a href="#faq" @click="isMobileMenuOpen = false" class="mobile-nav-link">FAQ</a>
         <hr class="border-slate-100 dark:border-slate-800" />
-        <Button label="Войти" outlined class="!text-white w-full !text-primary-600 !border-primary-600" @click="router.push('/login')" />
-        <Button label="Регистрация" class="!text-white w-full !bg-primary-600 !border-none" @click="router.push('/register')" />
+        <Button label="Войти" outlined class="dark:!text-white w-full !bg-primary-600/5 !text-primary-600  !border-primary-600" @click="router.push('/login')" />
+        <Button label="Регистрация" class="dark:!text-white w-full !bg-primary-600 !border-none" @click="router.push('/register')" />
       </div>
     </Drawer>
 
@@ -178,9 +202,9 @@ const plans = [
 
       <!-- LOGOS -->
       <section class="py-12 border-y border-slate-200 dark:border-dark-border opacity-80 grayscale hover:grayscale-0 transition-all duration-700">
-        <p class="text-center  text-2xl font-black mb-16">
+        <h2 class="text-center  text-2xl font-black mb-16">
           Нам доверяют лучшие команды
-        </p>
+        </h2>
         <div class="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-12 md:gap-24 items-center">
           <span class="text-2xl font-bold tracking-widest text-slate-400">ЯНДЕКС</span>
           <span class="text-2xl font-bold tracking-widest text-slate-400">SELECTEL</span>
@@ -202,21 +226,21 @@ const plans = [
                 <i class="pi pi-bolt text-2xl"></i>
               </div>
               <h3 class="text-xl font-bold mb-3">Мгновенный отклик</h3>
-              <p class="text-slate-500 text-sm leading-relaxed">Никаких лишних загрузок. Легкий интерфейс обеспечивает плавность работы уровня нативного приложения.</p>
+              <p class="text-slate-500 text-sm leading-relaxed dark:!text-slate-300">Никаких лишних загрузок. Легкий интерфейс обеспечивает плавность работы уровня нативного приложения.</p>
             </div>
             <div class="text-center group">
               <div class="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <i class="pi pi-lock text-2xl"></i>
               </div>
               <h3 class="text-xl font-bold mb-3">Безопасность данных</h3>
-              <p class="text-slate-500 text-sm leading-relaxed">Ваши данные зашифрованы и принадлежат только вам. Мы используем современные стандарты JWT.</p>
+              <p class="text-slate-500 text-sm leading-relaxed dark:!text-slate-300">Ваши данные зашифрованы и принадлежат только вам. Мы используем современные стандарты JWT.</p>
             </div>
             <div class="text-center group">
               <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <i class="pi pi-users text-2xl"></i>
               </div>
               <h3 class="text-xl font-bold mb-3">Командный дух</h3>
-              <p class="text-slate-500 text-sm leading-relaxed">Удобная система ролей и приглашений. Работайте вместе так, будто вы сидите в одном офисе.</p>
+              <p class="text-slate-500 text-sm leading-relaxed dark:!text-slate-300">Удобная система ролей и приглашений. Работайте вместе так, будто вы сидите в одном офисе.</p>
             </div>
           </div>
         </div>
@@ -270,7 +294,7 @@ const plans = [
               <template #content>
                 <p class="italic text-slate-600 dark:text-slate-400 mb-6">"{{ review.text }}"</p>
                 <div class="flex items-center gap-4">
-                  <img :src="review.avatar" class="w-12 h-12 rounded-full" alt="Аватар" />
+                  <img :src="review.avatar" loading="lazy" width="48" height="48" class="w-12 h-12 rounded-full" :alt="`Фото пользователя ${review.name}`"  />
                   <div>
                     <p class="font-bold text-sm dark:text-slate-300">{{ review.name }}</p>
                     <p class="text-xs text-slate-500 dark:text-slate-300">{{ review.role }}</p>
@@ -287,17 +311,17 @@ const plans = [
         <div class="max-w-7xl mx-auto">
           <div class="text-center mb-16">
             <h2 class="text-4xl font-black mb-4">Простые тарифы</h2>
-            <p class="text-slate-500">Выберите план для вашей команды</p>
+            <p class="text-slate-500 dark:!text-slate-300">Выберите план для вашей команды</p>
           </div>
-          <div class="grid md:grid-cols-3 gap-8 items-center">
+          <div class="grid md:grid-cols-3 gap-8 items-center ">
             <div v-for="plan in plans" :key="plan.name"
                  class="p-8 rounded-[2.5rem] border transition-all duration-300"
                  :class="plan.current ? ' bg-white dark:bg-slate-900 border-primary-500 shadow-2xl scale-105 z-10' : 'border-slate-200 dark:border-dark-border bg-transparent opacity-80'">
-              <h3 class="text-xl font-bold mb-4">{{ plan.name }}</h3>
-              <div class="text-4xl font-black mb-6">{{ plan.price }}₽ <span class="text-sm font-normal text-slate-500">/мес</span></div>
+              <h3 class="text-xl font-bold mb-4 ">{{ plan.name }}</h3>
+              <div class="text-4xl font-black mb-6 ">{{ plan.price }}₽ <span class="text-sm  dark:!text-slate-300 font-normal text-slate-500">/мес</span></div>
               <ul class="space-y-4 mb-8">
                 <li v-for="f in plan.features" :key="f" class="flex items-center gap-3 text-sm">
-                  <i class="pi pi-check text-primary-500"></i> {{ f }}
+                  <i class="pi pi-check text-primary-500 "></i> {{ f }}
                 </li>
               </ul>
               <Button
@@ -316,15 +340,20 @@ const plans = [
 
       <!-- FAQ -->
       <section id="faq" class="py-24 px-4 max-w-3xl mx-auto">
-        <h2 class="text-center text-4xl font-black mb-12">FAQ</h2>
+        <h2 class="text-center text-3xl sm:text-4xl font-black mb-12 text-slate-800 dark:text-white">
+          Часто задаваемые вопросы
+        </h2>
+
         <Accordion :value="['0']" multiple>
-          <AccordionPanel value="0">
-            <AccordionHeader>Можно ли использовать Kantano для личных целей?</AccordionHeader>
-            <AccordionContent><p>Да, бесплатный тариф идеально подходит для персональных проектов и списков дел.</p></AccordionContent>
-          </AccordionPanel>
-          <AccordionPanel value="1">
-            <AccordionHeader >Как работает Real-time синхронизация?</AccordionHeader>
-            <AccordionContent><p>Мы используем современные технологии для мгновенной передачи изменений. Как только коллега передвинет задачу — вы увидите это без обновления страницы.</p></AccordionContent>
+          <AccordionPanel v-for="(item, index) in faqList" :key="index" :value="String(index)">
+            <AccordionHeader class="!text-slate-700 dark:!text-slate-300 !font-bold">
+              {{ item.q }}
+            </AccordionHeader>
+            <AccordionContent>
+              <p class="text-slate-500 dark:text-slate-400 leading-relaxed text-sm sm:text-base">
+                {{ item.a }}
+              </p>
+            </AccordionContent>
           </AccordionPanel>
         </Accordion>
       </section>
@@ -332,7 +361,7 @@ const plans = [
       <!-- FINAL CTA -->
       <section class="py-24 px-4">
         <div class="max-w-5xl mx-auto
-                    bg-primary-600 dark:bg-slate-900/50
+                    bg-primary-600 dark:bg-slate-800/40
                     rounded-[3rem] p-12 md:p-20 text-center text-white
                     shadow-2xl relative overflow-hidden
                     border border-transparent dark:border-primary-500/20 backdrop-blur-sm">
@@ -367,7 +396,7 @@ const plans = [
     </main>
 
     <!-- FOOTER -->
-    <footer class="bg-slate-900 text-white pt-20 pb-10 px-4">
+    <footer class="bg-slate-900 text-white pt-20 pb-10 px-4" role="contentinfo">
       <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
         <div class="col-span-2 md:col-span-1">
           <div class="flex items-center gap-2 mb-6"><i class="pi pi-bolt text-primary-500 text-2xl"></i><span class="text-xl font-black uppercase tracking-tighter">Kantano</span></div>
@@ -379,20 +408,21 @@ const plans = [
             <a href="#why" class="hover:text-white transition-colors no-underline">Преимущества</a>
             <a href="#workflows" class="hover:text-white transition-colors no-underline">Решения</a>
             <a href="#pricing" class="hover:text-white transition-colors no-underline">Цены</a>
+            <a href="#faq" class="hover:text-white transition-colors no-underline">FAQ</a>
           </nav>
         </div>
         <div>
           <h4 class="font-bold mb-6">Ресурсы</h4>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
-            <a href="https://github.com/Ilm1n" target="_blank" class="hover:text-white transition-colors no-underline">GitHub</a>
-            <a href="#" class="hover:text-white transition-colors no-underline">Документация</a>
+            <a href="https://github.com/Ilm1n" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors no-underline">GitHub</a>
           </nav>
         </div>
         <div>
           <h4 class="font-bold mb-6">Связь</h4>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
-            <a href="#" class="hover:text-white transition-colors no-underline">Telegram</a>
-            <a href="#" class="hover:text-white transition-colors no-underline">Email</a>
+            <a href="https://t.me/Ilm1n" target="_blank" rel="noopener noreferrer"  class="hover:text-white transition-colors no-underline">Telegram</a>
+            <a href="mailto:mininiv2005@gmail.com" class="hover:text-white transition-colors no-underline">Email</a>
+            <a href="tel:+79219826283" class="hover:text-white transition-colors no-underline">+7 (921) 982-62-83</a>
           </nav>
         </div>
       </div>
@@ -404,6 +434,18 @@ const plans = [
 </template>
 
 <style scoped>
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .nav-link { @apply text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-primary-600 transition-colors no-underline; }
 .mobile-nav-link { @apply text-xl font-bold py-2 no-underline text-slate-800 dark:text-slate-100; }
 .hero-gradient { background: radial-gradient(circle at 70% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%), radial-gradient(circle at 10% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%); }

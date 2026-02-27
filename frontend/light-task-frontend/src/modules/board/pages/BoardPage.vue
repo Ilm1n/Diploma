@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useBoardStore } from "../store/board.store";
 import { VueDraggable } from "vue-draggable-plus";
 import { useToast } from "primevue/usetoast";
+import {useHead} from "@unhead/vue";
 import { useDraggableScroll } from "@/composables/useDraggableScroll";
 import {
   onClickOutside,
@@ -130,6 +131,13 @@ async function loadData() {
 
 const scrollContainerRef = ref<HTMLElement | null>(null);
 useDraggableScroll(scrollContainerRef);
+
+useHead({
+  title: 'Kantano - Доска',
+  meta:[
+    { name: 'robots', content: 'noindex, nofollow' }
+  ]
+});
 </script>
 
 <template>

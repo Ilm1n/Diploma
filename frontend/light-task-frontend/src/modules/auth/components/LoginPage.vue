@@ -6,6 +6,7 @@ import {useAuthStore} from '../store/auth.store';
 import {useRouter} from 'vue-router';
 import {useToast} from 'primevue/usetoast';
 import {useForm} from 'vee-validate';
+import {useHead} from "@unhead/vue";
 import {toTypedSchema} from '@vee-validate/zod';
 import * as z from 'zod';
 import {useTheme} from '@/composables/useTheme';
@@ -20,7 +21,6 @@ const router = useRouter();
 const toast = useToast();
 const {isDark, toggleTheme} = useTheme();
 
-// Русская схема валидации
 const validationSchema = toTypedSchema(
     z.object({
       username: z.string({required_error: 'Введите имя пользователя'})
@@ -56,6 +56,14 @@ const onSubmit = handleSubmit(async (values) => {
       life: 5000
     });
   }
+});
+
+
+useHead({
+  title: 'Вход в Kantano',
+  meta:[
+    { name: 'robots', content: 'noindex, nofollow' }
+  ]
 });
 </script>
 

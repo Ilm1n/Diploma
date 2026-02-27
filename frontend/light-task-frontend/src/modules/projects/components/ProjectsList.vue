@@ -9,6 +9,7 @@ import CreateProjectCard from './CreateProjectCard.vue';
 import CreateProjectDialog from './CreateProjectDialog.vue';
 // import Button from 'primevue/button';
 import Skeleton from 'primevue/skeleton';
+import {useHead} from "@unhead/vue";
 
 const store = useProjectsStore();
 const isCreateDialogOpen = ref(false);
@@ -24,6 +25,13 @@ const sortedProjects = computed(() => {
   return [...store.projects].sort((a, b) => {
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
+});
+
+useHead({
+  title: 'Kantano - Проекты',
+  meta:[
+    { name: 'robots', content: 'noindex, nofollow' }
+  ]
 });
 </script>
 
