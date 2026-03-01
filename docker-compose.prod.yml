@@ -1,16 +1,19 @@
 name: lighttask_prod
 
 services:
-  caddy:
-    image: caddy:alpine
-    restart: always
+  gateway:
+    image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-frontend:${IMAGE_TAG:-main}
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - frontend-api
     logging:
@@ -20,8 +23,8 @@ services:
         max-file: "3"
 
   db:
-    image: postgres:15-alpine
-    restart: always
+    image: postgres:15.6-alpine3.19
+    restart: unless-stopped
     environment:
       POSTGRES_USER: lighttask_user
       POSTGRES_DB: lighttask
@@ -30,7 +33,7 @@ services:
       - postgres_data_prod:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lighttask_user -d lighttask"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
     networks:
@@ -48,7 +51,7 @@ services:
 
   backend:
     image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-backend:${IMAGE_TAG:-main}
-    restart: always
+    restart: unless-stopped
     env_file: .env
     volumes:
       - ./certs:/app/certs:ro
@@ -58,10 +61,8 @@ services:
       - LIGHTTASK_CONFIG__DB__USER=lighttask_user
       - LIGHTTASK_CONFIG__DB__NAME=lighttask
       - LIGHTTASK_CONFIG__DB__ECHO=0
-
       - LIGHTTASK_CONFIG__RUN__HOST=0.0.0.0
       - LIGHTTASK_CONFIG__RUN__PORT=8000
-
       - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=[]
       - LIGHTTASK_CONFIG__INVITE__BASE_URL=https://kantano.ru/invite
     depends_on:
@@ -80,24 +81,6 @@ services:
         limits:
           cpus: '0.8'
           memory: 400M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  frontend:
-    image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-frontend:${IMAGE_TAG:-main}
-    restart: always
-    depends_on:
-      - backend
-    networks:
-      - frontend-api
-    deploy:
-      resources:
-        limits:
-          cpus: '0.3'
-          memory: 150M
     logging:
       driver: "json-file"
       options:

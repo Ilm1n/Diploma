@@ -5,90 +5,109 @@ on:
   #   branches: [ "main" ]
   workflow_dispatch:
 
+concurrency:
+  group: production
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_REPO_OWNER: ilm1n
-  REPO_NAME: ${{ github.event.repository.name }}
 
 jobs:
-  build-and-push:
+  prepare:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     outputs:
       sha_short: ${{ steps.vars.outputs.sha_short }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Get short SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build and push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend/light_task
           push: true
-          no-cache: true
+          pull: true
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-backend:main
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-backend:${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-backend:${{ needs.prepare.outputs.sha_short }}
 
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend/light-task-frontend
           file: ./frontend/light-task-frontend/Dockerfile
           push: true
-          no-cache: true
+          pull: true
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-frontend:main
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-frontend:${{ steps.vars.outputs.sha_short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO_OWNER }}/lighttask-frontend:${{ needs.prepare.outputs.sha_short }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: [prepare, build-backend, build-frontend]
     steps:
-      - name: Checkout config
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Create config and certs
         env:
+          TAG: ${{ needs.prepare.outputs.sha_short }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           S3_ACCESS: ${{ secrets.S3_ACCESS_KEY }}
           S3_SECRET: ${{ secrets.S3_SECRET_KEY }}
           S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
-
           OWNER: ${{ env.IMAGE_REPO_OWNER }}
-          TAG: ${{ needs.build-and-push.outputs.sha_short }}
-
           JWT_PRIVATE: ${{ secrets.JWT_PRIVATE_KEY }}
           JWT_PUBLIC: ${{ secrets.JWT_PUBLIC_KEY }}
         run: |
-          echo "LIGHTTASK_CONFIG__DB__PASSWORD=$DB_PASSWORD" >> .env.prod
-          echo "LIGHTTASK_CONFIG__S3__ACCESS_KEY=$S3_ACCESS" >> .env.prod
-          echo "LIGHTTASK_CONFIG__S3__SECRET_KEY=$S3_SECRET" >> .env.prod
-          echo "LIGHTTASK_CONFIG__S3__BUCKET_NAME=$S3_BUCKET" >> .env.prod
+          cat <<EOF > .env.prod
+          LIGHTTASK_CONFIG__DB__PASSWORD=$DB_PASSWORD
+          LIGHTTASK_CONFIG__S3__ACCESS_KEY=$S3_ACCESS
+          LIGHTTASK_CONFIG__S3__SECRET_KEY=$S3_SECRET
+          LIGHTTASK_CONFIG__S3__BUCKET_NAME=$S3_BUCKET
+          IMAGE_REPO_OWNER=$OWNER
+          IMAGE_TAG=$TAG
+          EOF
           
-          echo "" >> .env.prod
-          echo "IMAGE_REPO_OWNER=$OWNER" >> .env.prod
-          echo "IMAGE_TAG=$TAG" >> .env.prod
-            
           mkdir -p certs
           printf "%s" "$JWT_PRIVATE" > certs/jwt-private.pem
           printf "%s" "$JWT_PUBLIC" > certs/jwt-public.pem
 
       - name: Copy files via SCP
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -97,7 +116,7 @@ jobs:
           target: "/home/${{ secrets.VPS_USER }}/app"
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ACTOR: ${{ github.actor }}
@@ -109,18 +128,15 @@ jobs:
           script: |
             set -e
             cd ~/app
-            if [ -f .env.prod ]; then
-              mv .env.prod .env
-            fi
-            
+            if [ -f .env.prod ]; then mv .env.prod .env; fi
             chmod 600 certs/*.pem
-            
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
             
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
             
-            docker image prune -af
+            docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans --wait
+            
+            docker image prune -f --filter "until=48h"
 
   cleanup:
     name: Cleanup Registry
@@ -134,7 +150,7 @@ jobs:
         with:
           package-name: 'lighttask-backend'
           package-type: 'container'
-          min-versions-to-keep: 2
+          min-versions-to-keep: 5
           delete-only-untagged-versions: 'false'
 
       - name: Delete Old Frontend Images
@@ -142,5 +158,5 @@ jobs:
         with:
           package-name: 'lighttask-frontend'
           package-type: 'container'
-          min-versions-to-keep: 2
+          min-versions-to-keep: 5
           delete-only-untagged-versions: 'false'
