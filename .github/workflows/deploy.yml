@@ -92,6 +92,7 @@ jobs:
           OWNER: ${{ env.IMAGE_REPO_OWNER }}
           JWT_PRIVATE: ${{ secrets.JWT_PRIVATE_KEY }}
           JWT_PUBLIC: ${{ secrets.JWT_PUBLIC_KEY }}
+          SWAGGER_HASH: ${{ secrets.SWAGGER_HASH }}
         run: |
           cat <<EOF > .env.prod
           LIGHTTASK_CONFIG__DB__PASSWORD=$DB_PASSWORD
@@ -100,6 +101,7 @@ jobs:
           LIGHTTASK_CONFIG__S3__BUCKET_NAME=$S3_BUCKET
           IMAGE_REPO_OWNER=$OWNER
           IMAGE_TAG=$TAG
+          SWAGGER_HASH='$SWAGGER_HASH'
           EOF
           
           mkdir -p certs

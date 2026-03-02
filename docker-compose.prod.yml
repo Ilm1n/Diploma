@@ -7,6 +7,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    env_file: .env
+    environment:
+      - SWAGGER_HASH=${SWAGGER_HASH}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -17,10 +17,10 @@ kantano.ru {
     header Strict-Transport-Security "max-age=31536000;"
 
     @swagger path /docs* /openapi.json*
-    @backend_api path /api/* /ws*
+    @backend path /api/* /ws*
 
     basic_auth @swagger {
-                            Ilm1n $$2a$$14$$nYZxShSveyLPJ1ycn/xQreyZA4H.7f4dKJKRb0jLDQNBwywPCVoBa
+                            Ilm1n {$SWAGGER_HASH}
                         }
 
 
@@ -28,9 +28,9 @@ kantano.ru {
                         reverse_proxy backend:8000
                     }
 
-    handle @backend_api {
-                            reverse_proxy backend:8000
-                        }
+    handle @backend {
+                        reverse_proxy backend:8000
+                    }
 
     handle {
                reverse_proxy frontend:80
