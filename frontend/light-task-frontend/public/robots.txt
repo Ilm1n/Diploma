@@ -1,10 +1,16 @@
 User-agent: *
 Allow: /
+Allow: /assets/
+Allow: /sitemap.xml
+Allow: /robots.txt
 
 Disallow: /login
 Disallow: /register
-Disallow: /invite/
-Disallow: /projects/
-Disallow: /profile/
+Disallow: /invite
+Disallow: /projects
+Disallow: /profile
+Disallow: /api
+Disallow: /board
 
-Sitemap: https://kantano.ru/sitemap.xml
+Host: https://kantano.ru
+Sitemap: https:// kantano.ru/sitemap.xml
