@@ -1,4 +1,4 @@
-FROM node:24.0.0-alpine3.19 AS builder
+FROM node:24.14.0-alpine3.22 AS builder
 WORKDIR /app
 
 RUN npm install -g pnpm@9.1.0
