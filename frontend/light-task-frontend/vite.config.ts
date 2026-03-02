@@ -12,12 +12,19 @@ export default defineConfig({
   build: {
     target: 'esnext',
     minify: 'esbuild',
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
-        manualChunks(id) {
+        manualChunks(id: string | string[]) {
+          if (id.includes('@fontsource') || id.includes('primeicons')) {
+            return 'fonts';
+          }
           if (id.includes('node_modules')) {
             if (id.includes('primevue')) {
               return 'vendor-ui';
+            }
+            if (id.includes('vue')) {
+              return 'vendor-vue';
             }
             return 'vendor-core';
           }
