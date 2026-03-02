@@ -101,7 +101,7 @@ jobs:
           LIGHTTASK_CONFIG__S3__BUCKET_NAME=$S3_BUCKET
           IMAGE_REPO_OWNER=$OWNER
           IMAGE_TAG=$TAG
-          SWAGGER_HASH=$SWAGGER_HASH
+          SWAGGER_HASH='$SWAGGER_HASH'
           EOF
           
           mkdir -p certs
