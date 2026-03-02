@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'primeicons';
-  font-display: swap !important;
-}
 
 ::-webkit-scrollbar {
   width: 14px; 

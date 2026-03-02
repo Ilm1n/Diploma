@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#3b82f6">
-    <path d="M18.3333 9.33333H13.6667L15.6667 2.66667H7.66667L5.66667 14.6667H10.3333L8.33333 21.3333L18.3333 9.33333Z"></path>
-</svg></svg><style>@media (prefers-color-scheme: light) { :root { filter: none; } }
-@media (prefers-color-scheme: dark) { :root { filter: none; } }
-</style></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><svg xmlns="http://www.w3.org/2000/svg" fill="#3b82f6" viewBox="0 0 24 24"><path d="M18.333 9.333h-4.666l2-6.666h-8l-2 12h4.666l-2 6.666z"/></svg></svg><style>@media (prefers-color-scheme:light){:root{filter:none}}@media (prefers-color-scheme:dark){:root{filter:none}}</style></svg>
