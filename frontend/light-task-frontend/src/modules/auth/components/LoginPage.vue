@@ -82,6 +82,21 @@ useHead({
       <i :class="isDark ? 'pi pi-sun text-yellow-400' : 'pi pi-moon text-slate-600'" style="font-size: 1.5rem"></i>
     </button>
 
+    <!-- Back To Landing -->
+    <router-link
+        to="/"
+        class="absolute top-6 left-6 z-20 flex items-center gap-2
+           px-3 py-2 rounded-full
+           bg-white/70 dark:bg-dark-surface/70 backdrop-blur
+           hover:bg-white dark:hover:bg-dark-surface
+           transition-colors shadow-md"
+    >
+      <i class="pi pi-arrow-left text-slate-700 dark:text-white"></i>
+      <span class="text-sm font-medium text-slate-700 dark:text-white">
+    Назад
+  </span>
+    </router-link>
+
     <!-- Login Card -->
     <div class="w-full max-w-md bg-white dark:bg-dark-surface rounded-2xl shadow-xl p-8 z-10 border border-gray-100 dark:border-dark-border transition-colors duration-300">
 

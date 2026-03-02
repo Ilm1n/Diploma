@@ -127,12 +127,12 @@ const faqList = [
             <router-link to="/login" class="font-bold text-slate-600 dark:text-slate-400 hover:text-primary-600 px-4 no-underline">Войти</router-link>
             <Button label="Начать" class="!bg-primary-600 dark:!text-white !border-none !font-bold !px-6" @click="router.push('/register')" />
           </div>
-          <button @click="isMobileMenuOpen = true" class="lg:hidden p-2 text-slate-600 dark:text-slate-400"><i class="pi pi-bars text-xl"></i></button>
+          <button @click="isMobileMenuOpen = true" aria-label="Открыть меню" class="lg:hidden p-2 text-slate-600 dark:text-slate-400"><i class="pi pi-bars text-xl"></i></button>
         </div>
       </div>
     </header>
 
-    <!-- MOBILE MENU (FIXED DARK THEME) -->
+    <!-- MOBILE MENU  -->
     <Drawer
         v-model:visible="isMobileMenuOpen"
         position="right"
@@ -329,7 +329,7 @@ const faqList = [
                   class="w-full !rounded-2xl !py-3 transition-all"
                   :class="plan.current
                   ? '!bg-primary-600 !border-none !text-white'
-                  : '!text-primary-600 !border-primary-600 !bg-transparent hover:!bg-primary-50 dark:hover:!bg-primary-900/10'"
+                  : '!text-slate-700 dark:!text-slate-200 !border-slate-300 dark:!border-slate-600 !bg-transparent hover:!bg-slate-100 dark:hover:!bg-slate-800'"
                   :outlined="!plan.current"
                   @click="router.push('/register')"
               />
@@ -403,7 +403,7 @@ const faqList = [
           <p class="text-slate-400 text-sm">Сделано с любовью к коду в рамках дипломного проекта.</p>
         </div>
         <div>
-          <h4 class="font-bold mb-6">Продукт</h4>
+          <h3 class="font-bold mb-6">Продукт</h3>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
             <a href="#why" class="hover:text-white transition-colors no-underline">Преимущества</a>
             <a href="#workflows" class="hover:text-white transition-colors no-underline">Решения</a>
@@ -412,13 +412,13 @@ const faqList = [
           </nav>
         </div>
         <div>
-          <h4 class="font-bold mb-6">Ресурсы</h4>
+          <h3 class="font-bold mb-6">Ресурсы</h3>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
             <a href="https://github.com/Ilm1n" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors no-underline">GitHub</a>
           </nav>
         </div>
         <div>
-          <h4 class="font-bold mb-6">Связь</h4>
+          <h3 class="font-bold mb-6">Связь</h3>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
             <a href="https://t.me/Ilm1n" target="_blank" rel="noopener noreferrer"  class="hover:text-white transition-colors no-underline">Telegram</a>
             <a href="mailto:mininiv2005@gmail.com" class="hover:text-white transition-colors no-underline">Email</a>
