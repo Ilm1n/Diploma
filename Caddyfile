@@ -3,40 +3,39 @@ do-coop.ru, www.do-coop.ru, www.kantano.ru {
 }
 
 kantano.ru {
-    encode zstd gzip
+    encode zstd gzip {
+                         match {
+                                   header Content-Type text/*
+                                   header Content-Type application/json
+                                   header Content-Type application/javascript
+                                   header Content-Type application/xml
+                                   header Content-Type image/svg+xml
+                                   header Content-Type application/manifest+json
+                               }
+                     }
 
-    header {
-               Strict-Transport-Security "max-age=31536000;"
-               X-Content-Type-Options "nosniff"
-               X-Frame-Options "SAMEORIGIN"
-               Referrer-Policy "strict-origin-when-cross-origin"
-               -Server
-           }
+    header Strict-Transport-Security "max-age=31536000;"
 
-    @swagger path /docs* /openapi.json* /redoc*
-    basic_auth @swagger {
-                            Ilm1n $2a$14$nYZxShSveyLPJ1ycn/xQreyZA4H.7f4dKJKRb0jLDQNBwywPCVoBa
-                        }
+    @swagger {
+                 path /docs* /openapi.json*
+             }
 
-    @backend path /api/* /ws/* /docs* /openapi.json* /redoc*
-    handle @backend {
+    handle @swagger {
+                        basic_auth {
+                                       Ilm1n $2a$14$nYZxShSveyLPJ1ycn/xQreyZA4H.7f4dKJKRb0jLDQNBwywPCVoBa
+                                   }
                         reverse_proxy backend:8000
                     }
 
-    handle {
-               root * /usr/share/caddy/html
+    @backend_public {
+                        path /api/* /ws*
+                    }
 
-               @immutable {
-                              path /assets/*
-                          }
-               header @immutable Cache-Control "public, max-age=31536000, immutable"
-
-               @revalidate {
-                               not path /assets/*
+    handle @backend_public {
+                               reverse_proxy backend:8000
                            }
-               header @revalidate Cache-Control "no-cache, no-store, must-revalidate"
 
-               try_files {path} /index.html
-               file_server
+    handle {
+               reverse_proxy frontend:80
            }
 }
