@@ -4,12 +4,13 @@ services:
   gateway:
     image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-frontend:${IMAGE_TAG:-main}
     restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     env_file: .env
-    environment:
-      - SWAGGER_HASH=${SWAGGER_HASH}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

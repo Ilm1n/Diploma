@@ -9,7 +9,6 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-FROM caddy:2.7.6-alpine
+FROM caddy:2.11.1-alpine
 
 COPY --from=builder /app/dist /usr/share/caddy/html
-
