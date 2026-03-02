@@ -470,4 +470,14 @@ const faqList = [
 :deep(.p-drawer-header) {
   @apply dark:!bg-dark-bg dark:!text-slate-100;
 }
+
+:deep(.p-accordionheader) {
+  @apply !bg-transparent !border-none !py-6 !font-bold !text-lg;
+  outline: none !important;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s !important;
+}
+
+:deep(.p-accordionheader:focus-visible) {
+  box-shadow: 0 0 0 2px var(--p-primary-500) !important;
+}
 </style>
