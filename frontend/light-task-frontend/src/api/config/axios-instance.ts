@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-export const API_BASE_URL = import.meta.env.PROD ? '' : 'http://127.0.0.1:8000';
+export const API_BASE_URL = import.meta.env.PROD ? '' : '';
 
 export const apiInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
