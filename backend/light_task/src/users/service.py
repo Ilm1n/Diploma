@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import src.security as security
 from src.config import settings
 from src.db.database import db_helper
+from src.logger import user_logger
 from src.s3 import S3Client
 from src.users.models import User
 from src.users.schemas import UserCreate, UserUpdate
@@ -32,9 +33,13 @@ class UserService:
         try:
             await self.session.commit()
             await self.session.refresh(new_user)
+            user_logger.info(f"User created successfully: {new_user.username}")
             return new_user
         except IntegrityError:
             await self.session.rollback()
+            user_logger.warning(
+                f"Failed to create user - username/email already exists"
+            )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Username or email already exists",
@@ -64,9 +69,11 @@ class UserService:
         try:
             await self.session.commit()
             await self.session.refresh(user)
+            user_logger.info(f"User updated successfully: {user.username}")
             return user
         except IntegrityError:
             await self.session.rollback()
+            user_logger.warning(f"Failed to update user - username already taken")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Username already taken",
@@ -102,9 +109,11 @@ class UserService:
         try:
             await self.session.commit()
             await self.session.refresh(user)
-        except Exception:
+            user_logger.info(f"Avatar uploaded for user {user.id}")
+        except Exception as e:
             await self.session.rollback()
             await s3_client.delete_file(object_name)
+            user_logger.exception(f"Failed to commit avatar upload for user {user.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database commit failed",
@@ -133,9 +142,7 @@ class UserService:
         await self.session.commit()
         await self.session.refresh(user)
 
-        self._schedule_old_avatar_deletion(
-            old_avatar_url, background_tasks, s3_client
-        )
+        self._schedule_old_avatar_deletion(old_avatar_url, background_tasks, s3_client)
 
         return user
 
@@ -148,12 +155,15 @@ class UserService:
         try:
             parsed = urlparse(url)
             path = parsed.path.lstrip("/")
-            if settings.s3.bucket_name in path or settings.s3.bucket_name in parsed.netloc:
-                 if path.startswith(settings.s3.bucket_name):
-                     key = path.replace(f"{settings.s3.bucket_name}/", "", 1)
-                     bg_tasks.add_task(s3_client.delete_file, key)
+            if (
+                settings.s3.bucket_name in path
+                or settings.s3.bucket_name in parsed.netloc
+            ):
+                if path.startswith(settings.s3.bucket_name):
+                    key = path.replace(f"{settings.s3.bucket_name}/", "", 1)
+                    bg_tasks.add_task(s3_client.delete_file, key)
         except Exception as e:
-            print(f"Failed to schedule old avatar deletion: {e}")
+            user_logger.exception(f"Failed to schedule old avatar deletion for {url}")
 
 
 def get_user_service(
