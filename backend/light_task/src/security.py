@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+from fastapi import HTTPException, status
 from pwdlib import PasswordHash
 
 from src.config import settings
@@ -19,7 +20,7 @@ password_hash = PasswordHash.recommended()
 
 def encode_jwt(
     payload: dict[str, Any],
-    expire_minutes: int = settings.auth_jwt.access_token_expire_minutes,
+    expire_minutes: int,
 ) -> str:
     to_encode = payload.copy()
     now = datetime.now(timezone.utc)
@@ -40,29 +41,30 @@ def encode_jwt(
 
 def decode_jwt(token: str) -> dict[str, Any]:
     try:
-        return jwt.decode(
-            token,
-            PUBLIC_KEY,
-            algorithms=[ALGORITHM],
+        return jwt.decode(token, PUBLIC_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.PyJWTError:
-        return {}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 def create_access_token(
-    user_id: int,
-    username: str,
-    email: str,
+    user_data: dict[str, Any],
+    expire_minutes: int = settings.auth_jwt.access_token_expire_minutes,
 ) -> str:
-    payload = {
-        "sub": str(user_id),
-        "username": username,
-        "email": email,
-        "type": ACCESS_TOKEN_TYPE,
-    }
+    payload = user_data.copy()
+    payload.update({"type": ACCESS_TOKEN_TYPE})
     return encode_jwt(
         payload,
-        expire_minutes=settings.auth_jwt.access_token_expire_minutes,
+        expire_minutes=expire_minutes,
     )
 
 

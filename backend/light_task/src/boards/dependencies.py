@@ -6,11 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.auth.dependencies import get_current_user
+from src.auth.schemas import UserPayload
 from src.boards.models import BoardColumn, Task
 from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.models import ProjectMember
-from src.users.models import User
 
 
 async def get_valid_column(
@@ -37,7 +37,6 @@ async def get_valid_column(
 
 
 class TaskAccessChecker:
-
     def __init__(
         self,
         required_roles: list[ProjectRole] | None = None,
@@ -49,7 +48,7 @@ class TaskAccessChecker:
     async def __call__(
         self,
         task_id: Annotated[int, Path(...)],
-        user: Annotated[User, Depends(get_current_user)],
+        user: Annotated[UserPayload, Depends(get_current_user)],
         session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
     ) -> Task:
         query = (
@@ -69,7 +68,7 @@ class TaskAccessChecker:
 
         query = select(ProjectMember).where(
             ProjectMember.project_id == task.project_id,
-            ProjectMember.user_id == user.id,
+            ProjectMember.user_id == user.sub,
         )
         member = (await session.execute(query)).scalar_one_or_none()
 
@@ -89,7 +88,7 @@ class TaskAccessChecker:
             )
 
         if self.check_assignee and member.role == ProjectRole.MEMBER:
-            if task.assignee_id != user.id:
+            if task.assignee_id != user.sub:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Members can only edit their own tasks",

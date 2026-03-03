@@ -1,25 +1,18 @@
 // src/modules/auth/store/auth.store.ts
 import {defineStore} from 'pinia';
-import {ref, computed} from 'vue';
+import {computed, ref} from 'vue';
 import {apiClient} from '@/api/config';
-import type {
-  UserRead,
-  Body_login_for_access_token_api_auth_login_post,
-  UserCreate,
-  UserUpdate,
-} from '@/api/client';
+import type {Body_login_for_access_token_api_auth_login_post, UserCreate, UserRead, UserUpdate,} from '@/api/client';
 import {useRouter} from 'vue-router';
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
   const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
-  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'));
   const user = ref<UserRead | null>(null);
   const isLoading = ref(false);
 
   const isAuthenticated = computed(() => !!accessToken.value);
-
 
   async function initAuth() {
     if (accessToken.value) {
@@ -27,7 +20,6 @@ export const useAuthStore = defineStore('auth', () => {
         await fetchUser();
       } catch (error) {
         console.error('Token invalid or expired during init');
-        logout();
       }
     }
   }
@@ -38,7 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await apiClient.auth.loginForAccessTokenApiAuthLoginPost(credentials);
 
       if (response.accessToken) {
-        setTokens(response.accessToken, response.refreshToken);
+        setAccessToken(response.accessToken);
         await fetchUser();
 
         const pendingInvite = sessionStorage.getItem('pendingInviteToken');
@@ -63,6 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(payload: UserCreate) {
     isLoading.value = true;
     try {
+      // Проверь имя метода после генерации
       await apiClient.users.createUserApiUsersRegisterPost(payload);
       return true;
     } catch (error) {
@@ -76,8 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser() {
     isLoading.value = true;
     try {
-      const userData = await apiClient.users.readUsersMeApiUsersMeGet();
-      user.value = userData;
+      user.value = await apiClient.users.readUsersMeApiUsersMeGet();
     } catch (error) {
       throw error;
     } finally {
@@ -85,12 +77,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-
   async function updateProfile(payload: UserUpdate) {
     isLoading.value = true;
     try {
-      const updatedUser = await apiClient.users.updateUserMeApiUsersMePatch(payload);
-      user.value = updatedUser;
+      user.value = await apiClient.users.updateUserMeApiUsersMePatch(payload);
     } catch (error) {
       console.error('Failed to update profile:', error);
       throw error;
@@ -102,10 +92,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function uploadAvatar(file: File) {
     isLoading.value = true;
     try {
-      const updatedUser = await apiClient.users.uploadAvatarApiUsersMeAvatarPost({
+      user.value = await apiClient.users.uploadAvatarApiUsersMeAvatarPost({
         file: file
       });
-      user.value = updatedUser;
     } catch (error) {
       console.error('Failed to upload avatar:', error);
       throw error;
@@ -117,8 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function deleteAvatar(): Promise<void> {
     isLoading.value = true;
     try {
-      const updatedUser = await apiClient.users.deleteAvatarApiUsersMeAvatarDelete();
-      user.value = updatedUser;
+      user.value = await apiClient.users.deleteAvatarApiUsersMeAvatarDelete();
     } catch (error) {
       console.error('Failed to delete avatar:', error);
       throw error;
@@ -127,24 +115,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
-    accessToken.value = null;
-    user.value = null;
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    router.push('/login');
+  async function logout() {
+    try {
+      await apiClient.auth.logoutApiAuthLogoutPost();
+    } catch (e) {
+      console.warn('Logout request failed', e);
+    } finally {
+      accessToken.value = null;
+      user.value = null;
+      localStorage.removeItem('accessToken');
+      await router.push('/login');
+    }
   }
 
-  function setTokens(access: string, refresh: string) {
+  function setAccessToken(access: string) {
     accessToken.value = access;
-    refreshToken.value = refresh;
     localStorage.setItem('accessToken', access);
-    localStorage.setItem('refreshToken', refresh);
   }
 
   return {
     accessToken,
-    refreshToken,
     user,
     isLoading,
     isAuthenticated,
@@ -153,7 +143,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     fetchUser,
     initAuth,
-    setTokens,
+    setAccessToken,
     updateProfile,
     uploadAvatar,
     deleteAvatar,

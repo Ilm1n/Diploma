@@ -1,23 +1,24 @@
 import uuid
 from urllib.parse import urlparse
+from typing import Annotated
 
-from fastapi import HTTPException, status, BackgroundTasks
+from fastapi import HTTPException, status, BackgroundTasks, Depends
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import src.security as security
 from src.config import settings
+from src.db.database import db_helper
 from src.s3 import S3Client
 from src.users.models import User
 from src.users.schemas import UserCreate, UserUpdate
 
 
 class UserService:
-    @staticmethod
-    async def create_user(
-        session: AsyncSession,
-        user_in: UserCreate,
-    ) -> User:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create_user(self, user_in: UserCreate) -> User:
         hashed_password = security.hash_password(user_in.password)
 
         new_user = User(
@@ -26,34 +27,29 @@ class UserService:
             hashed_password=hashed_password,
         )
 
-        session.add(new_user)
+        self.session.add(new_user)
 
         try:
-            await session.commit()
-            await session.refresh(new_user)
+            await self.session.commit()
+            await self.session.refresh(new_user)
             return new_user
         except IntegrityError:
-            await session.rollback()
+            await self.session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Username or email already exists",
             )
 
-    @staticmethod
-    async def get_user_by_id(
-        session: AsyncSession,
-        user_id: int,
-    ) -> User:
-        user = await session.get(User, user_id)
+    async def get_user_by_id(self, user_id: int) -> User:
+        user = await self.session.get(User, user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
         return user
 
-    @staticmethod
     async def update_user(
-        session: AsyncSession,
+        self,
         user: User,
         user_update: UserUpdate,
     ) -> User:
@@ -66,19 +62,18 @@ class UserService:
             setattr(user, key, value)
 
         try:
-            await session.commit()
-            await session.refresh(user)
+            await self.session.commit()
+            await self.session.refresh(user)
             return user
         except IntegrityError:
-            await session.rollback()
+            await self.session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Username already taken",
             )
 
-    @staticmethod
     async def upload_avatar(
-        session: AsyncSession,
+        self,
         user: User,
         file_data: bytes,
         extension: str,
@@ -102,13 +97,13 @@ class UserService:
             )
 
         user.avatar_url = public_url
-        session.add(user)
+        self.session.add(user)
 
         try:
-            await session.commit()
-            await session.refresh(user)
+            await self.session.commit()
+            await self.session.refresh(user)
         except Exception:
-            await session.rollback()
+            await self.session.rollback()
             await s3_client.delete_file(object_name)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -116,18 +111,17 @@ class UserService:
             )
 
         if old_avatar_url:
-            UserService._schedule_old_avatar_deletion(
+            self._schedule_old_avatar_deletion(
                 old_avatar_url, background_tasks, s3_client
             )
 
         return user
 
-    @staticmethod
     async def delete_avatar(
-            session: AsyncSession,
-            user: User,
-            s3_client: S3Client,
-            background_tasks: BackgroundTasks,
+        self,
+        user: User,
+        s3_client: S3Client,
+        background_tasks: BackgroundTasks,
     ) -> User:
         if not user.avatar_url:
             return user
@@ -135,18 +129,18 @@ class UserService:
         old_avatar_url = user.avatar_url
 
         user.avatar_url = None
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
 
-        UserService._schedule_old_avatar_deletion(
+        self._schedule_old_avatar_deletion(
             old_avatar_url, background_tasks, s3_client
         )
 
         return user
 
-    @staticmethod
     def _schedule_old_avatar_deletion(
+        self,
         url: str,
         bg_tasks: BackgroundTasks,
         s3_client: S3Client,
@@ -154,8 +148,15 @@ class UserService:
         try:
             parsed = urlparse(url)
             path = parsed.path.lstrip("/")
-            if path.startswith(settings.s3.bucket_name):
-                key = path.replace(f"{settings.s3.bucket_name}/", "", 1)
-                bg_tasks.add_task(s3_client.delete_file, key)
+            if settings.s3.bucket_name in path or settings.s3.bucket_name in parsed.netloc:
+                 if path.startswith(settings.s3.bucket_name):
+                     key = path.replace(f"{settings.s3.bucket_name}/", "", 1)
+                     bg_tasks.add_task(s3_client.delete_file, key)
         except Exception as e:
             print(f"Failed to schedule old avatar deletion: {e}")
+
+
+def get_user_service(
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+) -> UserService:
+    return UserService(session)

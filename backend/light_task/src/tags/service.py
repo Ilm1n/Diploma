@@ -1,25 +1,29 @@
 from collections.abc import Sequence
+from typing import Annotated
+
+from fastapi import HTTPException, status, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
 
+from src.db.database import db_helper
 from src.tags.models import Tag
 from src.tags.schemas import TagCreate, TagUpdate
 
 
 class TagService:
-    @staticmethod
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
     async def get_project_tags(
-        session: AsyncSession,
+        self,
         project_id: int,
     ) -> Sequence[Tag]:
         query = select(Tag).where(Tag.project_id == project_id).order_by(Tag.name)
-        result = await session.execute(query)
+        result = await self.session.execute(query)
         return result.scalars().all()
 
-    @staticmethod
     async def create_tag(
-        session: AsyncSession,
+        self,
         project_id: int,
         data: TagCreate,
     ) -> Tag:
@@ -27,7 +31,7 @@ class TagService:
             Tag.project_id == project_id,
             Tag.name == data.name,
         )
-        existing = await session.scalar(query)
+        existing = await self.session.scalar(query)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -39,14 +43,13 @@ class TagService:
             color=data.color,
             project_id=project_id,
         )
-        session.add(tag)
-        await session.commit()
-        await session.refresh(tag)
+        self.session.add(tag)
+        await self.session.commit()
+        await self.session.refresh(tag)
         return tag
 
-    @staticmethod
     async def update_tag(
-        session: AsyncSession,
+        self,
         tag: Tag,
         data: TagUpdate,
     ) -> Tag:
@@ -54,22 +57,27 @@ class TagService:
         for key, value in update_data.items():
             setattr(tag, key, value)
 
-        session.add(tag)
+        self.session.add(tag)
         try:
-            await session.commit()
-            await session.refresh(tag)
+            await self.session.commit()
+            await self.session.refresh(tag)
             return tag
         except Exception:
-            await session.rollback()
+            await self.session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Tag with this name already exists",
             )
 
-    @staticmethod
     async def delete_tag(
-        session: AsyncSession,
+        self,
         tag: Tag,
     ) -> None:
-        await session.delete(tag)
-        await session.commit()
+        await self.session.delete(tag)
+        await self.session.commit()
+
+
+def get_tag_service(
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+) -> TagService:
+    return TagService(session)

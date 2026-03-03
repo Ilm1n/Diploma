@@ -1,23 +1,30 @@
-from fastapi import HTTPException, status
+from typing import Annotated
+
+from fastapi import HTTPException, status, Response, Depends
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.schemas import Token
 from src.users.models import User
+from src.db.database import db_helper
+from src.config import settings
 import src.security as security
 
 
 class AuthService:
-    @staticmethod
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
     async def authenticate_user(
-        session: AsyncSession,
-        username_or_email: str,
-        password: str,
-    ) -> Token:
+            self,
+            username_or_email: str,
+            password: str,
+    ) -> User:
         query = select(User).where(
-            or_(User.username == username_or_email, User.email == username_or_email)
+            or_(User.username == username_or_email,
+                User.email == username_or_email)
         )
-        user = (await session.execute(query)).scalar_one_or_none()
+        user = (await self.session.execute(query)).scalar_one_or_none()
 
         if not user or not security.validate_password(password, user.hashed_password):
             raise HTTPException(
@@ -25,26 +32,49 @@ class AuthService:
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        return user
 
-        return AuthService._generate_token_response(user)
+    def set_tokens(self, user: User, response: Response) -> Token:
+        token_payload = {
+            "sub": str(user.id),
+            "username": user.username,
+            "email": user.email,
+            "is_active": user.is_active,
+        }
 
-    @staticmethod
-    def refresh_tokens(user: User) -> Token:
-        return AuthService._generate_token_response(user)
-
-    @staticmethod
-    def _generate_token_response(user: User) -> Token:
         access_token = security.create_access_token(
-            user_id=user.id,
-            username=user.username,
-            email=user.email,
+            user_data=token_payload,
         )
+
         refresh_token = security.create_refresh_token(
             user_id=user.id,
         )
 
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=settings.auth_jwt.secure,
+            samesite="lax",
+            path="/",
+            max_age=settings.auth_jwt.refresh_token_expire_days * 24 * 60 * 60,
+        )
+
         return Token(
             access_token=access_token,
-            refresh_token=refresh_token,
             token_type="bearer",
         )
+
+    def logout(self, response: Response) -> None:
+        response.delete_cookie(
+            key="refresh_token",
+            path="/",
+            httponly=True,
+            samesite="lax",
+        )
+
+
+def get_auth_service(
+        session: Annotated[AsyncSession, Depends(db_helper.get_async_session)]
+) -> AuthService:
+    return AuthService(session)

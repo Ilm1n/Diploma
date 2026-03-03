@@ -1,15 +1,13 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.database import db_helper
 from src.projects.dependencies import require_project_manager, require_project_member
 from src.projects.models import Project
 from src.tags.dependencies import get_tag_for_write
 from src.tags.models import Tag
 from src.tags.schemas import TagCreate, TagRead, TagUpdate
-from src.tags.service import TagService
+from src.tags.service import TagService, get_tag_service
 
 router = APIRouter(tags=["Tags"])
 
@@ -18,9 +16,9 @@ router = APIRouter(tags=["Tags"])
 async def get_project_tags(
     project_id: int,
     _: Annotated[Project, Depends(require_project_member)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    tag_service: Annotated[TagService, Depends(get_tag_service)],
 ):
-    return await TagService.get_project_tags(session, project_id)
+    return await tag_service.get_project_tags(project_id)
 
 
 @router.post(
@@ -32,25 +30,23 @@ async def create_tag(
     project_id: int,
     tag_in: TagCreate,
     _: Annotated[Project, Depends(require_project_manager)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    tag_service: Annotated[TagService, Depends(get_tag_service)],
 ):
-    return await TagService.create_tag(session, project_id, tag_in)
+    return await tag_service.create_tag(project_id, tag_in)
 
 
 @router.patch("/tags/{tag_id}", response_model=TagRead)
 async def update_tag(
-    tag_id: int,
     tag_update: TagUpdate,
     tag: Annotated[Tag, Depends(get_tag_for_write)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    tag_service: Annotated[TagService, Depends(get_tag_service)],
 ):
-    return await TagService.update_tag(session, tag, tag_update)
+    return await tag_service.update_tag(tag, tag_update)
 
 
 @router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tag(
-    tag_id: int,
     tag: Annotated[Tag, Depends(get_tag_for_write)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    tag_service: Annotated[TagService, Depends(get_tag_service)],
 ):
-    await TagService.delete_tag(session, tag)
+    await tag_service.delete_tag(tag)

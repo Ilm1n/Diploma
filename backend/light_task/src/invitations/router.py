@@ -1,19 +1,17 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
-from src.db.database import db_helper
+from src.auth.schemas import UserPayload
 from src.invitations.schemas import (
     InvitationCreate,
     InvitationRead,
     InvitationAcceptResponse,
 )
-from src.invitations.service import InvitationService
+from src.invitations.service import InvitationService, get_invitation_service
 from src.projects.dependencies import require_project_manager
 from src.projects.models import Project
-from src.users.models import User
 
 router = APIRouter(tags=["Invitations"])
 
@@ -27,11 +25,13 @@ async def create_invitation(
     project_id: int,
     invite_in: InvitationCreate,
     _: Annotated[Project, Depends(require_project_manager)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
-    return await InvitationService.create_invitation(
-        session, project_id, current_user.id, invite_in
+    return await invitation_service.create_invitation(
+        project_id=project_id,
+        inviter_id=current_user.sub,
+        data=invite_in
     )
 
 
@@ -39,9 +39,9 @@ async def create_invitation(
 async def get_project_invitations(
     project_id: int,
     _: Annotated[Project, Depends(require_project_manager)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
-    return await InvitationService.get_project_invitations(session, project_id)
+    return await invitation_service.get_project_invitations(project_id)
 
 
 @router.delete(
@@ -52,9 +52,9 @@ async def delete_invitation(
     project_id: int,
     invitation_id: int,
     _: Annotated[Project, Depends(require_project_manager)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
-    await InvitationService.delete_invitation(session, invitation_id, project_id)
+    await invitation_service.delete_invitation(invitation_id, project_id)
 
 
 @router.post(
@@ -63,7 +63,7 @@ async def delete_invitation(
 )
 async def accept_invitation(
     token: str,
-    current_user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
-    return await InvitationService.accept_invitation(session, token, current_user)
+    return await invitation_service.accept_invitation(token, current_user)

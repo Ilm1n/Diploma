@@ -6,28 +6,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.auth.dependencies import get_current_user
+from src.auth.schemas import UserPayload
 from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
-from src.users.models import User
 
 
 class ProjectAccessChecker:
-
     def __init__(self, allowed_roles: List[ProjectRole]):
         self.allowed_roles = allowed_roles
 
     async def __call__(
         self,
         project_id: Annotated[int, Path()],
-        user: Annotated[User, Depends(get_current_user)],
+        user: Annotated[UserPayload, Depends(get_current_user)],
         session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
     ) -> Project:
         query = (
             select(ProjectMember)
             .where(
                 ProjectMember.project_id == project_id,
-                ProjectMember.user_id == user.id,
+                ProjectMember.user_id == user.sub,
             )
             .options(selectinload(ProjectMember.project))
         )

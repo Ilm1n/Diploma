@@ -29,13 +29,33 @@ export class AuthService {
     }
     /**
      * Refresh Jwt
+     * @param refreshToken
      * @returns Token Successful Response
      * @throws ApiError
      */
-    public refreshJwtApiAuthRefreshPost(): CancelablePromise<Token> {
+    public refreshJwtApiAuthRefreshPost(
+        refreshToken?: (string | null),
+    ): CancelablePromise<Token> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/api/auth/refresh',
+            cookies: {
+                'refresh_token': refreshToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Logout
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public logoutApiAuthLogoutPost(): CancelablePromise<any> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/api/auth/logout',
         });
     }
 }

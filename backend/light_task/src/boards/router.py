@@ -1,9 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
+from src.auth.schemas import UserPayload
 from src.boards import dependencies
 from src.boards.models import BoardColumn, Task
 from src.boards.schemas import (
@@ -17,15 +17,13 @@ from src.boards.schemas import (
     ColumnReorderRequest,
     TaskMoveResponse, TaskPreview,
 )
-from src.boards.service import BoardService
-from src.db.database import db_helper
+from src.boards.service import BoardService, get_board_service
 
 from src.projects.dependencies import (
     require_project_member,
     require_project_manager,
 )
 from src.projects.models import Project
-from src.users.models import User
 
 router = APIRouter(tags=["Boards"])
 
@@ -34,9 +32,9 @@ router = APIRouter(tags=["Boards"])
 async def get_project_board(
     project_id: int,
     _: Annotated[Project, Depends(require_project_member)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    return await BoardService.get_board(session, project_id)
+    return await board_service.get_board(project_id)
 
 
 @router.post(
@@ -48,9 +46,9 @@ async def create_column(
     project_id: int,
     column_in: ColumnCreate,
     _: Annotated[Project, Depends(require_project_manager)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    return await BoardService.create_column(session, project_id, column_in)
+    return await board_service.create_column(project_id, column_in)
 
 
 @router.patch(
@@ -58,14 +56,12 @@ async def create_column(
     response_model=ColumnRead,
 )
 async def update_column(
-    project_id: int, # noqa
-    column_id: int, # noqa
     column_update: ColumnUpdate,
     _: Annotated[Project, Depends(require_project_manager)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    return await BoardService.update_column(session, column, column_update)
+    return await board_service.update_column(column, column_update)
 
 
 @router.delete(
@@ -73,13 +69,11 @@ async def update_column(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_column(
-    project_id: int, # noqa
-    column_id: int, # noqa
     _: Annotated[Project, Depends(require_project_manager)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    await BoardService.delete_column(session, column)
+    await board_service.delete_column(column)
 
 
 @router.post(
@@ -90,9 +84,9 @@ async def reorder_columns(
     project_id: int,
     reorder_data: ColumnReorderRequest,
     _: Annotated[Project, Depends(require_project_manager)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    await BoardService.reorder_columns(session, project_id, reorder_data)
+    await board_service.reorder_columns(project_id, reorder_data)
 
 
 @router.post(
@@ -103,13 +97,16 @@ async def reorder_columns(
 async def create_task(
     project_id: int,
     task_in: TaskCreate,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     _: Annotated[Project, Depends(require_project_manager)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    return await BoardService.create_task(
-        session, project_id, column.id, task_in, current_user.id
+    return await board_service.create_task(
+        project_id=project_id,
+        column_id=column.id,
+        data=task_in,
+        author_id=current_user.sub
     )
 
 
@@ -117,13 +114,16 @@ async def create_task(
 async def get_project_tasks(
     project_id: int,
     _: Annotated[Project, Depends(require_project_member)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
     assignee_id: Annotated[int | None, Query()] = None,
     tag_ids: Annotated[list[int] | None, Query()] = None,
     search: Annotated[str | None, Query(min_length=3)] = None,
 ):
-    return await BoardService.get_project_tasks(
-        session, project_id, assignee_id=assignee_id, tag_ids=tag_ids, search=search
+    return await board_service.get_project_tasks(
+        project_id=project_id,
+        assignee_id=assignee_id,
+        tag_ids=tag_ids,
+        search=search
     )
 
 
@@ -138,23 +138,23 @@ async def get_task_details(
 async def move_task(
     move_data: TaskMove,
     task: Annotated[Task, Depends(dependencies.get_task_for_update)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    return await BoardService.move_task(session, task, move_data)
+    return await board_service.move_task(task, move_data)
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskRead)
 async def update_task(
     task_update: TaskUpdate,
     task: Annotated[Task, Depends(dependencies.get_task_for_update)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    return await BoardService.update_task(session, task, task_update)
+    return await board_service.update_task(task, task_update)
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
     task: Annotated[Task, Depends(dependencies.get_task_for_delete)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
-    await BoardService.delete_task(session, task)
+    await board_service.delete_task(task)

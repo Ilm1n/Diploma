@@ -1,28 +1,32 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 from collections.abc import Sequence
+from typing import Annotated
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.schemas import UserPayload
 from src.common.touch import touch_project
 from src.config import settings
+from src.db.database import db_helper
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
     InvitationAcceptResponse,
 )
 from src.projects.models import ProjectMember
-from src.users.models import User
 
 BASE_URL = settings.invite.base_url
 
 
 class InvitationService:
-    @staticmethod
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
     async def create_invitation(
-        session: AsyncSession,
+        self,
         project_id: int,
         inviter_id: int,
         data: InvitationCreate,
@@ -39,15 +43,14 @@ class InvitationService:
             max_uses=data.max_uses,
             expires_at=expires_at,
         )
-        session.add(invite)
-        await touch_project(session, project_id)
-        await session.commit()
+        self.session.add(invite)
+        await touch_project(self.session, project_id)
+        await self.session.commit()
 
         return invite
 
-    @staticmethod
     async def get_project_invitations(
-        session: AsyncSession,
+        self,
         project_id: int,
     ) -> Sequence[ProjectInvitation]:
         query = (
@@ -55,12 +58,11 @@ class InvitationService:
             .where(ProjectInvitation.project_id == project_id)
             .order_by(ProjectInvitation.created_at.desc())
         )
-        result = await session.execute(query)
+        result = await self.session.execute(query)
         return result.scalars().all()
 
-    @staticmethod
     async def delete_invitation(
-        session: AsyncSession,
+        self,
         invitation_id: int,
         project_id: int,
     ) -> None:
@@ -68,23 +70,22 @@ class InvitationService:
             ProjectInvitation.id == invitation_id,
             ProjectInvitation.project_id == project_id,
         )
-        invite = await session.scalar(query)
+        invite = await self.session.scalar(query)
         if invite:
-            await session.delete(invite)
-            await session.commit()
+            await self.session.delete(invite)
+            await self.session.commit()
 
-    @staticmethod
     async def accept_invitation(
-        session: AsyncSession,
+        self,
         token: str,
-        user: User,
+        user: UserPayload,
     ) -> InvitationAcceptResponse:
         query = (
             select(ProjectInvitation)
             .where(ProjectInvitation.token == token)
             .with_for_update()
         )
-        invite = await session.scalar(query)
+        invite = await self.session.scalar(query)
 
         if not invite:
             raise HTTPException(
@@ -110,9 +111,9 @@ class InvitationService:
 
         member_check = select(ProjectMember).where(
             ProjectMember.project_id == invite.project_id,
-            ProjectMember.user_id == user.id,
+            ProjectMember.user_id == user.sub,
         )
-        existing_member = await session.scalar(member_check)
+        existing_member = await self.session.scalar(member_check)
 
         if existing_member:
             return InvitationAcceptResponse(
@@ -121,17 +122,25 @@ class InvitationService:
             )
 
         new_member = ProjectMember(
-            project_id=invite.project_id, user_id=user.id, role=invite.role
+            project_id=invite.project_id,
+            user_id=user.sub,
+            role=invite.role
         )
-        session.add(new_member)
+        self.session.add(new_member)
 
         invite.used_count += 1
 
-        session.add(invite)
-        await touch_project(session, invite.project_id)
+        self.session.add(invite)
+        await touch_project(self.session, invite.project_id)
 
-        await session.commit()
+        await self.session.commit()
 
         return InvitationAcceptResponse(
             project_id=invite.project_id, message="Successfully joined the project"
         )
+
+
+def get_invitation_service(
+    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+) -> InvitationService:
+    return InvitationService(session)

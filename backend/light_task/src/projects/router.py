@@ -1,11 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
-from src.db.database import db_helper
-from src.projects.constants import ProjectRole
+from src.auth.schemas import UserPayload
 from src.projects.dependencies import (
     require_project_owner,
     require_project_manager,
@@ -19,8 +17,7 @@ from src.projects.schemas import (
     ProjectMemberRead,
     ProjectMemberUpdate,
 )
-from src.projects.service import ProjectService
-from src.users.models import User
+from src.projects.service import ProjectService, get_project_service
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -32,27 +29,33 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 )
 async def create_project(
     project_in: ProjectCreate,
-    current_user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    return await ProjectService.create_project(session, current_user, project_in)
+    return await project_service.create_project(
+        user_id=current_user.sub,
+        project_in=project_in
+    )
 
 
 @router.get("/", response_model=list[ProjectRead])
 async def get_my_projects(
-    current_user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    return await ProjectService.get_user_projects(session, current_user)
+    return await project_service.get_user_projects(user_id=current_user.sub)
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
 async def get_project_details(
     project_id: int,
-    current_user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    return await ProjectService.get_project_details(session, project_id, current_user)
+    return await project_service.get_project_details(
+        project_id=project_id,
+        user_id=current_user.sub
+    )
 
 
 @router.patch("/{project_id}", response_model=ProjectRead)
@@ -60,33 +63,30 @@ async def update_project(
     project_id: int,
     project_update: ProjectUpdate,
     project: Annotated[Project, Depends(require_project_owner)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    updated_project = await ProjectService.update_project(
-        session=session,
+    return await project_service.update_project(
         project=project,
         project_update=project_update,
     )
-    updated_project.current_user_role = ProjectRole.OWNER
-    return updated_project
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     project_id: int,
     project: Annotated[Project, Depends(require_project_owner)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    await ProjectService.delete_project(session, project)
+    await project_service.delete_project(project)
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberRead])
 async def get_project_members(
     project_id: int,
     _: Annotated[Project, Depends(require_project_member)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    return await ProjectService.get_project_members(session, project_id)
+    return await project_service.get_project_members(project_id)
 
 
 @router.delete(
@@ -96,11 +96,13 @@ async def remove_project_member(
     project_id: int,
     user_id: int,
     _: Annotated[Project, Depends(require_project_manager)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    await ProjectService.remove_member(
-        session, project_id, user_id, requester_id=current_user.id
+    await project_service.remove_member(
+        project_id=project_id,
+        user_id=user_id,
+        requester_id=current_user.sub
     )
 
 
@@ -110,8 +112,10 @@ async def update_member_role(
     user_id: int,
     member_update: ProjectMemberUpdate,
     _: Annotated[Project, Depends(require_project_owner)],
-    session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
-    return await ProjectService.update_member_role(
-        session, project_id, user_id, member_update
+    return await project_service.update_member_role(
+        project_id=project_id,
+        user_id=user_id,
+        data=member_update
     )

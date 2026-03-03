@@ -4,7 +4,6 @@
 /* eslint-disable */
 export type Token = {
     accessToken: string;
-    refreshToken: string;
     tokenType?: string;
 };
 

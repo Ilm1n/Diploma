@@ -5,22 +5,21 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.dependencies import get_current_user
+from src.auth.schemas import UserPayload
 from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.models import ProjectMember
 from src.tags.models import Tag
-from src.users.models import User
 
 
 class TagAccessChecker:
-
     def __init__(self, required_roles: list[ProjectRole]):
         self.required_roles = required_roles
 
     async def __call__(
         self,
         tag_id: Annotated[int, Path(...)],
-        user: Annotated[User, Depends(get_current_user)],
+        user: Annotated[UserPayload, Depends(get_current_user)],
         session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
     ) -> Tag:
         tag = await session.get(Tag, tag_id)
@@ -30,7 +29,8 @@ class TagAccessChecker:
             )
 
         query = select(ProjectMember).where(
-            ProjectMember.project_id == tag.project_id, ProjectMember.user_id == user.id
+            ProjectMember.project_id == tag.project_id,
+            ProjectMember.user_id == user.sub
         )
         member = (await session.execute(query)).scalar_one_or_none()
 
