@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.database import db_helper
+from src.logger import board_logger
 from src.tags.models import Tag
 from src.tags.schemas import TagCreate, TagUpdate
 
@@ -44,8 +45,17 @@ class TagService:
             project_id=project_id,
         )
         self.session.add(tag)
-        await self.session.commit()
-        await self.session.refresh(tag)
+        try:
+            await self.session.commit()
+            await self.session.refresh(tag)
+            board_logger.info(f"Tag created: {tag.id} in project {project_id}")
+        except Exception as e:
+            await self.session.rollback()
+            board_logger.exception(f"Failed to create tag in project {project_id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create tag",
+            )
         return tag
 
     async def update_tag(
@@ -74,7 +84,16 @@ class TagService:
         tag: Tag,
     ) -> None:
         await self.session.delete(tag)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+            board_logger.info(f"Tag deleted: {tag.id}")
+        except Exception as e:
+            await self.session.rollback()
+            board_logger.exception(f"Failed to delete tag {tag.id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete tag",
+            )
 
 
 def get_tag_service(

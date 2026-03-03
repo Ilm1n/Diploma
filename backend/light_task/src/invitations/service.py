@@ -11,6 +11,7 @@ from src.auth.schemas import UserPayload
 from src.common.touch import touch_project
 from src.config import settings
 from src.db.database import db_helper
+from src.logger import invitation_logger
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
@@ -45,7 +46,18 @@ class InvitationService:
         )
         self.session.add(invite)
         await touch_project(self.session, project_id)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+            invitation_logger.info(f"Invitation created for project {project_id}")
+        except Exception as e:
+            await self.session.rollback()
+            invitation_logger.exception(
+                f"Failed to create invitation for project {project_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create invitation",
+            )
 
         return invite
 
@@ -73,7 +85,18 @@ class InvitationService:
         invite = await self.session.scalar(query)
         if invite:
             await self.session.delete(invite)
-            await self.session.commit()
+            try:
+                await self.session.commit()
+                invitation_logger.info(f"Invitation deleted: {invitation_id}")
+            except Exception as e:
+                await self.session.rollback()
+                invitation_logger.exception(
+                    f"Failed to delete invitation {invitation_id}"
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to delete invitation",
+                )
 
     async def accept_invitation(
         self,
@@ -122,9 +145,7 @@ class InvitationService:
             )
 
         new_member = ProjectMember(
-            project_id=invite.project_id,
-            user_id=user.sub,
-            role=invite.role
+            project_id=invite.project_id, user_id=user.sub, role=invite.role
         )
         self.session.add(new_member)
 
@@ -133,7 +154,20 @@ class InvitationService:
         self.session.add(invite)
         await touch_project(self.session, invite.project_id)
 
-        await self.session.commit()
+        try:
+            await self.session.commit()
+            invitation_logger.info(
+                f"Invitation accepted by user {user.sub} for project {invite.project_id}"
+            )
+        except Exception as e:
+            await self.session.rollback()
+            invitation_logger.exception(
+                f"Failed to accept invitation for user {user.sub}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to accept invitation",
+            )
 
         return InvitationAcceptResponse(
             project_id=invite.project_id, message="Successfully joined the project"

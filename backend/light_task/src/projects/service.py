@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from src.common.touch import touch_project
 from src.db.database import db_helper
+from src.logger import project_logger
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
 from src.projects.schemas import (
@@ -56,8 +57,17 @@ class ProjectService:
         ]
         self.session.add_all(default_tags)
 
-        await self.session.commit()
-        await self.session.refresh(new_project)
+        try:
+            await self.session.commit()
+            await self.session.refresh(new_project)
+            project_logger.info(f"Project created: {new_project.id} by user {user_id}")
+        except Exception as e:
+            await self.session.rollback()
+            project_logger.exception(f"Failed to create project for user {user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create project",
+            )
 
         return ProjectRead(
             id=new_project.id,
@@ -92,7 +102,7 @@ class ProjectService:
                 owner_id=proj.owner_id,
                 created_at=proj.created_at,
                 updated_at=proj.updated_at,
-                current_user_role=role
+                current_user_role=role,
             )
             for proj, role in rows
         ]
@@ -115,8 +125,7 @@ class ProjectService:
 
         if not row:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
 
         project, role = row
@@ -128,7 +137,7 @@ class ProjectService:
             owner_id=project.owner_id,
             created_at=project.created_at,
             updated_at=project.updated_at,
-            current_user_role=role
+            current_user_role=role,
         )
 
     async def update_project(
@@ -143,8 +152,17 @@ class ProjectService:
         project.updated_at = datetime.now(timezone.utc)
 
         self.session.add(project)
-        await self.session.commit()
-        await self.session.refresh(project)
+        try:
+            await self.session.commit()
+            await self.session.refresh(project)
+            project_logger.info(f"Project updated: {project.id}")
+        except Exception as e:
+            await self.session.rollback()
+            project_logger.exception(f"Failed to update project {project.id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update project",
+            )
 
         return ProjectRead(
             id=project.id,
@@ -154,7 +172,7 @@ class ProjectService:
             owner_id=project.owner_id,
             created_at=project.created_at,
             updated_at=project.updated_at,
-            current_user_role=ProjectRole.OWNER
+            current_user_role=ProjectRole.OWNER,
         )
 
     async def delete_project(
@@ -162,7 +180,16 @@ class ProjectService:
         project: Project,
     ) -> None:
         await self.session.delete(project)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+            project_logger.info(f"Project deleted: {project.id}")
+        except Exception as e:
+            await self.session.rollback()
+            project_logger.exception(f"Failed to delete project {project.id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete project",
+            )
 
     async def get_project_members(
         self,
@@ -184,8 +211,7 @@ class ProjectService:
         requester_id: int,
     ) -> None:
         target_query = select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id
+            ProjectMember.project_id == project_id, ProjectMember.user_id == user_id
         )
         target_member = await self.session.scalar(target_query)
 
@@ -220,7 +246,18 @@ class ProjectService:
 
         await self.session.delete(target_member)
         await touch_project(self.session, project_id)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+            project_logger.info(f"Member {user_id} removed from project {project_id}")
+        except Exception as e:
+            await self.session.rollback()
+            project_logger.exception(
+                f"Failed to remove member {user_id} from project {project_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to remove member",
+            )
 
     async def update_member_role(
         self,
@@ -251,9 +288,22 @@ class ProjectService:
 
         member.role = data.role
         self.session.add(member)
-        await self.session.commit()
-        await touch_project(self.session, project_id)
-        await self.session.refresh(member)
+        try:
+            await self.session.commit()
+            await touch_project(self.session, project_id)
+            await self.session.refresh(member)
+            project_logger.info(
+                f"Member {user_id} role updated to {data.role} in project {project_id}"
+            )
+        except Exception as e:
+            await self.session.rollback()
+            project_logger.exception(
+                f"Failed to update member {user_id} role in project {project_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update member role",
+            )
         return member
 
 
