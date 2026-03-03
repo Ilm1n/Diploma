@@ -352,7 +352,7 @@ export const useBoardStore = defineStore('board', () => {
     try {
       activeInvitations.value = await apiClient.invitations.getProjectInvitationsApiProjectsProjectIdInvitationsGet(project.value.id);
     } catch (error) {
-      console.error('Ошибка загрузки приглашений:', error);
+      console.error('Ошибка загрузки приглашений:', error)
     }
   }
 
