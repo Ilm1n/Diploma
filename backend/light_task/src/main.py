@@ -7,12 +7,15 @@ from fastapi.responses import ORJSONResponse
 
 from src.config import settings
 from src.db.database import db_helper
+from src.logger import setup_logging, get_logger
 from src.auth.router import router as auth_router
 from src.boards.router import router as board_router
 from src.projects.router import router as project_router
 from src.users.router import router as user_router
 from src.tags.router import router as tag_router
 from src.invitations.router import router as invitation_router
+
+logger = get_logger(__name__)
 
 # модели импортируются для регистрации в metadata
 from src.boards.models import BoardColumn, Task  # noqa: F401
@@ -25,8 +28,11 @@ from src.invitations.models import ProjectInvitation  # noqa: F401
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup
+    setup_logging()
+    logger.info("Application startup")
     yield
     # shutdown
+    logger.info("Application shutdown")
     await db_helper.dispose()
 
 
