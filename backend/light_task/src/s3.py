@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 
 from src.config import settings
 from src.logger import s3_logger
+from src.messages import MESSAGES
 
 
 class S3Client:
@@ -56,7 +57,7 @@ class S3Client:
                 s3_logger.exception(f"S3 Upload Error for {object_name}")
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail="Failed to upload file to storage",
+                    detail=MESSAGES["FILE_UPLOAD_FAILED"],
                 )
 
     async def delete_file(self, object_name: str):

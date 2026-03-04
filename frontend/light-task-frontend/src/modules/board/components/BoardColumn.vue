@@ -4,6 +4,7 @@ import type { ColumnRead } from "@/api/client";
 import { useBoardStore } from "../store/board.store";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
+import { getErrorMessage } from "@/utils/error";
 import { getPlural } from "@/utils/plural";
 import { VueDraggable } from "vue-draggable-plus";
 import {
@@ -61,7 +62,7 @@ const saveRename = async () => {
     toast.add({
       severity: "error",
       summary: "Ошибка",
-      detail: "Не удалось переименовать",
+      detail: getErrorMessage(e),
       life: 3000,
     });
   }
@@ -115,7 +116,7 @@ const createTaskInput = ref();
 const createFormRef = ref(null);
 
 const isCreatingTask = computed(
-  () => store.activeColumnIdForTaskCreation === props.column.id
+  () => store.activeColumnIdForTaskCreation === props.column.id,
 );
 
 const startCreateTask = () => {
@@ -123,7 +124,7 @@ const startCreateTask = () => {
   nextTick(() => {
     createTaskInput.value?.$el?.focus();
     const container = document.getElementById(
-      `column-tasks-${props.column.id}`
+      `column-tasks-${props.column.id}`,
     );
     if (container) container.scrollTop = container.scrollHeight;
   });
@@ -148,7 +149,7 @@ const saveTask = async () => {
     newTaskTitle.value = "";
     nextTick(() => {
       const container = document.getElementById(
-        `column-tasks-${props.column.id}`
+        `column-tasks-${props.column.id}`,
       );
       if (container) container.scrollTop = container.scrollHeight;
       createTaskInput.value?.$el?.focus();
@@ -157,7 +158,7 @@ const saveTask = async () => {
     toast.add({
       severity: "error",
       summary: "Ошибка",
-      detail: "Не удалось создать задачу",
+      detail: getErrorMessage(e),
       life: 3000,
     });
   }

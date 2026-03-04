@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import src.security as security
 from src.auth.schemas import UserPayload
 from src.logger import auth_logger
+from src.messages import MESSAGES
 from src.db.database import db_helper
 from src.users.models import User
 
@@ -17,11 +18,11 @@ async def get_user_by_id(user_id: int, session: AsyncSession) -> User:
     user = await session.get(User, user_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail=MESSAGES["USER_NOT_FOUND"]
         )
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN, detail=MESSAGES["INACTIVE_USER"]
         )
     return user
 
@@ -32,7 +33,7 @@ async def get_current_user(
     if not creds:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
+            detail=MESSAGES["NOT_AUTHENTICATED"],
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -40,7 +41,8 @@ async def get_current_user(
 
     if payload.get("type") != security.ACCESS_TOKEN_TYPE:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=MESSAGES["INVALID_TOKEN_TYPE"],
         )
 
     user_id = payload.get("sub")
@@ -50,12 +52,13 @@ async def get_current_user(
 
     if not user_id:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=MESSAGES["INVALID_TOKEN_PAYLOAD"],
         )
 
     if not is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN, detail=MESSAGES["INACTIVE_USER"]
         )
 
     return UserPayload(
@@ -74,7 +77,7 @@ async def get_current_user_for_refresh(
         auth_logger.warning("Refresh token missing in request")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token missing",
+            detail=MESSAGES["REFRESH_TOKEN_MISSING"],
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -83,14 +86,16 @@ async def get_current_user_for_refresh(
     if payload.get("type") != security.REFRESH_TOKEN_TYPE:
         auth_logger.warning("Invalid refresh token type")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=MESSAGES["INVALID_TOKEN_TYPE"],
         )
 
     user_id = payload.get("sub")
     if not user_id:
         auth_logger.warning("Invalid refresh token payload - missing user_id")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=MESSAGES["INVALID_TOKEN_PAYLOAD"],
         )
 
     return await get_user_by_id(int(user_id), session)

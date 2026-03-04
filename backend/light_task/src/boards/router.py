@@ -15,7 +15,8 @@ from src.boards.schemas import (
     TaskUpdate,
     ColumnUpdate,
     ColumnReorderRequest,
-    TaskMoveResponse, TaskPreview,
+    TaskMoveResponse,
+    TaskPreview,
 )
 from src.boards.service import BoardService, get_board_service
 
@@ -99,14 +100,14 @@ async def create_task(
     task_in: TaskCreate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[Project, Depends(require_project_member)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
     return await board_service.create_task(
         project_id=project_id,
         column_id=column.id,
         data=task_in,
-        author_id=current_user.sub
+        author_id=current_user.sub,
     )
 
 
@@ -120,10 +121,7 @@ async def get_project_tasks(
     search: Annotated[str | None, Query(min_length=3)] = None,
 ):
     return await board_service.get_project_tasks(
-        project_id=project_id,
-        assignee_id=assignee_id,
-        tag_ids=tag_ids,
-        search=search
+        project_id=project_id, assignee_id=assignee_id, tag_ids=tag_ids, search=search
     )
 
 

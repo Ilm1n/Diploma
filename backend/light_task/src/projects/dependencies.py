@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
+from src.messages import MESSAGES
 from src.db.database import db_helper
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
@@ -36,12 +37,14 @@ class ProjectAccessChecker:
 
         if not member:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=MESSAGES["PROJECT_NOT_FOUND"],
             )
 
         if member.role not in self.allowed_roles:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
             )
 
         return member.project

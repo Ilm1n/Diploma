@@ -33,8 +33,7 @@ async def create_project(
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
     return await project_service.create_project(
-        user_id=current_user.sub,
-        project_in=project_in
+        user_id=current_user.sub, project_in=project_in
     )
 
 
@@ -53,8 +52,7 @@ async def get_project_details(
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
     return await project_service.get_project_details(
-        project_id=project_id,
-        user_id=current_user.sub
+        project_id=project_id, user_id=current_user.sub
     )
 
 
@@ -100,9 +98,7 @@ async def remove_project_member(
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
     await project_service.remove_member(
-        project_id=project_id,
-        user_id=user_id,
-        requester_id=current_user.sub
+        project_id=project_id, user_id=user_id, requester_id=current_user.sub
     )
 
 
@@ -111,11 +107,13 @@ async def update_member_role(
     project_id: int,
     user_id: int,
     member_update: ProjectMemberUpdate,
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     _: Annotated[Project, Depends(require_project_owner)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
     return await project_service.update_member_role(
         project_id=project_id,
         user_id=user_id,
-        data=member_update
+        data=member_update,
+        requester_id=current_user.sub,
     )

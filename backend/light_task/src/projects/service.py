@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from src.common.touch import touch_project
 from src.db.database import db_helper
 from src.logger import project_logger
+from src.messages import MESSAGES
 from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
 from src.projects.schemas import (
@@ -66,7 +67,7 @@ class ProjectService:
             project_logger.exception(f"Failed to create project for user {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create project",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
         return ProjectRead(
@@ -125,7 +126,8 @@ class ProjectService:
 
         if not row:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=MESSAGES["PROJECT_NOT_FOUND"],
             )
 
         project, role = row
@@ -161,7 +163,7 @@ class ProjectService:
             project_logger.exception(f"Failed to update project {project.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update project",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
         return ProjectRead(
@@ -188,7 +190,7 @@ class ProjectService:
             project_logger.exception(f"Failed to delete project {project.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete project",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
     async def get_project_members(
@@ -216,7 +218,7 @@ class ProjectService:
         target_member = await self.session.scalar(target_query)
 
         if not target_member:
-            raise HTTPException(status_code=404, detail="Member not found")
+            raise HTTPException(status_code=404, detail=MESSAGES["MEMBER_NOT_FOUND"])
 
         requester_query = select(ProjectMember).where(
             ProjectMember.project_id == project_id,
@@ -226,13 +228,19 @@ class ProjectService:
 
         if not requester_member:
             raise HTTPException(
-                status_code=403, detail="You are not a member of this project"
+                status_code=403, detail=MESSAGES["NOT_A_PROJECT_MEMBER"]
             )
 
         if target_member.role == ProjectRole.OWNER:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cannot remove project owner",
+                detail=MESSAGES["CANNOT_REMOVE_OWNER"],
+            )
+
+        if requester_member.role == ProjectRole.MEMBER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
             )
 
         if (
@@ -241,7 +249,7 @@ class ProjectService:
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Managers cannot remove other managers. Ask the Owner.",
+                detail=MESSAGES["MANAGERS_CANNOT_REMOVE"],
             )
 
         await self.session.delete(target_member)
@@ -256,7 +264,7 @@ class ProjectService:
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to remove member",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
     async def update_member_role(
@@ -264,7 +272,20 @@ class ProjectService:
         project_id: int,
         user_id: int,
         data: ProjectMemberUpdate,
+        requester_id: int,
     ) -> ProjectMember:
+        requester_query = select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == requester_id,
+        )
+        requester_member = await self.session.scalar(requester_query)
+
+        if not requester_member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=MESSAGES["NOT_A_PROJECT_MEMBER"],
+            )
+
         query = (
             select(ProjectMember)
             .where(
@@ -277,13 +298,27 @@ class ProjectService:
 
         if not member:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=MESSAGES["MEMBER_NOT_FOUND"],
             )
+
+        if requester_member.role == ProjectRole.MEMBER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
+            )
+
+        if requester_member.role == ProjectRole.MANAGER:
+            if member.role in [ProjectRole.MANAGER, ProjectRole.OWNER]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
+                )
 
         if member.role == ProjectRole.OWNER:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot change role of project owner",
+                detail=MESSAGES["CANNOT_CHANGE_OWNER_ROLE"],
             )
 
         member.role = data.role
@@ -302,7 +337,7 @@ class ProjectService:
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update member role",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
         return member
 

@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { useBoardStore } from "../store/board.store";
 import { VueDraggable } from "vue-draggable-plus";
 import { useToast } from "primevue/usetoast";
-import {useHead} from "@unhead/vue";
+import { useHead } from "@unhead/vue";
 import { useDraggableScroll } from "@/composables/useDraggableScroll";
 import {
   onClickOutside,
@@ -76,10 +76,11 @@ const saveColumn = async () => {
       });
     }
   } catch (e) {
+    const errorMsg = getErrorMessage(e);
     toast.add({
       severity: "error",
       summary: "Ошибка",
-      detail: "Не удалось создать колонку",
+      detail: errorMsg,
       life: 3000,
     });
   }
@@ -106,7 +107,7 @@ watch(
   () => props.projectId,
   () => {
     loadData();
-  }
+  },
 );
 
 async function loadData() {
@@ -133,10 +134,8 @@ const scrollContainerRef = ref<HTMLElement | null>(null);
 useDraggableScroll(scrollContainerRef);
 
 useHead({
-  title: 'Kantano - Доска',
-  meta:[
-    { name: 'robots', content: 'noindex, nofollow' }
-  ]
+  title: "Kantano - Доска",
+  meta: [{ name: "robots", content: "noindex, nofollow" }],
 });
 </script>
 
@@ -177,7 +176,7 @@ useHead({
             :force-fallback="true"
             :fallback-tolerance="5"
             :fallback-on-body="true"
-            :scroll="(scrollContainerRef as any)"
+            :scroll="scrollContainerRef as any"
             :scroll-sensitivity="dragOptions.sensitivity"
             :scroll-speed="dragOptions.speed"
             :direction="'horizontal'"

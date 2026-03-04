@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import Toast from 'primevue/toast';
-import { useAuthStore } from '@/modules/auth/store/auth.store';
-import ConfirmDialog from 'primevue/confirmdialog';
+import { onMounted, ref } from "vue";
+import Toast from "primevue/toast";
+import { useToast } from "primevue/usetoast";
+import { getErrorMessage } from "@/utils/error";
+import { useAuthStore } from "@/modules/auth/store/auth.store";
+import ConfirmDialog from "primevue/confirmdialog";
 import CookieBanner from "@/shared/ui/CookieBanner.vue";
 
 const authStore = useAuthStore();
+const toast = useToast();
 const isAppReady = ref(false);
 
 onMounted(async () => {
@@ -13,7 +16,19 @@ onMounted(async () => {
     try {
       await authStore.fetchUser();
     } catch (e) {
-      console.error('Session restore failed:', e);
+      console.error("Session restore failed:", e);
+      const msg = getErrorMessage(e);
+      try {
+        toast.add({
+          severity: "error",
+          summary: "Сессия",
+          detail: msg,
+          life: 5000,
+        });
+      } catch {}
+      try {
+        if (authStore.logout) await authStore.logout();
+      } catch {}
     }
   }
   setTimeout(() => {
@@ -40,8 +55,13 @@ onMounted(async () => {
 <style>
 .loading-overlay {
   position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  display: flex; align-items: center; justify-content: center;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 9999;
   background-color: #f8f9fa;
 }
@@ -51,7 +71,8 @@ onMounted(async () => {
 }
 
 .spinner {
-  width: 40px; height: 40px;
+  width: 40px;
+  height: 40px;
   border: 3px solid #e2e8f0;
   border-top: 3px solid #3b82f6;
   border-radius: 50%;
@@ -64,8 +85,12 @@ onMounted(async () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .fade-leave-active {

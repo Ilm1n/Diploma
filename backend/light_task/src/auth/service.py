@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.schemas import Token
 from src.logger import auth_logger
+from src.messages import MESSAGES
 from src.users.models import User
 from src.db.database import db_helper
 from src.config import settings
@@ -30,7 +31,7 @@ class AuthService:
             auth_logger.warning(f"Failed login attempt for {username_or_email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect username or password",
+                detail=MESSAGES["INVALID_CREDENTIALS"],
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return user

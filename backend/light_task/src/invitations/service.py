@@ -12,6 +12,7 @@ from src.common.touch import touch_project
 from src.config import settings
 from src.db.database import db_helper
 from src.logger import invitation_logger
+from src.messages import MESSAGES
 from src.invitations.models import ProjectInvitation
 from src.invitations.schemas import (
     InvitationCreate,
@@ -56,7 +57,7 @@ class InvitationService:
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create invitation",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
         return invite
@@ -95,7 +96,7 @@ class InvitationService:
                 )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to delete invitation",
+                    detail=MESSAGES["DATABASE_ERROR"],
                 )
 
     async def accept_invitation(
@@ -112,24 +113,25 @@ class InvitationService:
 
         if not invite:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Invalid invitation token"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=MESSAGES["INVITATION_NOT_FOUND"],
             )
 
         if invite.expires_at < datetime.now(timezone.utc):
             raise HTTPException(
-                status_code=status.HTTP_410_GONE, detail="Invitation expired"
+                status_code=status.HTTP_410_GONE, detail=MESSAGES["INVITATION_EXPIRED"]
             )
 
         if invite.max_uses is not None and invite.used_count >= invite.max_uses:
             raise HTTPException(
                 status_code=status.HTTP_410_GONE,
-                detail="Invitation usage limit reached",
+                detail=MESSAGES["INVITATION_USAGE_LIMIT_REACHED"],
             )
 
         if invite.email and invite.email != user.email:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="This invitation was sent to another email address",
+                detail=MESSAGES["INVITATION_FOR_OTHER_EMAIL"],
             )
 
         member_check = select(ProjectMember).where(
@@ -141,7 +143,7 @@ class InvitationService:
         if existing_member:
             return InvitationAcceptResponse(
                 project_id=invite.project_id,
-                message="You are already a member of this project",
+                message=MESSAGES["ALREADY_PROJECT_MEMBER"],
             )
 
         new_member = ProjectMember(
@@ -166,11 +168,11 @@ class InvitationService:
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to accept invitation",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
         return InvitationAcceptResponse(
-            project_id=invite.project_id, message="Successfully joined the project"
+            project_id=invite.project_id, message=MESSAGES["INVITATION_ACCEPT_SUCCESS"]
         )
 
 

@@ -280,7 +280,7 @@ export const useBoardStore = defineStore('board', () => {
   ) {
     try {
       const targetCol = columns.value.find(c => c.id === targetColumnId);
-      if (!targetCol) throw new Error('Target column not found');
+      if (!targetCol) throw new Error('Целевая колонка не найдена');
 
       let afterTaskId: number | null = null;
       const tasks = targetCol.tasks || [];

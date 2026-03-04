@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.database import db_helper
 from src.logger import board_logger
+from src.messages import MESSAGES
 from src.tags.models import Tag
 from src.tags.schemas import TagCreate, TagUpdate
 
@@ -36,7 +37,7 @@ class TagService:
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Tag with this name already exists in the project",
+                detail=MESSAGES["TAG_ALREADY_EXISTS"],
             )
 
         tag = Tag(
@@ -54,7 +55,7 @@ class TagService:
             board_logger.exception(f"Failed to create tag in project {project_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create tag",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
         return tag
 
@@ -76,7 +77,7 @@ class TagService:
             await self.session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Tag with this name already exists",
+                detail=MESSAGES["TAG_ALREADY_EXISTS"],
             )
 
     async def delete_tag(
@@ -92,7 +93,7 @@ class TagService:
             board_logger.exception(f"Failed to delete tag {tag.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete tag",
+                detail=MESSAGES["DATABASE_ERROR"],
             )
 
 
