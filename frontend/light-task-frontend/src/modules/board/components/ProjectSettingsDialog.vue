@@ -414,7 +414,8 @@ const roleOptions = [
                   @change="confirmRoleChange(member, $event.value)"
                   :disabled="
                     member.role === 'OWNER' ||
-                    store.project?.currentUserRole !== 'OWNER'
+                    (store.project?.currentUserRole !== 'OWNER' &&
+                      store.project?.currentUserRole !== 'MANAGER')
                   "
                 />
                 <Button
