@@ -80,6 +80,7 @@ const saveGeneral = async () => {
       severity: "error",
       summary: "Ошибка",
       detail: getErrorMessage(e),
+      life: 3000,
     });
   }
 };
@@ -112,8 +113,17 @@ const confirmDeleteProject = () => {
     rejectLabel: "Отмена",
     rejectClass: "!text-white",
     accept: async () => {
-      await store.deleteProject();
-      await router.push("/projects");
+      try {
+        await store.deleteProject();
+        await router.push("/projects");
+      } catch (e) {
+        toast.add({
+          severity: "error",
+          summary: "Ошибка",
+          detail: getErrorMessage(e),
+          life: 3000,
+        });
+      }
     },
   });
 };
@@ -143,6 +153,7 @@ const confirmRoleChange = (member: any, newRole: ProjectRole) => {
           severity: "error",
           summary: "Ошибка",
           detail: getErrorMessage(e),
+          life: 3000,
         });
       }
     },
@@ -184,6 +195,7 @@ const handleUpdateTag = async (tagId: number) => {
       severity: "error",
       summary: "Ошибка",
       detail: getErrorMessage(e),
+      life: 3000,
     });
   }
 };
@@ -198,13 +210,22 @@ const confirmRemoveMember = (member: any) => {
     acceptClass: "p-button-danger !text-white",
     rejectClass: "p-button-primary !text-white",
     accept: async () => {
-      await store.removeMember(member.user.id);
-      toast.add({
-        severity: "info",
-        summary: "Удален",
-        detail: "Участник покинул проект",
-        life: 3000,
-      });
+      try {
+        await store.removeMember(member.user.id);
+        toast.add({
+          severity: "info",
+          summary: "Удален",
+          detail: "Участник покинул проект",
+          life: 3000,
+        });
+      } catch (e) {
+        toast.add({
+          severity: "error",
+          summary: "Ошибка",
+          detail: getErrorMessage(e),
+          life: 3000,
+        });
+      }
     },
   });
 };
@@ -231,13 +252,22 @@ const confirmDeleteInvitation = (invite: any) => {
     acceptClass: "p-button-danger !text-white",
     rejectClass: "p-button-primary !text-white",
     accept: async () => {
-      await store.deleteInvitation(invite.id);
-      toast.add({
-        severity: "success",
-        summary: "Удалено",
-        detail: "Приглашение удалено",
-        life: 3000,
-      });
+      try {
+        await store.deleteInvitation(invite.id);
+        toast.add({
+          severity: "success",
+          summary: "Удалено",
+          detail: "Приглашение удалено",
+          life: 3000,
+        });
+      } catch (e) {
+        toast.add({
+          severity: "error",
+          summary: "Ошибка",
+          detail: getErrorMessage(e),
+          life: 3000,
+        });
+      }
     },
   });
 };

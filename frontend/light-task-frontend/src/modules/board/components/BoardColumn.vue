@@ -93,13 +93,22 @@ const items = [
         rejectClass: "p-button-secondary p-button-outlined",
         acceptClass: "p-button-danger !text-white",
         accept: async () => {
-          await store.deleteColumn(props.column.id);
-          toast.add({
-            severity: "success",
-            summary: "Удалено",
-            detail: "Колонка удалена",
-            life: 3000,
-          });
+          try {
+            await store.deleteColumn(props.column.id);
+            toast.add({
+              severity: "success",
+              summary: "Удалено",
+              detail: "Колонка удалена",
+              life: 3000,
+            });
+          } catch (e) {
+            toast.add({
+              severity: "error",
+              summary: "Ошибка",
+              detail: getErrorMessage(e),
+              life: 3000,
+            });
+          }
         },
       });
     },
@@ -181,10 +190,11 @@ const onTaskDrop = async (event: any) => {
   try {
     await store.moveTask(taskId, targetColumnId, newIndex);
   } catch (e) {
+    const msg = getErrorMessage(e);
     toast.add({
       severity: "error",
       summary: "Ошибка перемещения",
-      detail: "Изменения отменены",
+      detail: msg,
       life: 3000,
     });
   }

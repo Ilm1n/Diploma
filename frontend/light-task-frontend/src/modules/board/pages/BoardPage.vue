@@ -91,10 +91,20 @@ const onColumnDragStart = () => {
   document.body.style.cursor = "grabbing";
 };
 
-const onColumnDrop = () => {
+const onColumnDrop = async () => {
   document.body.style.userSelect = "";
   document.body.style.cursor = "";
-  store.moveColumn(store.columns);
+  try {
+    await store.moveColumn(store.columns);
+  } catch (e) {
+    const msg = getErrorMessage(e);
+    toast.add({
+      severity: "error",
+      summary: "Ошибка перемещения",
+      detail: msg,
+      life: 3000,
+    });
+  }
 };
 
 onMounted(() => {

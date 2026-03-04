@@ -1,5 +1,7 @@
 import {createRouter, createWebHistory} from 'vue-router';
 import {useAuthStore} from '@/modules/auth/store/auth.store';
+import { useToast } from 'primevue/usetoast';
+import { getErrorMessage } from '@/utils/error';
 
 // Layouts
 const AppLayout = () => import('@/layouts/components/AppLayout.vue');
@@ -89,6 +91,16 @@ router.beforeEach(async (to, _, next) => {
       await authStore.fetchUser();
     } catch (e) {
       console.error('Session restore failed:', e);
+      // notify user
+      try {
+        const toast = useToast();
+        toast.add({
+          severity: 'error',
+          summary: 'Сессия',
+          detail: getErrorMessage(e),
+          life: 5000,
+        });
+      } catch {}
       authStore.logout();
       return next('/login');
     }

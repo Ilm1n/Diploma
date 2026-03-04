@@ -4,6 +4,8 @@
 >
 import {computed, onMounted, ref} from 'vue';
 import {useProjectsStore} from '../store/projects.store';
+import { useToast } from 'primevue/usetoast';
+import { getErrorMessage } from '@/utils/error';
 import ProjectCard from './ProjectCard.vue';
 import CreateProjectCard from './CreateProjectCard.vue';
 import CreateProjectDialog from './CreateProjectDialog.vue';
@@ -14,8 +16,19 @@ import {useHead} from "@unhead/vue";
 const store = useProjectsStore();
 const isCreateDialogOpen = ref(false);
 
-onMounted(() => {
-  store.fetchProjects();
+onMounted(async () => {
+  try {
+    await store.fetchProjects();
+  } catch (e) {
+    const msg = getErrorMessage(e);
+    const toast = useToast();
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка загрузки',
+      detail: msg,
+      life: 3000,
+    });
+  }
 });
 
 const openCreateDialog = () => {
