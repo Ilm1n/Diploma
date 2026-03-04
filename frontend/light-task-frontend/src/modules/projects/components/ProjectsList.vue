@@ -1,17 +1,14 @@
-<script
-    setup
-    lang="ts"
->
-import {computed, onMounted, ref} from 'vue';
-import {useProjectsStore} from '../store/projects.store';
-import { useToast } from 'primevue/usetoast';
-import { getErrorMessage } from '@/utils/error';
-import ProjectCard from './ProjectCard.vue';
-import CreateProjectCard from './CreateProjectCard.vue';
-import CreateProjectDialog from './CreateProjectDialog.vue';
+<script setup lang="ts">
+import { computed, onMounted, ref } from "vue";
+import { useProjectsStore } from "../store/projects.store";
+import { useToast } from "primevue/usetoast";
+import { getErrorMessage } from "@/utils/error";
+import ProjectCard from "./ProjectCard.vue";
+import CreateProjectCard from "./CreateProjectCard.vue";
+import CreateProjectDialog from "./CreateProjectDialog.vue";
 // import Button from 'primevue/button';
-import Skeleton from 'primevue/skeleton';
-import {useHead} from "@unhead/vue";
+import Skeleton from "primevue/skeleton";
+import { useHead } from "@unhead/vue";
 
 const store = useProjectsStore();
 const isCreateDialogOpen = ref(false);
@@ -23,8 +20,8 @@ onMounted(async () => {
     const msg = getErrorMessage(e);
     const toast = useToast();
     toast.add({
-      severity: 'error',
-      summary: 'Ошибка загрузки',
+      severity: "error",
+      summary: "Ошибка загрузки",
       detail: msg,
       life: 3000,
     });
@@ -41,21 +38,22 @@ const sortedProjects = computed(() => {
 });
 
 useHead({
-  title: 'Kantano - Проекты',
-  meta:[
-    { name: 'robots', content: 'noindex, nofollow' }
-  ]
+  title: "Kantano - Проекты",
+  meta: [{ name: "robots", content: "noindex, nofollow" }],
 });
 </script>
 
 <template>
   <div class="p-6 max-w-7xl mx-auto">
-
     <!-- Header -->
     <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Мои проекты</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-1">Управляйте задачами и командами</p>
+        <h1 class="text-2xl font-bold text-slate-800 dark:text-white">
+          Мои проекты
+        </h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">
+          Управляйте задачами и командами
+        </p>
       </div>
 
       <!-- Кнопка в хедере -->
@@ -68,16 +66,12 @@ useHead({
     </div>
 
     <!-- Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    >
       <!-- Loading State -->
       <template v-if="store.isLoading && store.projects.length === 0">
-        <Skeleton
-            v-for="i in 4"
-            :key="i"
-            height="8rem"
-            borderRadius="12px"
-        />
+        <Skeleton v-for="i in 4" :key="i" height="8rem" borderRadius="12px" />
       </template>
 
       <!-- Content -->
@@ -85,9 +79,9 @@ useHead({
         <CreateProjectCard @click="openCreateDialog" />
 
         <ProjectCard
-            v-for="project in sortedProjects"
-            :key="project.id"
-            :project="project"
+          v-for="project in sortedProjects"
+          :key="project.id"
+          :project="project"
         />
       </template>
     </div>
