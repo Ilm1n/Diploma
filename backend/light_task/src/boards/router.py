@@ -21,10 +21,9 @@ from src.boards.schemas import (
 from src.boards.service import BoardService, get_board_service
 
 from src.projects.dependencies import (
-    require_project_member,
-    require_project_manager,
+    check_project_member,
+    check_project_manager,
 )
-from src.projects.models import Project
 
 router = APIRouter(tags=["Boards"])
 
@@ -32,7 +31,7 @@ router = APIRouter(tags=["Boards"])
 @router.get("/projects/{project_id}/columns", response_model=list[ColumnRead])
 async def get_project_board(
     project_id: int,
-    _: Annotated[Project, Depends(require_project_member)],
+    _: Annotated[None, Depends(check_project_member)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
     return await board_service.get_board(project_id)
@@ -46,7 +45,7 @@ async def get_project_board(
 async def create_column(
     project_id: int,
     column_in: ColumnCreate,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
     return await board_service.create_column(project_id, column_in)
@@ -58,7 +57,7 @@ async def create_column(
 )
 async def update_column(
     column_update: ColumnUpdate,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
@@ -70,7 +69,7 @@ async def update_column(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_column(
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
@@ -84,7 +83,7 @@ async def delete_column(
 async def reorder_columns(
     project_id: int,
     reorder_data: ColumnReorderRequest,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
     await board_service.reorder_columns(project_id, reorder_data)
@@ -100,7 +99,7 @@ async def create_task(
     task_in: TaskCreate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
-    _: Annotated[Project, Depends(require_project_member)],
+    _: Annotated[None, Depends(check_project_member)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
 ):
     return await board_service.create_task(
@@ -114,7 +113,7 @@ async def create_task(
 @router.get("/projects/{project_id}/tasks", response_model=list[TaskPreview])
 async def get_project_tasks(
     project_id: int,
-    _: Annotated[Project, Depends(require_project_member)],
+    _: Annotated[None, Depends(check_project_member)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
     assignee_id: Annotated[int | None, Query()] = None,
     tag_ids: Annotated[list[int] | None, Query()] = None,

@@ -10,8 +10,7 @@ from src.invitations.schemas import (
     InvitationAcceptResponse,
 )
 from src.invitations.service import InvitationService, get_invitation_service
-from src.projects.dependencies import require_project_manager
-from src.projects.models import Project
+from src.projects.dependencies import check_project_manager
 
 router = APIRouter(tags=["Invitations"])
 
@@ -24,7 +23,7 @@ router = APIRouter(tags=["Invitations"])
 async def create_invitation(
     project_id: int,
     invite_in: InvitationCreate,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
@@ -38,7 +37,7 @@ async def create_invitation(
 @router.get("/projects/{project_id}/invitations", response_model=list[InvitationRead])
 async def get_project_invitations(
     project_id: int,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
     return await invitation_service.get_project_invitations(project_id)
@@ -51,7 +50,7 @@ async def get_project_invitations(
 async def delete_invitation(
     project_id: int,
     invitation_id: int,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
 ):
     await invitation_service.delete_invitation(invitation_id, project_id)

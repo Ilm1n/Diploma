@@ -50,8 +50,44 @@ class ProjectAccessChecker:
         return member.project
 
 
+class ProjectPermissionChecker:
+    def __init__(self, allowed_roles: List[ProjectRole]):
+        self.allowed_roles = allowed_roles
+
+    async def __call__(
+        self,
+        project_id: Annotated[int, Path()],
+        user: Annotated[UserPayload, Depends(get_current_user)],
+        session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    ) -> None:
+        query = select(ProjectMember.role).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user.sub,
+        )
+
+        member_role = await session.scalar(query)
+        if member_role is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=MESSAGES["PROJECT_NOT_FOUND"],
+            )
+
+        if member_role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
+            )
+
+
+# Use `require_*` when route needs a loaded `Project` object; use `check_*` for role-only checks.
 require_project_owner = ProjectAccessChecker([ProjectRole.OWNER])
 require_project_manager = ProjectAccessChecker([ProjectRole.OWNER, ProjectRole.MANAGER])
 require_project_member = ProjectAccessChecker(
+    [ProjectRole.OWNER, ProjectRole.MANAGER, ProjectRole.MEMBER]
+)
+
+check_project_owner = ProjectPermissionChecker([ProjectRole.OWNER])
+check_project_manager = ProjectPermissionChecker([ProjectRole.OWNER, ProjectRole.MANAGER])
+check_project_member = ProjectPermissionChecker(
     [ProjectRole.OWNER, ProjectRole.MANAGER, ProjectRole.MEMBER]
 )

@@ -2,8 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from src.projects.dependencies import require_project_manager, require_project_member
-from src.projects.models import Project
+from src.projects.dependencies import check_project_manager, check_project_member
 from src.tags.dependencies import get_tag_for_write
 from src.tags.models import Tag
 from src.tags.schemas import TagCreate, TagRead, TagUpdate
@@ -15,7 +14,7 @@ router = APIRouter(tags=["Tags"])
 @router.get("/projects/{project_id}/tags", response_model=list[TagRead])
 async def get_project_tags(
     project_id: int,
-    _: Annotated[Project, Depends(require_project_member)],
+    _: Annotated[None, Depends(check_project_member)],
     tag_service: Annotated[TagService, Depends(get_tag_service)],
 ):
     return await tag_service.get_project_tags(project_id)
@@ -29,7 +28,7 @@ async def get_project_tags(
 async def create_tag(
     project_id: int,
     tag_in: TagCreate,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     tag_service: Annotated[TagService, Depends(get_tag_service)],
 ):
     return await tag_service.create_tag(project_id, tag_in)

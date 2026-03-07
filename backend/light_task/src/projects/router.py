@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, status
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.projects.dependencies import (
+    check_project_manager,
+    check_project_member,
+    check_project_owner,
     require_project_owner,
-    require_project_manager,
-    require_project_member,
 )
 from src.projects.models import Project
 from src.projects.schemas import (
@@ -81,7 +82,7 @@ async def delete_project(
 @router.get("/{project_id}/members", response_model=list[ProjectMemberRead])
 async def get_project_members(
     project_id: int,
-    _: Annotated[Project, Depends(require_project_member)],
+    _: Annotated[None, Depends(check_project_member)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
     return await project_service.get_project_members(project_id)
@@ -93,7 +94,7 @@ async def get_project_members(
 async def remove_project_member(
     project_id: int,
     user_id: int,
-    _: Annotated[Project, Depends(require_project_manager)],
+    _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
@@ -108,7 +109,7 @@ async def update_member_role(
     user_id: int,
     member_update: ProjectMemberUpdate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    _: Annotated[Project, Depends(require_project_owner)],
+    _: Annotated[None, Depends(check_project_owner)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
 ):
     return await project_service.update_member_role(
