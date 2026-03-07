@@ -13,4 +13,4 @@ Disallow: /api
 Disallow: /board
 
 Host: https://kantano.ru
-Sitemap: https:// kantano.ru/sitemap.xml
+Sitemap: https://kantano.ru/sitemap.xml
