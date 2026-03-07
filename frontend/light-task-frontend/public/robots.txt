@@ -10,8 +10,8 @@ Allow: /*.ico$
 Allow: /*.svg$
 Allow: /*.webmanifest$
 
-Allow: /sitemap.xml
-Allow: /robots.txt
+Allow: /sitemap.xml$
+Allow: /robots.txt$
 
 Host: https://kantano.ru
 Sitemap: https://kantano.ru/sitemap.xml
