@@ -1,6 +1,14 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint, Table, Column, Integer
+from sqlalchemy import (
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    Table,
+    Column,
+    Integer,
+    Index,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base
@@ -20,6 +28,8 @@ task_tags = Table(
         "tag_id", Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True
     ),
 )
+
+Index("idx_task_tags_tag_task", task_tags.c.tag_id, task_tags.c.task_id)
 
 
 class Tag(Base):

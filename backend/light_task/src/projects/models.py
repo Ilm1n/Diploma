@@ -63,6 +63,7 @@ class ProjectMember(Base, TimestampMixin):
     __table_args__ = (
         UniqueConstraint("project_id", "user_id", name="idx_unique_project_user"),
         Index("idx_project_members_user", "user_id"),
+        Index("idx_project_members_project_joined", "project_id", "joined_at"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

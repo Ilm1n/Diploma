@@ -26,6 +26,7 @@ class BoardColumn(Base, TimestampMixin):
     __tablename__ = "board_columns"
     __table_args__ = (
         CheckConstraint("length(name) > 0", name="check_column_name_length"),
+        Index("idx_columns_project_pos", "project_id", "position"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -51,6 +52,7 @@ class Task(Base, TimestampMixin):
         CheckConstraint("length(title) > 0", name="check_task_title_length"),
         Index("idx_tasks_column_position", "column_id", "position"),
         Index("idx_tasks_project", "project_id"),
+        Index("idx_tasks_project_updated", "project_id", "updated_at"),
         Index("idx_tasks_assignee", "assignee_id"),
     )
 
