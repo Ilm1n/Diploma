@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { getAccessToken, setAccessTokenValue } from '@/modules/auth/lib/access-token';
 
 export const API_BASE_URL = import.meta.env.PROD ? '' : '';
 
@@ -20,7 +21,7 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 apiInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('accessToken');
+  const token = getAccessToken();
   if (config.url && !config.url.startsWith('http') && !config.url.startsWith('/api')) {
     config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
   }
@@ -58,7 +59,7 @@ apiInstance.interceptors.response.use(
 
         const newToken = response.data.accessToken;
 
-        localStorage.setItem('accessToken', newToken);
+        setAccessTokenValue(newToken);
         apiInstance.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -66,7 +67,7 @@ apiInstance.interceptors.response.use(
         return apiInstance(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem('accessToken');
+        setAccessTokenValue(null);
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {

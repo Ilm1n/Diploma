@@ -1,36 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import Toast from "primevue/toast";
-import { useToast } from "primevue/usetoast";
-import { getErrorMessage } from "@/utils/error";
 import { useAuthStore } from "@/modules/auth/store/auth.store";
 import ConfirmDialog from "primevue/confirmdialog";
 import CookieBanner from "@/shared/ui/CookieBanner.vue";
 
 const authStore = useAuthStore();
-const toast = useToast();
 const isAppReady = ref(false);
 
 onMounted(async () => {
-  if (authStore.accessToken && !authStore.user) {
-    try {
-      await authStore.fetchUser();
-    } catch (e) {
-      console.error("Session restore failed:", e);
-      const msg = getErrorMessage(e);
-      try {
-        toast.add({
-          severity: "error",
-          summary: "Сессия",
-          detail: msg,
-          life: 5000,
-        });
-      } catch {}
-      try {
-        if (authStore.logout) await authStore.logout();
-      } catch {}
-    }
-  }
+  await authStore.restoreSession();
   setTimeout(() => {
     isAppReady.value = true;
   }, 100);

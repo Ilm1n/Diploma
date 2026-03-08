@@ -4,24 +4,67 @@ import {computed, ref} from 'vue';
 import {apiClient} from '@/api/config';
 import type {Body_login_for_access_token_api_auth_login_post, UserCreate, UserRead, UserUpdate,} from '@/api/client';
 import {useRouter} from 'vue-router';
+import {
+  accessTokenState,
+  setAccessTokenValue,
+} from '@/modules/auth/lib/access-token';
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
-  const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
+  const accessToken = accessTokenState;
   const user = ref<UserRead | null>(null);
   const isLoading = ref(false);
+  const restorePromise = ref<Promise<boolean> | null>(null);
 
   const isAuthenticated = computed(() => !!accessToken.value);
 
-  async function initAuth() {
-    if (accessToken.value) {
-      try {
-        await fetchUser();
-      } catch (error) {
-        console.error('Token invalid or expired during init');
+  function clearSession() {
+    accessToken.value = null;
+    user.value = null;
+    setAccessTokenValue(null);
+  }
+
+  async function restoreSession(): Promise<boolean> {
+    if (restorePromise.value) return restorePromise.value;
+
+    restorePromise.value = (async () => {
+      if (accessToken.value && !user.value) {
+        try {
+          await fetchUser();
+          return true;
+        } catch {
+          clearSession();
+        }
       }
-    }
+
+      if (accessToken.value && user.value) {
+        return true;
+      }
+
+      try {
+        const response = await apiClient.auth.refreshJwtApiAuthRefreshPost();
+        if (!response.accessToken) {
+          clearSession();
+          return false;
+        }
+
+        setAccessToken(response.accessToken);
+        await fetchUser();
+        return true;
+      } catch {
+        clearSession();
+        return false;
+      } finally {
+        restorePromise.value = null;
+      }
+    })();
+
+    return restorePromise.value;
+  }
+
+  async function initAuth() {
+    await restoreSession();
   }
 
   async function login(credentials: Body_login_for_access_token_api_auth_login_post) {
@@ -121,16 +164,14 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (e) {
       console.warn('Logout request failed', e);
     } finally {
-      accessToken.value = null;
-      user.value = null;
-      localStorage.removeItem('accessToken');
+      clearSession();
       await router.push('/login');
     }
   }
 
   function setAccessToken(access: string) {
     accessToken.value = access;
-    localStorage.setItem('accessToken', access);
+    setAccessTokenValue(access);
   }
 
   return {
@@ -143,6 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     fetchUser,
     initAuth,
+    restoreSession,
     setAccessToken,
     updateProfile,
     uploadAvatar,
