@@ -99,7 +99,7 @@ const onDeleteAvatar = () => {
 const validationSchema = toTypedSchema(
   z.object({
     username: z.string().min(3, "Минимум 3 символа").max(50),
-    fullName: z.string().max(100).optional().nullable(),
+    fullName: z.string().max(255).optional().nullable(),
     email: z.string().email(),
   }),
 );
@@ -119,9 +119,14 @@ const [email, emailAttrs] = defineField("email");
 
 const onSubmit = handleSubmit(async (values) => {
   try {
+    const normalizedFullName =
+      values.fullName && values.fullName.trim()
+        ? values.fullName.trim()
+        : null;
+
     await authStore.updateProfile({
       username: values.username,
-      fullName: values.fullName || null,
+      fullName: normalizedFullName,
       // TODO: email отдельный флоу сделать
     });
     toast.add({

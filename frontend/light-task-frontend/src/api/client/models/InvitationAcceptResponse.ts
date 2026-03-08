@@ -2,8 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SuccessPayload } from './SuccessPayload';
 export type InvitationAcceptResponse = {
     projectId: number;
-    message: string;
+    success: SuccessPayload;
 };
 

@@ -113,6 +113,10 @@ const performSave = async (payload: TaskUpdate) => {
 // 1. Auto-save Title (Blur)
 const saveTitle = () => {
   if (!store.selectedTask) return;
+  if (!localTitle.value.trim()) {
+    localTitle.value = store.selectedTask.title;
+    return;
+  }
   if (localTitle.value.trim() === store.selectedTask.title) return;
   performSave({ title: localTitle.value });
 };
@@ -156,6 +160,16 @@ watch(localTagIds, (newVal) => {
 
 // 4. Ручное сохранение (Кнопка внизу - атомарное)
 const saveAllAndClose = async () => {
+  if (!localTitle.value.trim()) {
+    toast.add({
+      severity: "error",
+      summary: "Ошибка",
+      detail: "Название задачи не может быть пустым",
+      life: 3000,
+    });
+    return;
+  }
+
   await performSave({
     title: localTitle.value,
     description: localDescription.value,

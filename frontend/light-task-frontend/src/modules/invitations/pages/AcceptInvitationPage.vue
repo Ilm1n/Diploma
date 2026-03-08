@@ -6,6 +6,7 @@ import { useAuthStore } from '@/modules/auth/store/auth.store';
 import { useToast } from 'primevue/usetoast';
 import { useTheme } from "@/composables/useTheme";
 import { getErrorMessage } from "@/utils/error";
+import { getSuccessMessage } from "@/utils/success";
 
 // UI
 import ProgressSpinner from 'primevue/progressspinner';
@@ -43,7 +44,7 @@ const processInvitation = async () => {
     toast.add({
       severity: 'success',
       summary: 'Успех!',
-      detail: res.message || 'Вы присоединились к проекту',
+      detail: getSuccessMessage(res.success, 'Вы присоединились к проекту'),
       life: 3000
     });
 

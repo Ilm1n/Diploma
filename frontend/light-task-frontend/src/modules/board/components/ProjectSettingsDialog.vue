@@ -65,9 +65,22 @@ watch(
 
 const saveGeneral = async () => {
   try {
+    if (!projectName.value.trim()) {
+      toast.add({
+        severity: "error",
+        summary: "Ошибка",
+        detail: "Название проекта не может быть пустым",
+        life: 3000,
+      });
+      return;
+    }
+
+    const normalizedDescription = projectDesc.value.trim()
+      ? projectDesc.value.trim()
+      : null;
     await store.updateProject({
-      name: projectName.value,
-      description: projectDesc.value,
+      name: projectName.value.trim(),
+      description: normalizedDescription,
     });
     toast.add({
       severity: "success",

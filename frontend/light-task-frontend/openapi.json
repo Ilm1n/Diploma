@@ -1998,15 +1998,14 @@
             "type": "integer",
             "title": "Projectid"
           },
-          "message": {
-            "type": "string",
-            "title": "Message"
+          "success": {
+            "$ref": "#/components/schemas/SuccessPayload"
           }
         },
         "type": "object",
         "required": [
           "projectId",
-          "message"
+          "success"
         ],
         "title": "InvitationAcceptResponse"
       },
@@ -2128,8 +2127,7 @@
           "description": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2200,8 +2198,7 @@
           "description": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2281,8 +2278,7 @@
           "description": {
             "anyOf": [
               {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
@@ -2305,6 +2301,38 @@
         },
         "type": "object",
         "title": "ProjectUpdate"
+      },
+      "SuccessCode": {
+        "type": "string",
+        "enum": [
+          "ALREADY_PROJECT_MEMBER",
+          "INVITATION_ACCEPT_SUCCESS"
+        ],
+        "title": "SuccessCode"
+      },
+      "SuccessPayload": {
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/SuccessCode"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "SuccessPayload"
       },
       "TagCreate": {
         "properties": {

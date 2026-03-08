@@ -28,7 +28,16 @@ const selectedColor = ref("3B82F6");
 
 const schema = toTypedSchema(
   z.object({
-    name: z.string().min(1, "Название обязательно").max(100),
+    name: z
+      .string({
+        required_error: "Название обязательно", 
+        invalid_type_error: "Название должно быть строкой",
+      })
+      .min(1, "Название обязательно") 
+      .max(200, "Название не может быть длиннее 200 символов")
+      .refine((val) => val.trim().length > 0, {
+        message: "Название не может состоять только из пробелов",
+      }),
     description: z.string().optional(),
   }),
 );
@@ -42,9 +51,14 @@ const [description, descriptionAttrs] = defineField("description");
 
 const onSubmit = handleSubmit(async (values) => {
   try {
+    const normalizedDescription =
+      values.description && values.description.trim()
+        ? values.description.trim()
+        : null;
+
     await store.createProject({
-      name: values.name,
-      description: values.description || null,
+      name: values.name.trim(),
+      description: normalizedDescription,
       color: "#" + selectedColor.value,
     });
 
