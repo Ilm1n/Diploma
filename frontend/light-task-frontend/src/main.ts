@@ -18,6 +18,7 @@ import 'primeicons/primeicons.css';
 import './style.css';
 import '@/assets/styles/primevue-overrides.css';
 import {definePreset} from "@primevue/themes";
+import { bootstrapAnalytics } from '@/shared/analytics/bootstrap';
 
 const KantanoPreset = definePreset(Aura, {
   semantic: {
@@ -61,6 +62,7 @@ const head = createHead();
 app.use(createPinia());
 app.use(router);
 app.use(head);
+bootstrapAnalytics(router);
 
 app.use(PrimeVue, {
   theme: {

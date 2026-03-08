@@ -7,6 +7,7 @@ import { useConfirm } from "primevue/useconfirm";
 import { useForm } from "vee-validate";
 import { toTypedSchema } from "@vee-validate/zod";
 import * as z from "zod";
+import { openCookieSettings } from "@/shared/consent/consent";
 
 // UI
 import InputText from "primevue/inputtext";
@@ -155,6 +156,13 @@ const onSubmit = handleSubmit(async (values) => {
       <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400">
         Управляйте личной информацией и безопасностью
       </p>
+      <button
+        type="button"
+        class="mt-2 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline"
+        @click="openCookieSettings"
+      >
+        Настройки cookie
+      </button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">

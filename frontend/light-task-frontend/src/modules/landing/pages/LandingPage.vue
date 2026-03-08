@@ -3,6 +3,7 @@ import { ref} from 'vue';
 import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { useWindowScroll } from '@vueuse/core';
+import { openCookieSettings } from '@/shared/consent/consent';
 
 import avatar1 from '@/assets/images/testimonials/user1.webp';
 import avatar2 from '@/assets/images/testimonials/user2.webp';
@@ -415,6 +416,13 @@ const faqList = [
           <h3 class="font-bold mb-6">Ресурсы</h3>
           <nav class="flex flex-col gap-4 text-slate-400 text-sm">
             <a href="https://github.com/Ilm1n" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors no-underline">GitHub</a>
+            <button
+              type="button"
+              class="text-left hover:text-white transition-colors"
+              @click="openCookieSettings"
+            >
+              Настройки cookie
+            </button>
           </nav>
         </div>
         <div>
