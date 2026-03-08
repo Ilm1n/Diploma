@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Any
+
 from pydantic import Field, EmailStr, computed_field
 
 from src.config import settings
+from src.errors import SuccessCode
 from src.schemas import BaseSchema
 from src.projects.constants import ProjectRole
 
@@ -29,6 +32,11 @@ class InvitationRead(BaseSchema):
         return f"{settings.invite.base_url}/{self.token}"
 
 
+class SuccessPayload(BaseSchema):
+    code: SuccessCode
+    params: dict[str, Any] | None = None
+
+
 class InvitationAcceptResponse(BaseSchema):
     project_id: int
-    message: str
+    success: SuccessPayload

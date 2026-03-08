@@ -10,7 +10,7 @@ from src.auth.schemas import UserPayload
 from src.boards.models import BoardColumn, Task
 from src.db.database import db_helper
 from src.projects.constants import ProjectRole
-from src.messages import MESSAGES
+from src.errors import ErrorCode
 from src.projects.models import ProjectMember
 
 
@@ -32,7 +32,7 @@ async def get_valid_column(
     if not column:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=MESSAGES["COLUMN_NOT_FOUND"],
+            detail=ErrorCode.COLUMN_NOT_FOUND,
         )
     return column
 
@@ -64,7 +64,7 @@ class TaskAccessChecker:
         if not task:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=MESSAGES["TASK_NOT_FOUND"],
+                detail=ErrorCode.TASK_NOT_FOUND,
             )
 
         query = select(ProjectMember).where(
@@ -76,7 +76,7 @@ class TaskAccessChecker:
         if not member:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
+                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
             )
 
         if member.role in [ProjectRole.OWNER, ProjectRole.MANAGER]:
@@ -85,14 +85,14 @@ class TaskAccessChecker:
         if self.required_roles and member.role not in self.required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
+                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
             )
 
         if self.check_assignee and member.role == ProjectRole.MEMBER:
             if task.assignee_id != user.sub:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=MESSAGES["MEMBERS_ONLY_OWN_TASKS"],
+                    detail=ErrorCode.MEMBERS_ONLY_OWN_TASKS,
                 )
 
         return task

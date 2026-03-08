@@ -10,7 +10,7 @@ import src.security as security
 from src.config import settings
 from src.db.database import db_helper
 from src.logger import user_logger
-from src.messages import MESSAGES
+from src.errors import ErrorCode
 from src.s3 import S3Client
 from src.users.models import User
 from src.users.schemas import UserCreate, UserUpdate
@@ -43,7 +43,7 @@ class UserService:
             )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=MESSAGES["USERNAME_OR_EMAIL_EXISTS"],
+                detail=ErrorCode.USERNAME_OR_EMAIL_EXISTS,
             )
 
     async def get_user_by_id(self, user_id: int) -> User:
@@ -51,7 +51,7 @@ class UserService:
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=MESSAGES["USER_NOT_FOUND"],
+                detail=ErrorCode.USER_NOT_FOUND,
             )
         return user
 
@@ -78,7 +78,7 @@ class UserService:
             user_logger.warning(f"Failed to update user - username already taken")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=MESSAGES["USERNAME_TAKEN"],
+                detail=ErrorCode.USERNAME_TAKEN,
             )
 
     async def upload_avatar(
@@ -102,7 +102,7 @@ class UserService:
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=MESSAGES["FILE_UPLOAD_FAILED"],
+                detail=ErrorCode.FILE_UPLOAD_FAILED,
             )
 
         user.avatar_url = public_url
@@ -118,7 +118,7 @@ class UserService:
             user_logger.exception(f"Failed to commit avatar upload for user {user.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DB_COMMIT_FAILED"],
+                detail=ErrorCode.DB_COMMIT_FAILED,
             )
 
         if old_avatar_url:

@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from pwdlib import PasswordHash
 
 from src.config import settings
-from src.messages import MESSAGES
+from src.errors import ErrorCode
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
@@ -46,13 +46,13 @@ def decode_jwt(token: str) -> dict[str, Any]:
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=MESSAGES["TOKEN_EXPIRED"],
+            detail=ErrorCode.TOKEN_EXPIRED,
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=MESSAGES["COULD_NOT_VALIDATE"],
+            detail=ErrorCode.COULD_NOT_VALIDATE,
             headers={"WWW-Authenticate": "Bearer"},
         )
 

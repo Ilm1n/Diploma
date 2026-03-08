@@ -8,7 +8,7 @@ from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.db.database import db_helper
 from src.projects.constants import ProjectRole
-from src.messages import MESSAGES
+from src.errors import ErrorCode
 from src.projects.models import ProjectMember
 from src.tags.models import Tag
 
@@ -27,7 +27,7 @@ class TagAccessChecker:
         if not tag:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=MESSAGES.get("TAG_NOT_FOUND", "Тег не найден"),
+                detail=ErrorCode.TAG_NOT_FOUND,
             )
 
         query = select(ProjectMember).where(
@@ -39,13 +39,13 @@ class TagAccessChecker:
         if not member:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=MESSAGES["NOT_A_PROJECT_MEMBER"],
+                detail=ErrorCode.NOT_A_PROJECT_MEMBER,
             )
 
         if member.role not in self.required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=MESSAGES["INSUFFICIENT_PERMISSIONS"],
+                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
             )
 
         return tag

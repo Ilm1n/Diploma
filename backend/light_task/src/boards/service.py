@@ -20,7 +20,7 @@ from src.boards.schemas import (
 from src.common.touch import touch_project
 from src.db.database import db_helper
 from src.logger import board_logger
-from src.messages import MESSAGES
+from src.errors import ErrorCode
 from src.projects.models import ProjectMember
 from src.tags.models import Tag
 
@@ -74,7 +74,7 @@ class BoardService:
             board_logger.exception(f"Failed to create column in project {project_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DATABASE_ERROR"],
+                detail=ErrorCode.DATABASE_ERROR,
             )
         return new_column
 
@@ -96,7 +96,7 @@ class BoardService:
             board_logger.exception(f"Failed to update column {column.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DATABASE_ERROR"],
+                detail=ErrorCode.DATABASE_ERROR,
             )
         return column
 
@@ -111,7 +111,7 @@ class BoardService:
             board_logger.exception(f"Failed to delete column {column.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DATABASE_ERROR"],
+                detail=ErrorCode.DATABASE_ERROR,
             )
 
     async def reorder_columns(
@@ -143,7 +143,7 @@ class BoardService:
                 )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=MESSAGES["DATABASE_ERROR"],
+                    detail=ErrorCode.DATABASE_ERROR,
                 )
 
     async def create_task(
@@ -157,13 +157,13 @@ class BoardService:
         if not column:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=MESSAGES["COLUMN_NOT_FOUND"],
+                detail=ErrorCode.COLUMN_NOT_FOUND,
             )
 
         if column.project_id != project_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=MESSAGES["COLUMN_BELONGS_ANOTHER_PROJECT"],
+                detail=ErrorCode.COLUMN_BELONGS_ANOTHER_PROJECT,
             )
 
         if column.tasks_limit is not None:
@@ -176,7 +176,7 @@ class BoardService:
             if current_count >= column.tasks_limit:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=MESSAGES["COLUMN_TASK_LIMIT_REACHED"],
+                    detail=ErrorCode.COLUMN_TASK_LIMIT_REACHED,
                 )
 
         if data.assignee_id:
@@ -191,7 +191,7 @@ class BoardService:
                 if data.assignee_id != author_id:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail=MESSAGES["MEMBERS_ONLY_OWN_TASKS"],
+                        detail=ErrorCode.MEMBERS_ONLY_OWN_TASKS,
                     )
 
             member_exists = await self.session.scalar(
@@ -205,7 +205,7 @@ class BoardService:
             if not member_exists:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=MESSAGES["ASSIGNEE_NOT_PROJECT_MEMBER"],
+                    detail=ErrorCode.ASSIGNEE_NOT_PROJECT_MEMBER,
                 )
 
         max_pos_query = select(func.max(Task.position)).where(
@@ -240,7 +240,7 @@ class BoardService:
             if len(tags) != len(data.tag_ids):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=MESSAGES["INVALID_TAG_IDS"],
+                    detail=ErrorCode.INVALID_TAG_IDS,
                 )
             new_task.tags = list(tags)
 
@@ -254,7 +254,7 @@ class BoardService:
             board_logger.exception(f"Failed to create task in project {project_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DATABASE_ERROR"],
+                detail=ErrorCode.DATABASE_ERROR,
             )
 
         return await self._get_task_with_tags(new_task.id)
@@ -300,7 +300,7 @@ class BoardService:
             if not target_col or target_col.project_id != task.project_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=MESSAGES["INVALID_TARGET_COLUMN"],
+                    detail=ErrorCode.INVALID_TARGET_COLUMN,
                 )
 
             if target_col.tasks_limit is not None:
@@ -312,7 +312,7 @@ class BoardService:
                 if cnt >= target_col.tasks_limit:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
-                        detail=MESSAGES["COLUMN_TASK_LIMIT_REACHED"],
+                        detail=ErrorCode.COLUMN_TASK_LIMIT_REACHED,
                     )
 
         attempts = 0
@@ -342,13 +342,13 @@ class BoardService:
                 board_logger.exception(f"Failed to move task {task.id}")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=MESSAGES["DATABASE_ERROR"],
+                    detail=ErrorCode.DATABASE_ERROR,
                 )
             return task
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=MESSAGES["DATABASE_ERROR"],
+            detail=ErrorCode.DATABASE_ERROR,
         )
 
     async def _calculate_new_position(
@@ -383,7 +383,7 @@ class BoardService:
             if anchor_pos is None:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=MESSAGES["ANCHOR_TASK_NOT_FOUND"],
+                    detail=ErrorCode.ANCHOR_TASK_NOT_FOUND,
                 )
 
             next_stmt = (
@@ -436,7 +436,7 @@ class BoardService:
             if not member_exists:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=MESSAGES["ASSIGNEE_NOT_PROJECT_MEMBER"],
+                    detail=ErrorCode.ASSIGNEE_NOT_PROJECT_MEMBER,
                 )
 
         if data.tag_ids is not None:
@@ -454,7 +454,7 @@ class BoardService:
             if len(tags) != len(data.tag_ids):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=MESSAGES["INVALID_TAG_IDS"],
+                    detail=ErrorCode.INVALID_TAG_IDS,
                 )
             task.tags = list(tags)
 
@@ -474,7 +474,7 @@ class BoardService:
             board_logger.exception(f"Failed to update task {task.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DATABASE_ERROR"],
+                detail=ErrorCode.DATABASE_ERROR,
             )
 
         return await self._get_task_with_tags(task.id)
@@ -490,7 +490,7 @@ class BoardService:
             board_logger.exception(f"Failed to delete task {task.id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=MESSAGES["DATABASE_ERROR"],
+                detail=ErrorCode.DATABASE_ERROR,
             )
 
     async def _get_task_with_tags(self, task_id: int) -> Task:

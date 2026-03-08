@@ -1,6 +1,8 @@
 import filetype
 from fastapi import UploadFile, HTTPException, status
 
+from src.errors import ErrorCode
+
 
 class FileValidator:
     def __init__(self, max_size: int, allowed_mimes: list[str]):
@@ -15,7 +17,10 @@ class FileValidator:
         if file_size > self.max_size:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File too large. Max size: {self.max_size / 1024 / 1024} MB",
+                detail={
+                    "code": ErrorCode.FILE_TOO_LARGE,
+                    "params": {"max_size_mb": self.max_size / 1024 / 1024},
+                },
             )
 
         content = await file.read()
@@ -26,7 +31,10 @@ class FileValidator:
             allowed_exts = [m.split("/")[-1] for m in self.allowed_mimes]
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail=f"Invalid file type. Allowed: {', '.join(allowed_exts)}",
+                detail={
+                    "code": ErrorCode.INVALID_FILE_TYPE,
+                    "params": {"allowed": allowed_exts},
+                },
             )
 
         return content, kind.extension, kind.mime

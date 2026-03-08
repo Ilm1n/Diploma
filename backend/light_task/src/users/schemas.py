@@ -1,4 +1,4 @@
-from pydantic import EmailStr, Field
+from pydantic import EmailStr, Field, field_validator
 
 from src.schemas import BaseSchema
 
@@ -22,6 +22,15 @@ class UserRead(UserBase):
 class UserUpdate(BaseSchema):
     username: str | None = Field(None, min_length=1, max_length=50)
     full_name: str | None = Field(None, min_length=1, max_length=255)
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def normalize_full_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
 
 class UserPublic(BaseSchema):
