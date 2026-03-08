@@ -13,6 +13,8 @@ type ApiErrorBody = {
 };
 
 const ERROR_CODE_PATTERN = /^[A-Z0-9_]+$/;
+const UNKNOWN_ERROR_MESSAGE =
+  RU_ERROR_MESSAGES.UNKNOWN_ERROR ?? 'Произошла неизвестная ошибка';
 
 function formatTemplate(
   template: string,
@@ -30,8 +32,8 @@ function formatTemplate(
 
 function getMessageByCode(code: string, params?: ErrorParams): string {
   const template = RU_ERROR_MESSAGES[code];
-  if (!template) {
-    return RU_ERROR_MESSAGES.UNKNOWN_ERROR;
+  if (typeof template !== 'string') {
+    return UNKNOWN_ERROR_MESSAGE;
   }
   return formatTemplate(template, params);
 }
@@ -65,12 +67,12 @@ export function getErrorMessage(error: unknown): string {
       return body;
     }
 
-    return error.message || RU_ERROR_MESSAGES.UNKNOWN_ERROR;
+    return error.message || UNKNOWN_ERROR_MESSAGE;
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return RU_ERROR_MESSAGES.UNKNOWN_ERROR;
+  return UNKNOWN_ERROR_MESSAGE;
 }
