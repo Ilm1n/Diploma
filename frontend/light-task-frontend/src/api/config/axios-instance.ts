@@ -2,7 +2,8 @@ import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { getAccessToken, setAccessTokenValue } from '@/modules/auth/lib/access-token';
 
-export const API_BASE_URL = import.meta.env.PROD ? '' : '';
+const rawBaseUrl = (import.meta.env.VITE_API_URL ?? '').trim();
+export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
 export const apiInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
