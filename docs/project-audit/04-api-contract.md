@@ -24,7 +24,7 @@
 | POST | `/api/users/register` | Public | Creates user |
 | GET | `/api/users/me` | Bearer | Current user profile |
 | PATCH | `/api/users/me` | Bearer | Update username/full_name |
-| GET | `/api/users/{user_id}` | Bearer | Public-ish user data includes email |
+| GET | `/api/users/{user_id}` | Bearer | Public profile without email |
 | POST | `/api/users/me/avatar` | Bearer | Multipart avatar upload |
 | DELETE | `/api/users/me/avatar` | Bearer | Removes avatar |
 
@@ -68,7 +68,7 @@
 |---|---|---|---|
 | POST | `/api/projects/{project_id}/invite` | Manager+ | Create invite link |
 | GET | `/api/projects/{project_id}/invitations` | Manager+ | List project invites |
-| DELETE | `/api/projects/{project_id}/invitations/{invitation_id}` | Manager+ | Delete invite |
+| DELETE | `/api/projects/{project_id}/invitations/{invitation_id}` | Manager+ | Delete invite, `404` if invitation does not exist |
 | POST | `/api/invitations/{token}/accept` | Bearer | Accept invite |
 
 ### System
@@ -80,8 +80,9 @@
 - Task create/update supports tag assignment by `tag_ids`.
 - Task move contract: `{ newColumnId, afterTaskId|null }`.
 - Project/member role enum: `OWNER | MANAGER | MEMBER`.
-- Invitation create supports role/email/max_uses/expires_in_days.
+- Invitation create supports role/email/max_uses/expires_in_days; non-owner inviters cannot assign `OWNER`.
 - Invitation read includes computed `link` using configured `invite.base_url`.
+- `ProjectMemberRead.user` uses collaborator DTO with email, while `UserPublic` stays email-free.
 
 ### 4) Error/Success Semantics
 - Domain errors map to `ErrorCode` values (frontend maps these codes to RU messages).
@@ -93,12 +94,8 @@
 
 ## Risks
 - Contract drift risk: `openapi.json` and generated frontend client are snapshot-based and can become stale if backend changes without regeneration.
-- Authorization caveat: invitation role creation currently permits elevated role values when caller is manager.
-- Privacy caveat: `UserPublic` includes email and is returned by `/users/{user_id}`.
 
 ## Open Questions
-- Should `/users/{user_id}` return a reduced public schema without email?
-- Should invitation creation enforce caller maximum role (e.g., manager cannot invite owner)?
 - Should CI include OpenAPI diff check to prevent contract drift?
 
 ## References
@@ -139,13 +136,18 @@
 - `backend/light_task/src/invitations/router.py:18`
 - `backend/light_task/src/invitations/router.py:37`
 - `backend/light_task/src/invitations/router.py:46`
+- `backend/light_task/src/invitations/router.py:49`
 - `backend/light_task/src/invitations/router.py:59`
 - `backend/light_task/src/main.py:81`
 - `backend/light_task/src/boards/schemas.py:30`
 - `backend/light_task/src/boards/schemas.py:47`
 - `backend/light_task/src/projects/constants.py:4`
 - `backend/light_task/src/invitations/schemas.py:13`
+- `backend/light_task/src/invitations/service.py:56`
 - `backend/light_task/src/invitations/schemas.py:32`
+- `backend/light_task/src/users/schemas.py:36`
+- `backend/light_task/src/users/schemas.py:43`
+- `backend/light_task/src/projects/schemas.py:55`
 - `frontend/light-task-frontend/openapi.json:8`
 - `frontend/light-task-frontend/openapi.json:1765`
 - `frontend/light-task-frontend/src/api/client/services/DefaultService.ts:1`

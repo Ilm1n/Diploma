@@ -96,10 +96,10 @@ rg -n "API_BASE_URL|VITE_API_URL" frontend/light-task-frontend/src/api/config/ax
 - Did you update corresponding docs and risk status?
 
 ### 6) Suggested First Tasks For New Contributors
-- `Task A`: fix frontend API base URL env wiring.
-- `Task B`: prohibit manager-created owner invitations.
-- `Task C`: fix `touch_project` commit ordering in member role update.
-- `Task D`: expand `.gitignore` for runtime outputs.
+- `Task A`: define refresh-token rotation/revocation strategy.
+- `Task B`: align product copy and infra around current non-WebSocket runtime.
+- `Task C`: decide whether deploy should stay manual-only.
+- `Task D`: add automated regression coverage for recently fixed permission/privacy flows.
 
 ## Dependencies
 - Requires Docker/Compose for quick backend start.

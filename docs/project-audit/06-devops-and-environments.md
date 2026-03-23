@@ -51,7 +51,7 @@ Root `.env.template` defines backend-centric contract:
 - Auth options (`AUTH_JWT__SECURE`, token TTL).
 - S3 credentials + bucket.
 
-Frontend has separate `.env.template` with `VITE_API_URL`, but current runtime code uses empty-string base URL expression.
+Frontend has separate `.env.template` with `VITE_API_URL`; runtime trims trailing slashes and falls back to same-origin `/api` proxy behavior when value is empty.
 
 ### 6) Secrets and Boundaries
 - JWT private/public keys expected in `certs/`.
@@ -68,14 +68,10 @@ Frontend has separate `.env.template` with `VITE_API_URL`, but current runtime c
 ## Risks
 - Manual-only deploy trigger can create drift between main branch and production if release discipline is weak.
 - Caddy routes `/ws/*`, but no backend WebSocket handlers currently registered.
-- `.gitignore` is minimal; runtime-generated files like `logs/` are not ignored by default.
-- Frontend API URL env variable is currently not wired to API base URL logic.
 
 ## Open Questions
 - Should push-to-main deploy be re-enabled with environment protection rules?
 - Should `/ws/*` route remain reserved for roadmap or be removed until implemented?
-- Should `.gitignore` include logs/build artifacts to reduce accidental commits?
-- Should frontend env contract be normalized and validated in CI?
 
 ## References
 - `docker-compose.dev.yml:3`

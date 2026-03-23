@@ -66,9 +66,9 @@ Observed pattern mostly consistent:
 - optional `touch_project`
 - `commit` + error mapping to `ErrorCode.DATABASE_ERROR`
 
-Notable exceptions:
-- `ProjectService.update_member_role` calls `commit` and then `touch_project` without an extra commit.
-- `InvitationService.delete_invitation` returns success even when invite id not found (idempotent behavior, but contract implicit).
+Current notable clarifications:
+- `ProjectService.update_member_role` calls `touch_project` before `commit`, so project recency is persisted together with role change.
+- `InvitationService.delete_invitation` now returns `404` for missing invite ids via explicit contract path.
 
 ### 7) Error Model & Response Normalization
 - Backend defines explicit `ErrorCode` and `SuccessCode` enums.
@@ -87,16 +87,11 @@ Notable exceptions:
 - API runtime: `fastapi[standard]`, `uvicorn`.
 
 ## Risks
-- Role escalation risk in invitation flow: manager-level endpoint accepts arbitrary `ProjectRole`, including `OWNER`.
-- Potential stale project recency (`updated_at`) in role update flow due commit ordering.
 - Stateless refresh token model has no server-side revocation list/jti tracking.
-- Email visibility policy for `UserPublic` may be broader than expected for collaboration-only usage.
 
 ## Open Questions
-- Should managers be forbidden from issuing `OWNER` invitation roles?
-- Is project `updated_at` intended to change after member role update? If yes, commit order should be fixed.
 - Is current refresh-token model acceptable for production security policy, or rotation + revocation is required?
-- Should `/api/users/{user_id}` expose email to any authenticated user?
+- Should collaborator-only fields such as email stay limited to project membership payloads?
 
 ## References
 - `backend/light_task/src/main.py:30`
@@ -127,14 +122,16 @@ Notable exceptions:
 - `backend/light_task/src/projects/service.py:270`
 - `backend/light_task/src/projects/service.py:327`
 - `backend/light_task/src/projects/service.py:328`
-- `backend/light_task/src/invitations/router.py:26`
+- `backend/light_task/src/invitations/router.py:49`
 - `backend/light_task/src/invitations/schemas.py:13`
-- `backend/light_task/src/invitations/service.py:35`
-- `backend/light_task/src/invitations/service.py:78`
-- `backend/light_task/src/invitations/service.py:88`
+- `backend/light_task/src/invitations/service.py:32`
+- `backend/light_task/src/invitations/service.py:56`
+- `backend/light_task/src/invitations/service.py:103`
+- `backend/light_task/src/invitations/service.py:116`
 - `backend/light_task/src/users/router.py:50`
 - `backend/light_task/src/users/schemas.py:36`
-- `backend/light_task/src/users/schemas.py:41`
+- `backend/light_task/src/users/schemas.py:43`
+- `backend/light_task/src/projects/schemas.py:55`
 - `backend/light_task/src/errors.py:11`
 - `backend/light_task/src/errors.py:61`
 - `backend/light_task/src/errors.py:80`

@@ -74,13 +74,11 @@ Guard behavior (`beforeEach`):
 - Analytics: Yandex Metrika script (`mc.yandex.ru`).
 
 ## Risks
-- API base URL configurability mismatch: frontend `.env.template` declares `VITE_API_URL`, but runtime base URL currently hardcoded to empty string expression.
 - Marketing/runtime mismatch: landing states WebSocket-based realtime while frontend/backend stack currently operates request/response only.
 - `board.store` is a large orchestration object (high coupling, potential regression surface).
-- Profile email update flow intentionally incomplete (TODO marker present).
+- Profile email update flow intentionally unavailable in UI until a separate verified flow is designed.
 
 ## Open Questions
-- Should API base URL switch to `import.meta.env.VITE_API_URL` with a fallback strategy?
 - Is landing promise about WebSockets intended roadmap or outdated copy?
 - Should `board.store` be decomposed into domain-specific stores for maintainability?
 - Should profile email update be implemented as a separate verified flow now?
