@@ -46,10 +46,14 @@ pnpm gen:api   # перегенерация OpenAPI client
 ## 5. Генерация API клиента
 Клиент генерируется в `src/api/client`:
 ```bash
+cd backend/light_task
+uv run python scripts/export_openapi.py
+
+cd ../../frontend/light-task-frontend
 pnpm gen:api
 ```
 
-Запускай после изменения backend OpenAPI контракта.
+Сначала обнови `openapi.json` из backend, затем перегенерируй client.
 
 ## 6. Analytics Debug (Yandex Metrika)
 - в production аналитика включается только для whitelisted host'ов в `src/shared/analytics/yandex.ts`

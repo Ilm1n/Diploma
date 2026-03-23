@@ -46,6 +46,7 @@ async def get_project_invitations(
 @router.delete(
     "/projects/{project_id}/invitations/{invitation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses={404: {"description": "Invitation not found"}},
 )
 async def delete_invitation(
     project_id: int,

@@ -39,6 +39,7 @@ export { TaskPriority } from './models/TaskPriority';
 export type { TaskRead } from './models/TaskRead';
 export type { TaskUpdate } from './models/TaskUpdate';
 export type { Token } from './models/Token';
+export type { UserCollaborator } from './models/UserCollaborator';
 export type { UserCreate } from './models/UserCreate';
 export type { UserPublic } from './models/UserPublic';
 export type { UserRead } from './models/UserRead';

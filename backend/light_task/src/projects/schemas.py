@@ -5,7 +5,7 @@ from pydantic import Field, field_validator
 from src.constants import HEX_COLOR_PATTERN
 from src.schemas import BaseSchema
 from src.projects.constants import ProjectRole
-from src.users.schemas import UserPublic
+from src.users.schemas import UserCollaborator
 
 
 class ProjectBase(BaseSchema):
@@ -52,7 +52,7 @@ class ProjectRead(ProjectBase):
 
 class ProjectMemberRead(BaseSchema):
     id: int
-    user: UserPublic
+    user: UserCollaborator
     role: ProjectRole
     joined_at: datetime
 

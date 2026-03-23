@@ -324,8 +324,8 @@ class ProjectService:
         member.role = data.role
         self.session.add(member)
         try:
-            await self.session.commit()
             await touch_project(self.session, project_id)
+            await self.session.commit()
             await self.session.refresh(member)
             project_logger.info(
                 f"Member {user_id} role updated to {data.role} in project {project_id}"

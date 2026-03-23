@@ -101,6 +101,7 @@ export class ProjectsService {
                 'project_id': projectId,
             },
             errors: {
+                404: `Invitation not found`,
                 422: `Validation Error`,
             },
         });

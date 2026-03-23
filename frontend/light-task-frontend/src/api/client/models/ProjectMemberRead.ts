@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ProjectRole } from './ProjectRole';
-import type { UserPublic } from './UserPublic';
+import type { UserCollaborator } from './UserCollaborator';
 export type ProjectMemberRead = {
     id: number;
-    user: UserPublic;
+    user: UserCollaborator;
     role: ProjectRole;
     joinedAt: string;
 };

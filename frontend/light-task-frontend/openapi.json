@@ -545,6 +545,9 @@
           "204": {
             "description": "Successful Response"
           },
+          "404": {
+            "description": "Invitation not found"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2155,7 +2158,7 @@
             "title": "Id"
           },
           "user": {
-            "$ref": "#/components/schemas/UserPublic"
+            "$ref": "#/components/schemas/UserCollaborator"
           },
           "role": {
             "$ref": "#/components/schemas/ProjectRole"
@@ -2174,6 +2177,54 @@
           "joinedAt"
         ],
         "title": "ProjectMemberRead"
+      },
+      "UserCollaborator": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "fullName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fullname"
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatarurl"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "fullName",
+          "avatarUrl",
+          "email"
+        ],
+        "title": "UserCollaborator"
       },
       "ProjectMemberUpdate": {
         "properties": {
@@ -2818,11 +2869,6 @@
               }
             ],
             "title": "Avatarurl"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
           }
         },
         "type": "object",
@@ -2830,8 +2876,7 @@
           "id",
           "username",
           "fullName",
-          "avatarUrl",
-          "email"
+          "avatarUrl"
         ],
         "title": "UserPublic"
       },

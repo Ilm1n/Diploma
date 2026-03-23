@@ -170,8 +170,17 @@ docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphan
 ```
 
 ## 9. Полезные команды
+### Экспорт актуальной OpenAPI схемы во frontend
+```bash
+cd backend/light_task
+uv run python scripts/export_openapi.py
+```
+
 ### Перегенерация frontend API client
 ```bash
+cd backend/light_task
+uv run python scripts/export_openapi.py
+
 cd frontend/light-task-frontend
 pnpm gen:api
 ```

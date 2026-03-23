@@ -21,6 +21,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 // --- 1. Avatar Logic ---
 const avatarUrl = computed(() => authStore.user?.avatarUrl);
+const currentEmail = computed(() => authStore.user?.email || "");
 const userInitials = computed(
   () => authStore.user?.username?.slice(0, 1).toUpperCase() || "ME",
 );
@@ -101,7 +102,6 @@ const validationSchema = toTypedSchema(
   z.object({
     username: z.string().min(3, "Минимум 3 символа").max(50),
     fullName: z.string().max(255).optional().nullable(),
-    email: z.string().email(),
   }),
 );
 
@@ -110,13 +110,11 @@ const { defineField, handleSubmit, errors, isSubmitting } = useForm({
   initialValues: {
     username: authStore.user?.username || "",
     fullName: authStore.user?.fullName || "",
-    email: authStore.user?.email || "",
   },
 });
 
 const [username, usernameAttrs] = defineField("username");
 const [fullName, fullNameAttrs] = defineField("fullName");
-const [email, emailAttrs] = defineField("email");
 
 const onSubmit = handleSubmit(async (values) => {
   try {
@@ -128,7 +126,6 @@ const onSubmit = handleSubmit(async (values) => {
     await authStore.updateProfile({
       username: values.username,
       fullName: normalizedFullName,
-      // TODO: email отдельный флоу сделать
     });
     toast.add({
       severity: "success",
@@ -285,14 +282,16 @@ const onSubmit = handleSubmit(async (values) => {
               >
               <InputText
                 id="email"
-                v-model="email"
-                v-bind="emailAttrs"
+                :model-value="currentEmail"
                 disabled
                 class="w-full !bg-gray-100 dark:!bg-slate-800 !text-slate-500"
               />
-              <small class="text-slate-400"
-                >В данный момент нельзя изменить Email</small
+              <div
+                class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200"
               >
+                Изменение email пока недоступно. Когда добавим отдельный безопасный
+                flow, здесь появится управление адресом.
+              </div>
             </div>
 
             <!-- Actions -->

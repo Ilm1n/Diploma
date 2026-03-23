@@ -2,10 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type UserPublic = {
+export type UserCollaborator = {
     id: number;
     username: string;
     fullName: (string | null);
     avatarUrl: (string | null);
+    email: string;
 };
 

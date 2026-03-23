@@ -19,6 +19,7 @@ from src.invitations.schemas import (
     InvitationAcceptResponse,
     SuccessPayload,
 )
+from src.projects.constants import ProjectRole
 from src.projects.models import ProjectMember
 
 BASE_URL = settings.invite.base_url
@@ -34,6 +35,30 @@ class InvitationService:
         inviter_id: int,
         data: InvitationCreate,
     ) -> ProjectInvitation:
+        inviter_member = await self.session.scalar(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == inviter_id,
+            )
+        )
+        if not inviter_member:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ErrorCode.NOT_A_PROJECT_MEMBER,
+            )
+
+        if inviter_member.role == ProjectRole.MEMBER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
+            )
+
+        if data.role == ProjectRole.OWNER and inviter_member.role != ProjectRole.OWNER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
+            )
+
         token = secrets.token_urlsafe(32)
         expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
@@ -85,20 +110,25 @@ class InvitationService:
             ProjectInvitation.project_id == project_id,
         )
         invite = await self.session.scalar(query)
-        if invite:
-            await self.session.delete(invite)
-            try:
-                await self.session.commit()
-                invitation_logger.info(f"Invitation deleted: {invitation_id}")
-            except Exception as e:
-                await self.session.rollback()
-                invitation_logger.exception(
-                    f"Failed to delete invitation {invitation_id}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=ErrorCode.DATABASE_ERROR,
-                )
+        if not invite:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=ErrorCode.INVITATION_NOT_FOUND,
+            )
+
+        await self.session.delete(invite)
+        try:
+            await self.session.commit()
+            invitation_logger.info(f"Invitation deleted: {invitation_id}")
+        except Exception as e:
+            await self.session.rollback()
+            invitation_logger.exception(
+                f"Failed to delete invitation {invitation_id}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=ErrorCode.DATABASE_ERROR,
+            )
 
     async def accept_invitation(
         self,

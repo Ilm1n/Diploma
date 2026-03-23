@@ -38,4 +38,7 @@ class UserPublic(BaseSchema):
     username: str
     full_name: str | None
     avatar_url: str | None
+
+
+class UserCollaborator(UserPublic):
     email: EmailStr

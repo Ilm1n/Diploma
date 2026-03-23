@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useBoardStore } from "../../board/store/board.store.ts";
 import { useToast } from "primevue/usetoast";
 import { getErrorMessage } from "@/utils/error";
@@ -28,11 +28,32 @@ const targetEmail = ref("");
 const expiresInDays = ref(7);
 const maxUses = ref<number | null>(1);
 
-const roleOptions = [
-  { label: "Участник", value: ProjectRole.MEMBER },
-  { label: "Менеджер", value: ProjectRole.MANAGER },
-  { label: "Владелец", value: ProjectRole.OWNER },
-];
+const canInviteOwner = computed(
+  () => store.project?.currentUserRole === ProjectRole.OWNER,
+);
+
+const roleOptions = computed(() => {
+  const options = [
+    { label: "Участник", value: ProjectRole.MEMBER },
+    { label: "Менеджер", value: ProjectRole.MANAGER },
+  ];
+
+  if (canInviteOwner.value) {
+    options.push({ label: "Владелец", value: ProjectRole.OWNER });
+  }
+
+  return options;
+});
+
+watch(
+  canInviteOwner,
+  (value) => {
+    if (!value && selectedRole.value === ProjectRole.OWNER) {
+      selectedRole.value = ProjectRole.MANAGER;
+    }
+  },
+  { immediate: true },
+);
 
 const expireOptions = [
   { label: "1 день", value: 1 },
