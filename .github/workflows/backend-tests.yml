@@ -1,0 +1,81 @@
+name: Backend Tests
+
+on:
+  push:
+    paths:
+      - "backend/light_task/**"
+      - ".github/workflows/backend-tests.yml"
+      - "docker-compose.dev.yml"
+      - "docs/realtime-implementation/**"
+  pull_request:
+    paths:
+      - "backend/light_task/**"
+      - ".github/workflows/backend-tests.yml"
+      - "docker-compose.dev.yml"
+      - "docs/realtime-implementation/**"
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lighttask_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lighttask_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    defaults:
+      run:
+        working-directory: backend/light_task
+
+    env:
+      LIGHTTASK_CONFIG__DB__HOST: 127.0.0.1
+      LIGHTTASK_CONFIG__DB__PORT: "5432"
+      LIGHTTASK_CONFIG__DB__USER: postgres
+      LIGHTTASK_CONFIG__DB__PASSWORD: postgres
+      LIGHTTASK_CONFIG__DB__NAME: lighttask_test
+      LIGHTTASK_CONFIG__S3__ACCESS_KEY: test
+      LIGHTTASK_CONFIG__S3__SECRET_KEY: test
+      LIGHTTASK_CONFIG__S3__BUCKET_NAME: test
+      LIGHTTASK_CONFIG__AUTH_JWT__SECURE: "False"
+      LIGHTTASK_CONFIG__REALTIME__REDIS_URL: redis://127.0.0.1:6379/15
+      LIGHTTASK_CONFIG__REALTIME__PRESENCE_TTL_SECONDS: "2"
+      LIGHTTASK_CONFIG__REALTIME__PRESENCE_SYNC_INTERVAL_SECONDS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync Dependencies
+        run: uv sync --group dev
+
+      - name: Run Migrations
+        run: uv run alembic upgrade head
+
+      - name: Run Backend Tests
+        run: uv run pytest -q

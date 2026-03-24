@@ -1,3 +1,4 @@
+import os
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
@@ -6,6 +7,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from src.config import settings
 
@@ -19,12 +21,20 @@ class DatabaseHelper:
         pool_size: int = 5,
         max_overflow: int = 10,
     ):
+        engine_kwargs = {
+            "url": url,
+            "echo": echo,
+            "echo_pool": echo_pool,
+            "pool_size": pool_size,
+            "max_overflow": max_overflow,
+        }
+        if os.getenv("LIGHTTASK_TESTING") == "1":
+            engine_kwargs["poolclass"] = NullPool
+            engine_kwargs.pop("pool_size", None)
+            engine_kwargs.pop("max_overflow", None)
+
         self.engine: AsyncEngine = create_async_engine(
-            url=url,
-            echo=echo,
-            echo_pool=echo_pool,
-            pool_size=pool_size,
-            max_overflow=max_overflow,
+            **engine_kwargs,
         )
         self.async_session_maker = async_sessionmaker(
             bind=self.engine,

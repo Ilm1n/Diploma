@@ -1,0 +1,149 @@
+from __future__ import annotations
+
+import asyncio
+import os
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+import pytest
+import pytest_asyncio
+import redis.asyncio as redis
+from alembic import command
+from alembic.config import Config
+from fastapi.testclient import TestClient
+from sqlalchemy import text
+
+
+if sys.platform.startswith("win") and hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+
+def _setup_test_env() -> None:
+    os.environ.setdefault("LIGHTTASK_TESTING", "1")
+
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__DB__HOST",
+        os.getenv("LIGHTTASK_TEST_DB_HOST", "127.0.0.1"),
+    )
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__DB__PORT",
+        os.getenv("LIGHTTASK_TEST_DB_PORT", "55432"),
+    )
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__DB__USER",
+        os.getenv("LIGHTTASK_TEST_DB_USER", "postgres"),
+    )
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__DB__PASSWORD",
+        os.getenv("LIGHTTASK_TEST_DB_PASSWORD", "postgres"),
+    )
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__DB__NAME",
+        os.getenv("LIGHTTASK_TEST_DB_NAME", "lighttask_test"),
+    )
+
+    os.environ.setdefault("LIGHTTASK_CONFIG__S3__ACCESS_KEY", "test")
+    os.environ.setdefault("LIGHTTASK_CONFIG__S3__SECRET_KEY", "test")
+    os.environ.setdefault("LIGHTTASK_CONFIG__S3__BUCKET_NAME", "test")
+    os.environ.setdefault("LIGHTTASK_CONFIG__AUTH_JWT__SECURE", "False")
+
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__REALTIME__REDIS_URL",
+        os.getenv("LIGHTTASK_TEST_REDIS_URL", "redis://127.0.0.1:56379/15"),
+    )
+    os.environ.setdefault("LIGHTTASK_CONFIG__REALTIME__PRESENCE_TTL_SECONDS", "2")
+    os.environ.setdefault("LIGHTTASK_CONFIG__REALTIME__PRESENCE_SYNC_INTERVAL_SECONDS", "1")
+
+    _validate_test_isolation()
+
+
+def _validate_test_isolation() -> None:
+    if os.getenv("LIGHTTASK_TEST_ALLOW_NON_TEST_DB") == "1":
+        return
+
+    db_name = os.environ.get("LIGHTTASK_CONFIG__DB__NAME", "")
+    if "test" not in db_name.lower():
+        raise RuntimeError(
+            "Refusing to run integration tests against non-test database. "
+            "Set LIGHTTASK_TEST_DB_NAME to a dedicated test DB or explicitly set "
+            "LIGHTTASK_TEST_ALLOW_NON_TEST_DB=1."
+        )
+
+    redis_url = os.environ.get("LIGHTTASK_CONFIG__REALTIME__REDIS_URL", "")
+    parsed = urlparse(redis_url)
+    redis_db = parsed.path.lstrip("/")
+    if redis_db in {"", "0"}:
+        raise RuntimeError(
+            "Refusing to run integration tests against Redis DB 0. "
+            "Use a dedicated Redis DB index (for example /15) via LIGHTTASK_TEST_REDIS_URL."
+        )
+
+
+_setup_test_env()
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from src.config import settings  # noqa: E402
+from src.db.database import db_helper  # noqa: E402
+from src.main import main_app  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def apply_migrations() -> None:
+    root = Path(__file__).resolve().parents[1]
+    alembic_cfg = Config(str(root / "alembic.ini"))
+    command.upgrade(alembic_cfg, "head")
+
+
+@pytest_asyncio.fixture
+async def redis_client() -> redis.Redis:
+    client = redis.from_url(
+        settings.realtime.redis_url,
+        encoding="utf-8",
+        decode_responses=True,
+    )
+    await client.ping()
+    yield client
+    await client.aclose()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def clean_state(redis_client: redis.Redis) -> None:
+    async with db_helper.async_session_maker() as session:
+        result = await session.execute(
+            text(
+                "SELECT tablename FROM pg_tables "
+                "WHERE schemaname='public' AND tablename <> 'alembic_version'"
+            )
+        )
+        table_names = [row[0] for row in result.fetchall()]
+        if table_names:
+            quoted = ", ".join(f'"{name}"' for name in table_names)
+            await session.execute(text(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE"))
+            await session.commit()
+
+    await redis_client.flushdb()
+    yield
+
+    async with db_helper.async_session_maker() as session:
+        result = await session.execute(
+            text(
+                "SELECT tablename FROM pg_tables "
+                "WHERE schemaname='public' AND tablename <> 'alembic_version'"
+            )
+        )
+        table_names = [row[0] for row in result.fetchall()]
+        if table_names:
+            quoted = ", ".join(f'"{name}"' for name in table_names)
+            await session.execute(text(f"TRUNCATE TABLE {quoted} RESTART IDENTITY CASCADE"))
+            await session.commit()
+    await redis_client.flushdb()
+
+
+@pytest.fixture
+def client() -> TestClient:
+    with TestClient(main_app) as test_client:
+        yield test_client
