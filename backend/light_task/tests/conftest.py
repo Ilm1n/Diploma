@@ -20,6 +20,16 @@ if sys.platform.startswith("win") and hasattr(asyncio, "WindowsSelectorEventLoop
 
 
 def _setup_test_env() -> None:
+    test_dir = Path(__file__).resolve().parent
+    test_private_key = test_dir / "fixtures" / "jwt-private.pem"
+    test_public_key = test_dir / "fixtures" / "jwt-public.pem"
+
+    if not test_private_key.exists() or not test_public_key.exists():
+        raise RuntimeError(
+            "Missing test JWT keys in tests/fixtures. "
+            "Expected jwt-private.pem and jwt-public.pem for CI/local integration runs."
+        )
+
     os.environ.setdefault("LIGHTTASK_TESTING", "1")
 
     os.environ.setdefault(
@@ -47,6 +57,14 @@ def _setup_test_env() -> None:
     os.environ.setdefault("LIGHTTASK_CONFIG__S3__SECRET_KEY", "test")
     os.environ.setdefault("LIGHTTASK_CONFIG__S3__BUCKET_NAME", "test")
     os.environ.setdefault("LIGHTTASK_CONFIG__AUTH_JWT__SECURE", "False")
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__AUTH_JWT__PRIVATE_KEY_PATH",
+        str(test_private_key),
+    )
+    os.environ.setdefault(
+        "LIGHTTASK_CONFIG__AUTH_JWT__PUBLIC_KEY_PATH",
+        str(test_public_key),
+    )
 
     os.environ.setdefault(
         "LIGHTTASK_CONFIG__REALTIME__REDIS_URL",
