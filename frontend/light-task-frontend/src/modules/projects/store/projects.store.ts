@@ -2,11 +2,34 @@ import {defineStore} from 'pinia';
 import {ref} from 'vue';
 import {apiClient} from '@/api/config';
 import type {ProjectRead, ProjectCreate} from '@/api/client';
+import { withClientMutationId } from '@/modules/realtime/lib/mutation-id';
+
+type RealtimeUserEvent = {
+  eventType: string;
+  clientMutationId?: string | null;
+};
 
 export const useProjectsStore = defineStore('projects', () => {
   // State
   const projects = ref<ProjectRead[]>([]);
   const isLoading = ref(false);
+  const pendingMutationIds = ref<Set<string>>(new Set());
+
+  function rememberPendingMutation(mutationId: string) {
+    pendingMutationIds.value.add(mutationId);
+    window.setTimeout(() => {
+      pendingMutationIds.value.delete(mutationId);
+    }, 60_000);
+  }
+
+  function consumePendingMutation(mutationId?: string | null): boolean {
+    if (!mutationId) return false;
+    const hasMutation = pendingMutationIds.value.has(mutationId);
+    if (hasMutation) {
+      pendingMutationIds.value.delete(mutationId);
+    }
+    return hasMutation;
+  }
 
   // Actions
   async function fetchProjects() {
@@ -25,7 +48,10 @@ export const useProjectsStore = defineStore('projects', () => {
   async function createProject(payload: ProjectCreate) {
     isLoading.value = true;
     try {
-      const newProject = await apiClient.projects.createProjectApiProjectsPost(payload);
+      const newProject = await withClientMutationId(async (mutationId) => {
+        rememberPendingMutation(mutationId);
+        return apiClient.projects.createProjectApiProjectsPost(payload);
+      });
       projects.value.unshift(newProject);
       return newProject;
     } catch (error) {
@@ -36,10 +62,27 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
+  async function applyUserScopeEvent(event: RealtimeUserEvent) {
+    if (consumePendingMutation(event.clientMutationId)) {
+      return;
+    }
+
+    if (
+      event.eventType === 'project.added_to_user' ||
+      event.eventType === 'project.removed_from_user' ||
+      event.eventType === 'project.list_item_updated'
+    ) {
+      await fetchProjects();
+    }
+  }
+
   return {
     projects,
     isLoading,
+    pendingMutationIds,
     fetchProjects,
-    createProject
+    createProject,
+    applyUserScopeEvent,
+    consumePendingMutation,
   };
 });

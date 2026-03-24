@@ -5,12 +5,14 @@ import type { TaskPreview } from '@/api/client';
 import Tag from 'primevue/tag';
 import { useBoardStore } from '../store/board.store';
 import UserAvatar from "@/shared/ui/UserAvatar.vue";
+import { useAuthStore } from '@/modules/auth/store/auth.store';
 
 const props = defineProps<{
   task: TaskPreview;
 }>();
 
 const store = useBoardStore();
+const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 
@@ -36,6 +38,16 @@ const priorityConfig = computed(() => {
     default:
       return { severity: 'info', label: 'Medium', icon: 'pi pi-minus' };
   }
+});
+
+const presence = computed(() => store.getTaskPresence(props.task.id));
+const editingOthersCount = computed(() => {
+  const currentUserId = authStore.user?.id;
+  return (presence.value.editingUserIds ?? []).filter(id => id !== currentUserId).length;
+});
+const viewingOthersCount = computed(() => {
+  const currentUserId = authStore.user?.id;
+  return (presence.value.viewingUserIds ?? []).filter(id => id !== currentUserId).length;
 });
 
 </script>
@@ -69,6 +81,14 @@ const priorityConfig = computed(() => {
       <h4 class="text-sm font-medium text-slate-800 dark:text-slate-100 leading-snug break-words">
         {{ task.title }}
       </h4>
+      <div
+        v-if="editingOthersCount > 0 || viewingOthersCount > 0"
+        class="mt-1.5 flex items-center gap-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400"
+      >
+        <i class="pi pi-eye"></i>
+        <span v-if="editingOthersCount > 0">{{ editingOthersCount }} редактируют</span>
+        <span v-else>{{ viewingOthersCount }} просматривают</span>
+      </div>
     </div>
 
     <!-- Footer: Priority & Assignee -->

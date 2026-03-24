@@ -10,8 +10,10 @@ import SidebarLink from '@/layouts/components/SidebarLink.vue';
 import Menu from 'primevue/menu';
 import {useBreakpoints} from "@vueuse/core";
 import UserAvatar from "@/shared/ui/UserAvatar.vue"; //
+import { useRealtimeStore } from '@/modules/realtime/store/realtime.store';
 
 const authStore = useAuthStore();
+const realtimeStore = useRealtimeStore();
 const router = useRouter();
 const {isDark, toggleTheme} = useTheme();
 const isMobileMenuOpen = ref(false);
@@ -81,6 +83,19 @@ const breakpoints = useBreakpoints({
 });
 
 const isMobile = breakpoints.smaller('lg');
+
+watch(
+  () => authStore.accessToken,
+  (token) => {
+    if (token) {
+      realtimeStore.connectUser();
+    } else {
+      realtimeStore.disconnectProject();
+      realtimeStore.disconnectUser();
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

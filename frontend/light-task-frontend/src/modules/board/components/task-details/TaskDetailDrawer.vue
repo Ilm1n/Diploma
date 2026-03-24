@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useBoardStore } from "../../store/board.store";
 import { watchDebounced } from "@vueuse/core";
 import { useToast } from "primevue/usetoast";
 import { getErrorMessage } from "@/utils/error";
 import { useConfirm } from "primevue/useconfirm";
-import type { TaskPriority, TaskUpdate } from "@/api/client";
+import type { TaskPriority, TaskRead, TaskUpdate } from "@/api/client";
+import { useAuthStore } from "@/modules/auth/store/auth.store";
+import { useRealtimeStore } from "@/modules/realtime/store/realtime.store";
 
 // UI Components
 import Drawer from "primevue/drawer";
@@ -19,10 +21,16 @@ import TaskSidebar from "./TaskSidebar.vue";
 const route = useRoute();
 const router = useRouter();
 const store = useBoardStore();
+const authStore = useAuthStore();
+const realtimeStore = useRealtimeStore();
 const toast = useToast();
 const confirm = useConfirm();
 
 const isVisible = ref(false);
+const isHydrating = ref(false);
+const editingPresenceActive = ref(false);
+let viewingHeartbeatTimer: number | null = null;
+let editingHeartbeatTimer: number | null = null;
 
 // --- Локальное состояние (Single Source of Truth для формы) ---
 const localTitle = ref("");
@@ -44,6 +52,39 @@ const lastSavedTime = computed(() => {
   });
 });
 
+const toSortedTagIds = (task: TaskRead | null): number[] =>
+  [...(task?.tags?.map((tag) => tag.id) ?? [])].sort((a, b) => a - b);
+
+const setLocalFromTask = (task: TaskRead) => {
+  isHydrating.value = true;
+  localTitle.value = task.title;
+  localDescription.value = task.description || "";
+  localAssigneeId.value = task.assigneeId || null;
+  localPriority.value = task.priority || null;
+  localTagIds.value = task.tags?.map((tag) => tag.id) || [];
+  isHydrating.value = false;
+};
+
+const hasUnsavedLocalChanges = (task: TaskRead): boolean => {
+  if (localTitle.value !== task.title) return true;
+  if (localDescription.value !== (task.description || "")) return true;
+  if ((localAssigneeId.value || null) !== (task.assigneeId || null)) return true;
+  if ((localPriority.value || null) !== (task.priority || null)) return true;
+
+  const localTags = [...localTagIds.value].sort((a, b) => a - b);
+  const taskTags = toSortedTagIds(task);
+  if (localTags.length !== taskTags.length) return true;
+  return localTags.some((id, index) => id !== taskTags[index]);
+};
+
+const editingUsersCount = computed(() => {
+  if (!store.selectedTask) return 0;
+  const currentUserId = authStore.user?.id;
+  return store
+    .getEditingUsers(store.selectedTask.id)
+    .filter((id) => id !== currentUserId).length;
+});
+
 // Форматирование дат создания/обновления
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return "—";
@@ -58,22 +99,24 @@ const formatDate = (dateStr?: string) => {
 // --- Инициализация при открытии ---
 watch(
   () => route.query.taskId,
-  async (newId) => {
+  async (newId, oldId) => {
+    if (oldId) {
+      const oldTaskId = Number(oldId);
+      if (!Number.isNaN(oldTaskId)) {
+        stopPresence(oldTaskId);
+      }
+    }
+
     if (newId) {
       const id = Number(newId);
       if (!isNaN(id)) {
         isVisible.value = true;
         await store.fetchTaskDetails(id);
+        startViewingPresence(id);
 
-        // Заполняем локальные поля из стора
         if (store.selectedTask) {
-          localTitle.value = store.selectedTask.title;
-          localDescription.value = store.selectedTask.description || "";
-          localAssigneeId.value = store.selectedTask.assigneeId || null;
-          localPriority.value = store.selectedTask.priority || null;
-          localTagIds.value = store.selectedTask.tags?.map((t) => t.id) || [];
-
-          lastSavedAt.value = null; // Сброс статуса
+          setLocalFromTask(store.selectedTask);
+          lastSavedAt.value = null;
         }
       }
     } else {
@@ -83,12 +126,55 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => store.selectedTask,
+  (task, previousTask) => {
+    if (!task || !previousTask) return;
+    if (!isVisible.value) return;
+    if (task.id !== previousTask.id) return;
+    if (task.updatedAt === previousTask.updatedAt) return;
+    if (isSaving.value || isHydrating.value) return;
+
+    if (hasUnsavedLocalChanges(previousTask)) {
+      toast.add({
+        severity: "warn",
+        summary: "Есть новые изменения",
+        detail: "Задача обновилась у другого участника. Сохрани или закрой текущие правки, чтобы применить их.",
+        life: 3500,
+      });
+      return;
+    }
+
+    setLocalFromTask(task);
+    toast.add({
+      severity: "info",
+      summary: "Обновлено",
+      detail: "Изменения в задаче применены в реальном времени",
+      life: 2000,
+    });
+  },
+);
+
 const onClose = () => {
+  if (store.selectedTask) {
+    stopPresence(store.selectedTask.id);
+  }
   isVisible.value = false;
   const query = { ...route.query };
   delete query.taskId;
   router.push({ query });
 };
+
+watch(
+  [localTitle, localDescription, localAssigneeId, localPriority, localTagIds],
+  () => {
+    if (!store.selectedTask || isHydrating.value) return;
+    if (!editingPresenceActive.value) {
+      startEditingPresence(store.selectedTask.id);
+    }
+  },
+  { deep: true },
+);
 
 // --- УНИВЕРСАЛЬНАЯ ФУНКЦИЯ СОХРАНЕНИЯ ---
 const performSave = async (payload: TaskUpdate) => {
@@ -214,6 +300,74 @@ const deleteTask = () => {
     },
   });
 };
+
+function startViewingPresence(taskId: number) {
+  realtimeStore.sendProjectMessage({
+    type: "task.viewing.started",
+    taskId,
+  });
+
+  if (viewingHeartbeatTimer) {
+    window.clearInterval(viewingHeartbeatTimer);
+  }
+  viewingHeartbeatTimer = window.setInterval(() => {
+    realtimeStore.sendProjectMessage({
+      type: "task.presence.heartbeat",
+      taskId,
+      mode: "viewing",
+    });
+  }, 1000);
+}
+
+function startEditingPresence(taskId: number) {
+  editingPresenceActive.value = true;
+  realtimeStore.sendProjectMessage({
+    type: "task.editing.started",
+    taskId,
+  });
+
+  if (editingHeartbeatTimer) {
+    window.clearInterval(editingHeartbeatTimer);
+  }
+  editingHeartbeatTimer = window.setInterval(() => {
+    realtimeStore.sendProjectMessage({
+      type: "task.presence.heartbeat",
+      taskId,
+      mode: "editing",
+    });
+  }, 1000);
+}
+
+function stopPresence(taskId: number) {
+  realtimeStore.sendProjectMessage({
+    type: "task.viewing.stopped",
+    taskId,
+  });
+
+  if (editingPresenceActive.value) {
+    realtimeStore.sendProjectMessage({
+      type: "task.editing.stopped",
+      taskId,
+    });
+  }
+
+  editingPresenceActive.value = false;
+
+  if (viewingHeartbeatTimer) {
+    window.clearInterval(viewingHeartbeatTimer);
+    viewingHeartbeatTimer = null;
+  }
+  if (editingHeartbeatTimer) {
+    window.clearInterval(editingHeartbeatTimer);
+    editingHeartbeatTimer = null;
+  }
+}
+
+onUnmounted(() => {
+  if (store.selectedTask) {
+    stopPresence(store.selectedTask.id);
+  }
+});
 </script>
 
 <template>
@@ -265,6 +419,13 @@ const deleteTask = () => {
 
       <!-- CONTENT -->
       <div v-else class="flex flex-col gap-8 pb-20">
+        <div
+          v-if="editingUsersCount > 0"
+          class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:border-amber-700/50 dark:bg-amber-900/20 dark:text-amber-300"
+        >
+          Эту задачу сейчас редактируют другие участники ({{ editingUsersCount }}).
+        </div>
+
         <!-- Task Title Section -->
         <div class="group flex flex-col gap-1">
           <label

@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useBoardStore } from "../store/board.store";
+import { useRealtimeStore } from "@/modules/realtime/store/realtime.store";
 import { VueDraggable } from "vue-draggable-plus";
 import { useToast } from "primevue/usetoast";
 import { useHead } from "@unhead/vue";
@@ -29,6 +30,7 @@ const newColumnName = ref("");
 const createInput = ref();
 const createColumnFormRef = ref(null);
 const router = useRouter();
+const realtimeStore = useRealtimeStore();
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller("lg");
@@ -109,13 +111,22 @@ const onColumnDrop = async () => {
 
 onMounted(() => {
   loadData();
+  const id = parseInt(props.projectId);
+  if (!isNaN(id)) {
+    realtimeStore.connectProject(id);
+  }
 });
 onUnmounted(() => {
+  realtimeStore.disconnectProject();
   store.clearState();
 });
 watch(
   () => props.projectId,
-  () => {
+  (value) => {
+    const id = parseInt(value);
+    if (!isNaN(id)) {
+      realtimeStore.connectProject(id);
+    }
     loadData();
   },
 );
