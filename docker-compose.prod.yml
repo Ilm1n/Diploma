@@ -53,6 +53,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-db
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   backend:
     image: ghcr.io/${IMAGE_REPO_OWNER}/lighttask-backend:${IMAGE_TAG:-main}
     restart: unless-stopped
@@ -69,8 +91,11 @@ services:
       - LIGHTTASK_CONFIG__RUN__PORT=8000
       - LIGHTTASK_CONFIG__RUN__CORS_ORIGINS=[]
       - LIGHTTASK_CONFIG__INVITE__BASE_URL=https://kantano.ru/invite
+      - LIGHTTASK_CONFIG__REALTIME__REDIS_URL=redis://redis:6379/0
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health" ]
