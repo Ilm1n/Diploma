@@ -15,6 +15,8 @@ from src.projects.router import router as project_router
 from src.users.router import router as user_router
 from src.tags.router import router as tag_router
 from src.invitations.router import router as invitation_router
+from src.realtimev1.router import router as realtime_router
+from src.realtimev1.runtime import build_realtime_runtime
 
 logger = get_logger(__name__)
 
@@ -30,10 +32,13 @@ from src.invitations.models import ProjectInvitation  # noqa: F401
 async def lifespan(app: FastAPI):
     # startup
     setup_logging()
+    app.state.realtime_runtime = build_realtime_runtime()
+    await app.state.realtime_runtime.start()
     logger.info("Application startup")
     yield
     # shutdown
     logger.info("Application shutdown")
+    await app.state.realtime_runtime.stop()
     await db_helper.dispose()
 
 
@@ -58,6 +63,7 @@ main_app.include_router(project_router, prefix="/api")
 main_app.include_router(board_router, prefix="/api")
 main_app.include_router(tag_router, prefix="/api")
 main_app.include_router(invitation_router, prefix="/api")
+main_app.include_router(realtime_router)
 
 
 @main_app.exception_handler(HTTPException)

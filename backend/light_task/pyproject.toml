@@ -17,11 +17,16 @@ dependencies = [
     "pydantic-settings>=2.11.0",
     "pydantic[email]>=2.11.10",
     "pyjwt[crypto]>=2.10.1",
+    "redis>=6.4.0",
     "sqlalchemy[asyncio]>=2.0.44",
 ]
 
 [dependency-groups]
 dev = [
     "black>=25.9.0",
+    "httpx>=0.28.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "pytest-cov>=7.0.0",
     "schemathesis>=4.7.5",
 ]

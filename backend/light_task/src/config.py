@@ -75,6 +75,15 @@ class Files(BaseModel):
     avatar_allowed_types: list[str] = ["image/jpeg", "image/png", "image/webp"]
 
 
+class RealtimeConfig(BaseModel):
+    redis_url: str = "redis://localhost:6379/0"
+    redis_channel: str = "realtime.v1.events"
+    ws_auth_timeout_seconds: int = 10
+    presence_ttl_seconds: int = 30
+    presence_sync_interval_seconds: int = 10
+    presence_key_prefix: str = "realtime:v1:presence"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(BASE_DIR.parent.parent / ".env",),
@@ -89,6 +98,7 @@ class Settings(BaseSettings):
     invite: InvitationConfig = InvitationConfig()
     s3: S3Config
     files: Files = Files()
+    realtime: RealtimeConfig = RealtimeConfig()
 
 
 settings = Settings()
