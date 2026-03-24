@@ -11,6 +11,7 @@ from src.invitations.schemas import (
 )
 from src.invitations.service import InvitationService, get_invitation_service
 from src.projects.dependencies import check_project_manager
+from src.realtimev1.dependencies import get_client_mutation_id
 
 router = APIRouter(tags=["Invitations"])
 
@@ -26,11 +27,13 @@ async def create_invitation(
     _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
     return await invitation_service.create_invitation(
         project_id=project_id,
         inviter_id=current_user.sub,
-        data=invite_in
+        data=invite_in,
+        client_mutation_id=client_mutation_id,
     )
 
 
@@ -52,9 +55,16 @@ async def delete_invitation(
     project_id: int,
     invitation_id: int,
     _: Annotated[None, Depends(check_project_manager)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await invitation_service.delete_invitation(invitation_id, project_id)
+    await invitation_service.delete_invitation(
+        invitation_id,
+        project_id,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.post(
@@ -65,5 +75,10 @@ async def accept_invitation(
     token: str,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await invitation_service.accept_invitation(token, current_user)
+    return await invitation_service.accept_invitation(
+        token,
+        current_user,
+        client_mutation_id=client_mutation_id,
+    )

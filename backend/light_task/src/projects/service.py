@@ -21,16 +21,25 @@ from src.projects.schemas import (
 )
 from src.tags.constants import DEFAULT_PROJECT_TAGS
 from src.tags.models import Tag
+from src.realtimev1.dependencies import get_event_publisher
+from src.realtimev1.domain_helpers import (
+    dump_project,
+    get_project_member_user_ids,
+)
+from src.realtimev1.events import RealtimeEventType, RealtimeScope
+from src.realtimev1.publisher import DomainEventPublisher
 
 
 class ProjectService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, event_publisher: DomainEventPublisher):
         self.session = session
+        self.event_publisher = event_publisher
 
     async def create_project(
         self,
         user_id: int,
         project_in: ProjectCreate,
+        client_mutation_id: str | None = None,
     ) -> ProjectRead:
         new_project = Project(
             name=project_in.name,
@@ -69,6 +78,13 @@ class ProjectService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
             )
+
+        await self._publish_project_added_to_user(
+            project=new_project,
+            user_id=user_id,
+            actor_user_id=user_id,
+            client_mutation_id=client_mutation_id,
+        )
 
         return ProjectRead(
             id=new_project.id,
@@ -146,6 +162,8 @@ class ProjectService:
         self,
         project: Project,
         project_update: ProjectUpdate,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> ProjectRead:
         update_data = project_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
@@ -166,6 +184,12 @@ class ProjectService:
                 detail=ErrorCode.DATABASE_ERROR,
             )
 
+        await self._publish_project_updated(
+            project=project,
+            actor_user_id=actor_user_id,
+            client_mutation_id=client_mutation_id,
+        )
+
         return ProjectRead(
             id=project.id,
             name=project.name,
@@ -180,7 +204,12 @@ class ProjectService:
     async def delete_project(
         self,
         project: Project,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> None:
+        project_id = project.id
+        affected_user_ids = await get_project_member_user_ids(self.session, project_id)
+
         await self.session.delete(project)
         try:
             await self.session.commit()
@@ -191,6 +220,25 @@ class ProjectService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
+            )
+
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_DELETED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=project_id,
+            payload={"projectId": project_id},
+            client_mutation_id=client_mutation_id,
+        )
+        if affected_user_ids:
+            await self.event_publisher.publish_event(
+                event_type=RealtimeEventType.PROJECT_REMOVED_FROM_USER,
+                scope=RealtimeScope.USER,
+                actor_user_id=actor_user_id,
+                user_ids=affected_user_ids,
+                project_id=project_id,
+                payload={"projectId": project_id},
+                client_mutation_id=client_mutation_id,
             )
 
     async def get_project_members(
@@ -211,6 +259,7 @@ class ProjectService:
         project_id: int,
         user_id: int,
         requester_id: int,
+        client_mutation_id: str | None = None,
     ) -> None:
         target_query = select(ProjectMember).where(
             ProjectMember.project_id == project_id, ProjectMember.user_id == user_id
@@ -267,12 +316,41 @@ class ProjectService:
                 detail=ErrorCode.DATABASE_ERROR,
             )
 
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.MEMBER_REMOVED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=requester_id,
+            project_id=project_id,
+            payload={"userId": user_id},
+            client_mutation_id=client_mutation_id,
+        )
+
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_REMOVED_FROM_USER,
+            scope=RealtimeScope.USER,
+            actor_user_id=requester_id,
+            project_id=project_id,
+            user_ids=[user_id],
+            payload={"projectId": project_id},
+            client_mutation_id=client_mutation_id,
+        )
+
+        remaining_user_ids = await get_project_member_user_ids(self.session, project_id)
+        await self._publish_project_list_item_updated(
+            project_id=project_id,
+            actor_user_id=requester_id,
+            user_ids=remaining_user_ids,
+            reason=RealtimeEventType.MEMBER_REMOVED,
+            client_mutation_id=client_mutation_id,
+        )
+
     async def update_member_role(
         self,
         project_id: int,
         user_id: int,
         data: ProjectMemberUpdate,
         requester_id: int,
+        client_mutation_id: str | None = None,
     ) -> ProjectMember:
         requester_query = select(ProjectMember).where(
             ProjectMember.project_id == project_id,
@@ -321,6 +399,7 @@ class ProjectService:
                 detail=ErrorCode.CANNOT_CHANGE_OWNER_ROLE,
             )
 
+        previous_role = member.role
         member.role = data.role
         self.session.add(member)
         try:
@@ -339,10 +418,112 @@ class ProjectService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
             )
+
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.MEMBER_ROLE_CHANGED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=requester_id,
+            project_id=project_id,
+            payload={
+                "userId": user_id,
+                "role": member.role,
+                "previousRole": previous_role,
+            },
+            client_mutation_id=client_mutation_id,
+        )
+
+        affected_user_ids = await get_project_member_user_ids(self.session, project_id)
+        await self._publish_project_list_item_updated(
+            project_id=project_id,
+            actor_user_id=requester_id,
+            user_ids=affected_user_ids,
+            reason=RealtimeEventType.MEMBER_ROLE_CHANGED,
+            client_mutation_id=client_mutation_id,
+        )
         return member
+
+    async def _publish_project_updated(
+        self,
+        *,
+        project: Project,
+        actor_user_id: int,
+        client_mutation_id: str | None,
+    ) -> None:
+        payload = {"project": dump_project(project)}
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_UPDATED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=project.id,
+            payload=payload,
+            client_mutation_id=client_mutation_id,
+        )
+        affected_user_ids = await get_project_member_user_ids(self.session, project.id)
+        await self._publish_project_list_item_updated(
+            project_id=project.id,
+            actor_user_id=actor_user_id,
+            user_ids=affected_user_ids,
+            reason=RealtimeEventType.PROJECT_UPDATED,
+            client_mutation_id=client_mutation_id,
+        )
+
+    async def _publish_project_added_to_user(
+        self,
+        *,
+        project: Project,
+        user_id: int,
+        actor_user_id: int,
+        client_mutation_id: str | None,
+    ) -> None:
+        payload = {"project": dump_project(project, current_user_role=ProjectRole.OWNER)}
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_ADDED_TO_USER,
+            scope=RealtimeScope.USER,
+            actor_user_id=actor_user_id,
+            project_id=project.id,
+            user_ids=[user_id],
+            payload=payload,
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=project.id,
+            actor_user_id=actor_user_id,
+            user_ids=[user_id],
+            reason=RealtimeEventType.PROJECT_ADDED_TO_USER,
+            client_mutation_id=client_mutation_id,
+        )
+
+    async def _publish_project_list_item_updated(
+        self,
+        *,
+        project_id: int,
+        actor_user_id: int,
+        user_ids: list[int],
+        reason: str | RealtimeEventType,
+        client_mutation_id: str | None,
+    ) -> None:
+        if not user_ids:
+            return
+        project_updated_at = await self.session.scalar(
+            select(Project.updated_at).where(Project.id == project_id)
+        )
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_LIST_ITEM_UPDATED,
+            scope=RealtimeScope.USER,
+            actor_user_id=actor_user_id,
+            user_ids=user_ids,
+            project_id=project_id,
+            payload={
+                "projectId": project_id,
+                "updatedAt": project_updated_at,
+                "reason": str(reason),
+            },
+            client_mutation_id=client_mutation_id,
+        )
 
 
 def get_project_service(
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
 ) -> ProjectService:
-    return ProjectService(session)
+    return ProjectService(session, event_publisher)

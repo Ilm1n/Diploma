@@ -19,6 +19,7 @@ from src.projects.schemas import (
     ProjectMemberUpdate,
 )
 from src.projects.service import ProjectService, get_project_service
+from src.realtimev1.dependencies import get_client_mutation_id
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
@@ -32,9 +33,12 @@ async def create_project(
     project_in: ProjectCreate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
     return await project_service.create_project(
-        user_id=current_user.sub, project_in=project_in
+        user_id=current_user.sub,
+        project_in=project_in,
+        client_mutation_id=client_mutation_id,
     )
 
 
@@ -62,11 +66,15 @@ async def update_project(
     project_id: int,
     project_update: ProjectUpdate,
     project: Annotated[Project, Depends(require_project_owner)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
     return await project_service.update_project(
         project=project,
         project_update=project_update,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
     )
 
 
@@ -74,9 +82,15 @@ async def update_project(
 async def delete_project(
     project_id: int,
     project: Annotated[Project, Depends(require_project_owner)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await project_service.delete_project(project)
+    await project_service.delete_project(
+        project,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.get("/{project_id}/members", response_model=list[ProjectMemberRead])
@@ -97,9 +111,13 @@ async def remove_project_member(
     _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
     await project_service.remove_member(
-        project_id=project_id, user_id=user_id, requester_id=current_user.sub
+        project_id=project_id,
+        user_id=user_id,
+        requester_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
     )
 
 
@@ -111,10 +129,12 @@ async def update_member_role(
     current_user: Annotated[UserPayload, Depends(get_current_user)],
     _: Annotated[None, Depends(check_project_owner)],
     project_service: Annotated[ProjectService, Depends(get_project_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
     return await project_service.update_member_role(
         project_id=project_id,
         user_id=user_id,
         data=member_update,
         requester_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
     )

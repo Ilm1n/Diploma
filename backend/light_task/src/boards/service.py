@@ -21,16 +21,25 @@ from src.common.touch import touch_project
 from src.db.database import db_helper
 from src.logger import board_logger
 from src.errors import ErrorCode
-from src.projects.models import ProjectMember
+from src.projects.models import Project, ProjectMember
 from src.tags.models import Tag
+from src.realtimev1.dependencies import get_event_publisher
+from src.realtimev1.domain_helpers import (
+    dump_column,
+    dump_task,
+    get_project_member_user_ids,
+)
+from src.realtimev1.events import RealtimeEventType, RealtimeScope
+from src.realtimev1.publisher import DomainEventPublisher
 
 POSITION_GAP = 65536.0
 MIN_POSITION_DELTA = 0.001
 
 
 class BoardService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, event_publisher: DomainEventPublisher):
         self.session = session
+        self.event_publisher = event_publisher
 
     async def get_board(
         self,
@@ -49,6 +58,8 @@ class BoardService:
         self,
         project_id: int,
         data: ColumnCreate,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> BoardColumn:
         query = select(func.max(BoardColumn.position)).where(
             BoardColumn.project_id == project_id
@@ -66,6 +77,7 @@ class BoardService:
         await touch_project(self.session, project_id)
         try:
             await self.session.commit()
+            await self.session.refresh(new_column)
             board_logger.info(
                 f"Column created: {new_column.id} in project {project_id}"
             )
@@ -76,12 +88,29 @@ class BoardService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
             )
-        return new_column
+
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.COLUMN_CREATED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=project_id,
+            payload={"column": dump_column(new_column)},
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=project_id,
+            actor_user_id=actor_user_id,
+            reason=RealtimeEventType.COLUMN_CREATED,
+            client_mutation_id=client_mutation_id,
+        )
+        return await self._get_column_with_tasks(new_column.id)
 
     async def update_column(
         self,
         column: BoardColumn,
         data: ColumnUpdate,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> BoardColumn:
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(column, key, value)
@@ -90,6 +119,7 @@ class BoardService:
         await touch_project(self.session, column.project_id)
         try:
             await self.session.commit()
+            await self.session.refresh(column)
             board_logger.info(f"Column updated: {column.id}")
         except Exception as e:
             await self.session.rollback()
@@ -98,26 +128,63 @@ class BoardService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
             )
-        return column
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.COLUMN_UPDATED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=column.project_id,
+            payload={"column": dump_column(column)},
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=column.project_id,
+            actor_user_id=actor_user_id,
+            reason=RealtimeEventType.COLUMN_UPDATED,
+            client_mutation_id=client_mutation_id,
+        )
+        return await self._get_column_with_tasks(column.id)
 
-    async def delete_column(self, column: BoardColumn) -> None:
+    async def delete_column(
+        self,
+        column: BoardColumn,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
+    ) -> None:
+        project_id = column.project_id
+        column_id = column.id
         await self.session.delete(column)
-        await touch_project(self.session, column.project_id)
+        await touch_project(self.session, project_id)
         try:
             await self.session.commit()
-            board_logger.info(f"Column deleted: {column.id}")
+            board_logger.info(f"Column deleted: {column_id}")
         except Exception as e:
             await self.session.rollback()
-            board_logger.exception(f"Failed to delete column {column.id}")
+            board_logger.exception(f"Failed to delete column {column_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
             )
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.COLUMN_DELETED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=project_id,
+            payload={"columnId": column_id},
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=project_id,
+            actor_user_id=actor_user_id,
+            reason=RealtimeEventType.COLUMN_DELETED,
+            client_mutation_id=client_mutation_id,
+        )
 
     async def reorder_columns(
         self,
         project_id: int,
         data: ColumnReorderRequest,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> None:
         stmt = select(BoardColumn).where(
             BoardColumn.project_id == project_id,
@@ -145,6 +212,20 @@ class BoardService:
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=ErrorCode.DATABASE_ERROR,
                 )
+            await self.event_publisher.publish_event(
+                event_type=RealtimeEventType.COLUMNS_REORDERED,
+                scope=RealtimeScope.PROJECT,
+                actor_user_id=actor_user_id,
+                project_id=project_id,
+                payload={"columnOrder": data.column_ids},
+                client_mutation_id=client_mutation_id,
+            )
+            await self._publish_project_list_item_updated(
+                project_id=project_id,
+                actor_user_id=actor_user_id,
+                reason=RealtimeEventType.COLUMNS_REORDERED,
+                client_mutation_id=client_mutation_id,
+            )
 
     async def create_task(
         self,
@@ -152,6 +233,7 @@ class BoardService:
         column_id: int,
         data: TaskCreate,
         author_id: int,
+        client_mutation_id: str | None = None,
     ) -> Task:
         column = await self.session.get(BoardColumn, column_id)
         if not column:
@@ -257,7 +339,22 @@ class BoardService:
                 detail=ErrorCode.DATABASE_ERROR,
             )
 
-        return await self._get_task_with_tags(new_task.id)
+        task = await self._get_task_with_tags(new_task.id)
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.TASK_CREATED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=author_id,
+            project_id=project_id,
+            payload={"task": dump_task(task)},
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=project_id,
+            actor_user_id=author_id,
+            reason=RealtimeEventType.TASK_CREATED,
+            client_mutation_id=client_mutation_id,
+        )
+        return task
 
     async def get_project_tasks(
         self,
@@ -294,7 +391,10 @@ class BoardService:
         self,
         task: Task,
         data: TaskMove,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> Task:
+        from_column_id = task.column_id
         if task.column_id != data.new_column_id:
             target_col = await self.session.get(BoardColumn, data.new_column_id)
             if not target_col or target_col.project_id != task.project_id:
@@ -344,6 +444,25 @@ class BoardService:
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=ErrorCode.DATABASE_ERROR,
                 )
+            moved_task = await self._get_task_with_tags(task.id)
+            await self.event_publisher.publish_event(
+                event_type=RealtimeEventType.TASK_MOVED,
+                scope=RealtimeScope.PROJECT,
+                actor_user_id=actor_user_id,
+                project_id=task.project_id,
+                payload={
+                    "task": dump_task(moved_task),
+                    "fromColumnId": from_column_id,
+                    "toColumnId": data.new_column_id,
+                },
+                client_mutation_id=client_mutation_id,
+            )
+            await self._publish_project_list_item_updated(
+                project_id=task.project_id,
+                actor_user_id=actor_user_id,
+                reason=RealtimeEventType.TASK_MOVED,
+                client_mutation_id=client_mutation_id,
+            )
             return task
 
         raise HTTPException(
@@ -423,6 +542,8 @@ class BoardService:
         self,
         task: Task,
         data: TaskUpdate,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
     ) -> Task:
         if data.assignee_id is not None and task.assignee_id != data.assignee_id:
             member_exists = await self.session.scalar(
@@ -477,29 +598,104 @@ class BoardService:
                 detail=ErrorCode.DATABASE_ERROR,
             )
 
-        return await self._get_task_with_tags(task.id)
+        updated_task = await self._get_task_with_tags(task.id)
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.TASK_UPDATED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=task.project_id,
+            payload={"task": dump_task(updated_task)},
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=task.project_id,
+            actor_user_id=actor_user_id,
+            reason=RealtimeEventType.TASK_UPDATED,
+            client_mutation_id=client_mutation_id,
+        )
+        return updated_task
 
-    async def delete_task(self, task: Task) -> None:
+    async def delete_task(
+        self,
+        task: Task,
+        actor_user_id: int,
+        client_mutation_id: str | None = None,
+    ) -> None:
+        task_id = task.id
+        project_id = task.project_id
+        column_id = task.column_id
         await self.session.delete(task)
-        await touch_project(self.session, task.project_id)
+        await touch_project(self.session, project_id)
         try:
             await self.session.commit()
-            board_logger.info(f"Task deleted: {task.id}")
+            board_logger.info(f"Task deleted: {task_id}")
         except Exception as e:
             await self.session.rollback()
-            board_logger.exception(f"Failed to delete task {task.id}")
+            board_logger.exception(f"Failed to delete task {task_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=ErrorCode.DATABASE_ERROR,
             )
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.TASK_DELETED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=actor_user_id,
+            project_id=project_id,
+            payload={"taskId": task_id, "columnId": column_id},
+            client_mutation_id=client_mutation_id,
+        )
+        await self._publish_project_list_item_updated(
+            project_id=project_id,
+            actor_user_id=actor_user_id,
+            reason=RealtimeEventType.TASK_DELETED,
+            client_mutation_id=client_mutation_id,
+        )
 
     async def _get_task_with_tags(self, task_id: int) -> Task:
         stmt = select(Task).where(Task.id == task_id).options(selectinload(Task.tags))
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
+    async def _get_column_with_tasks(self, column_id: int) -> BoardColumn:
+        stmt = (
+            select(BoardColumn)
+            .where(BoardColumn.id == column_id)
+            .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
+
+    async def _publish_project_list_item_updated(
+        self,
+        *,
+        project_id: int,
+        actor_user_id: int,
+        reason: str | RealtimeEventType,
+        client_mutation_id: str | None,
+    ) -> None:
+        affected_user_ids = await get_project_member_user_ids(self.session, project_id)
+        if not affected_user_ids:
+            return
+        project_updated_at = await self.session.scalar(
+            select(Project.updated_at).where(Project.id == project_id)
+        )
+        await self.event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_LIST_ITEM_UPDATED,
+            scope=RealtimeScope.USER,
+            actor_user_id=actor_user_id,
+            user_ids=affected_user_ids,
+            project_id=project_id,
+            payload={
+                "projectId": project_id,
+                "updatedAt": project_updated_at,
+                "reason": str(reason),
+            },
+            client_mutation_id=client_mutation_id,
+        )
+
 
 def get_board_service(
     session: Annotated[AsyncSession, Depends(db_helper.get_async_session)],
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
 ) -> BoardService:
-    return BoardService(session)
+    return BoardService(session, event_publisher)

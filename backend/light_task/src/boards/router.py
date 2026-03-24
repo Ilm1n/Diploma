@@ -19,6 +19,7 @@ from src.boards.schemas import (
     TaskPreview,
 )
 from src.boards.service import BoardService, get_board_service
+from src.realtimev1.dependencies import get_client_mutation_id
 
 from src.projects.dependencies import (
     check_project_member,
@@ -46,9 +47,16 @@ async def create_column(
     project_id: int,
     column_in: ColumnCreate,
     _: Annotated[None, Depends(check_project_manager)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.create_column(project_id, column_in)
+    return await board_service.create_column(
+        project_id,
+        column_in,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.patch(
@@ -58,10 +66,17 @@ async def create_column(
 async def update_column(
     column_update: ColumnUpdate,
     _: Annotated[None, Depends(check_project_manager)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.update_column(column, column_update)
+    return await board_service.update_column(
+        column,
+        column_update,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.delete(
@@ -70,10 +85,16 @@ async def update_column(
 )
 async def delete_column(
     _: Annotated[None, Depends(check_project_manager)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await board_service.delete_column(column)
+    await board_service.delete_column(
+        column,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.post(
@@ -84,9 +105,16 @@ async def reorder_columns(
     project_id: int,
     reorder_data: ColumnReorderRequest,
     _: Annotated[None, Depends(check_project_manager)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await board_service.reorder_columns(project_id, reorder_data)
+    await board_service.reorder_columns(
+        project_id,
+        reorder_data,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.post(
@@ -101,12 +129,14 @@ async def create_task(
     column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     _: Annotated[None, Depends(check_project_member)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
     return await board_service.create_task(
         project_id=project_id,
         column_id=column.id,
         data=task_in,
         author_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
     )
 
 
@@ -135,23 +165,43 @@ async def get_task_details(
 async def move_task(
     move_data: TaskMove,
     task: Annotated[Task, Depends(dependencies.get_task_for_update)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.move_task(task, move_data)
+    return await board_service.move_task(
+        task,
+        move_data,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskRead)
 async def update_task(
     task_update: TaskUpdate,
     task: Annotated[Task, Depends(dependencies.get_task_for_update)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.update_task(task, task_update)
+    return await board_service.update_task(
+        task,
+        task_update,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
     task: Annotated[Task, Depends(dependencies.get_task_for_delete)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
     board_service: Annotated[BoardService, Depends(get_board_service)],
+    client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await board_service.delete_task(task)
+    await board_service.delete_task(
+        task,
+        actor_user_id=current_user.sub,
+        client_mutation_id=client_mutation_id,
+    )
