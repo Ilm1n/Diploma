@@ -201,6 +201,12 @@
 - Reason: Пользовательский smoke выявил stale-state в открытом task drawer и stale `usedCount` в настройках приглашений; требовалось исправить без расширения event contract.
 - Impact: Открытый drawer синхронизируется realtime без переоткрытия при отсутствии локальных несохраненных правок; счетчики приглашений обновляются на релевантных событиях с best-effort refetch.
 
+- Date: 2026-03-24
+- Topic: CI-safe JWT key loading for backend tests
+- Decision: Добавить фиксированные test JWT ключи в `backend/light_task/tests/fixtures`, выставлять пути к ним в `tests/conftest.py`, а чтение ключей в `src/security.py` перевести на lazy loading с явной ошибкой конфигурации.
+- Reason: GitHub Actions падал на import-time с `FileNotFoundError` из-за отсутствия `certs/jwt-private.pem` в CI workspace.
+- Impact: `uv run pytest -q` стабильно стартует в CI/локально без зависимости от dev certs, а ошибка конфигурации JWT теперь диагностируется понятным сообщением.
+
 ## Open Questions
 
 - None currently.
@@ -268,3 +274,9 @@
 - Done: В `board.store` добавлен явный handler для `task.updated` с прямым применением snapshot в `selectedTask`; в `TaskDetailDrawer` добавлена realtime-гидратация формы при внешнем апдейте задачи (с защитой от перезаписи локальных несохраненных изменений). Для manager/owner добавлен refetch приглашений на `invitation.created`, `invitation.deleted`, `member.added`. Typecheck `pnpm exec vue-tsc -b` прошел успешно. Playwright smoke подтвержден для обоих сценариев: (1) описание задачи обновляется в открытом drawer второй вкладки без переоткрытия, (2) `usedCount` приглашения обновляется в открытых настройках после `accept` другим пользователем.
 - Next: Подготовка итогового PR/merge по realtime v1.
 - Risks: При конкурентном редактировании и несохраненных локальных правках действует non-destructive режим (локальные правки не перетираются автоматически, показывается предупреждение).
+
+- Date: 2026-03-24
+- Phase: Phase 8/9 CI hardening
+- Done: Исправлен CI crash на старте pytest: тестовое окружение теперь всегда использует ключи из `tests/fixtures`, а `src/security.py` больше не читает JWT файлы на import-time. Полный прогон `uv run pytest -q` локально проходит (`11 passed`).
+- Next: Дождаться зеленого GitHub Actions run после пуша fix-коммита и зафиксировать в release notes.
+- Risks: Если удалить `tests/fixtures/jwt-*.pem` или переопределить переменные путей несуществующими файлами, тестовый ран всё ещё упадет (теперь с явной диагностикой).
