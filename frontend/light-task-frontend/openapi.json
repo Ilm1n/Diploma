@@ -107,9 +107,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-
-                }
+                "schema": {}
               }
             }
           }
@@ -345,49 +343,44 @@
       }
     },
     "/api/projects/": {
-      "get": {
-        "tags": [
-          "Projects"
-        ],
-        "summary": "Get My Projects",
-        "operationId": "get_my_projects_api_projects__get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectRead"
-                  },
-                  "type": "array",
-                  "title": "Response Get My Projects Api Projects  Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
-      },
       "post": {
         "tags": [
           "Projects"
         ],
         "summary": "Create Project",
         "operationId": "create_project_api_projects__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProjectCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -410,12 +403,35 @@
               }
             }
           }
-        },
+        }
+      },
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get My Projects",
+        "operationId": "get_my_projects_api_projects__get",
         "security": [
           {
             "HTTPBearer": []
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectRead"
+                  },
+                  "title": "Response Get My Projects Api Projects  Get"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/projects/{project_id}": {
@@ -484,6 +500,22 @@
               "type": "integer",
               "title": "Project Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "requestBody": {
@@ -539,14 +571,27 @@
               "type": "integer",
               "title": "Project Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "responses": {
           "204": {
             "description": "Successful Response"
-          },
-          "404": {
-            "description": "Invitation not found"
           },
           "422": {
             "description": "Validation Error",
@@ -642,6 +687,22 @@
               "type": "integer",
               "title": "User Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "responses": {
@@ -688,6 +749,22 @@
             "schema": {
               "type": "integer",
               "title": "User Id"
+            }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
             }
           }
         ],
@@ -795,6 +872,22 @@
               "type": "integer",
               "title": "Project Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "requestBody": {
@@ -861,6 +954,22 @@
               "type": "integer",
               "title": "Column Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "requestBody": {
@@ -925,6 +1034,22 @@
               "type": "integer",
               "title": "Column Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "responses": {
@@ -964,6 +1089,22 @@
             "schema": {
               "type": "integer",
               "title": "Project Id"
+            }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
             }
           }
         ],
@@ -1023,6 +1164,22 @@
             "schema": {
               "type": "integer",
               "title": "Column Id"
+            }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
             }
           }
         ],
@@ -1229,6 +1386,22 @@
               "type": "integer",
               "title": "Task Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "requestBody": {
@@ -1284,6 +1457,22 @@
               "type": "integer",
               "title": "Task Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "responses": {
@@ -1323,6 +1512,22 @@
             "schema": {
               "type": "integer",
               "title": "Task Id"
+            }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
             }
           }
         ],
@@ -1430,6 +1635,22 @@
               "type": "integer",
               "title": "Project Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "requestBody": {
@@ -1487,6 +1708,22 @@
               "type": "integer",
               "title": "Tag Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "requestBody": {
@@ -1542,6 +1779,22 @@
               "type": "integer",
               "title": "Tag Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "responses": {
@@ -1581,6 +1834,22 @@
             "schema": {
               "type": "integer",
               "title": "Project Id"
+            }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
             }
           }
         ],
@@ -1699,11 +1968,30 @@
               "type": "integer",
               "title": "Invitation Id"
             }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
+            }
           }
         ],
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "404": {
+            "description": "Invitation not found"
           },
           "422": {
             "description": "Validation Error",
@@ -1738,6 +2026,22 @@
             "schema": {
               "type": "string",
               "title": "Token"
+            }
+          },
+          {
+            "name": "X-Client-Mutation-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Client-Mutation-Id"
             }
           }
         ],
@@ -1774,9 +2078,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-
-                }
+                "schema": {}
               }
             }
           }
@@ -1871,7 +2173,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "exclusiveMinimum": 0
+                "exclusiveMinimum": 0.0
               },
               {
                 "type": "null"
@@ -1970,7 +2272,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "exclusiveMinimum": 0
+                "exclusiveMinimum": 0.0
               },
               {
                 "type": "null"
@@ -2034,7 +2336,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -2046,8 +2348,8 @@
           },
           "expiresInDays": {
             "type": "integer",
-            "maximum": 30,
-            "minimum": 1,
+            "maximum": 30.0,
+            "minimum": 1.0,
             "title": "Expiresindays",
             "description": "Срок действия в днях",
             "default": 7
@@ -2177,54 +2479,6 @@
           "joinedAt"
         ],
         "title": "ProjectMemberRead"
-      },
-      "UserCollaborator": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "username": {
-            "type": "string",
-            "title": "Username"
-          },
-          "fullName": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fullname"
-          },
-          "avatarUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Avatarurl"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "username",
-          "fullName",
-          "avatarUrl",
-          "email"
-        ],
-        "title": "UserCollaborator"
       },
       "ProjectMemberUpdate": {
         "properties": {
@@ -2810,6 +3064,54 @@
           "accessToken"
         ],
         "title": "Token"
+      },
+      "UserCollaborator": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "fullName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fullname"
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatarurl"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "fullName",
+          "avatarUrl",
+          "email"
+        ],
+        "title": "UserCollaborator"
       },
       "UserCreate": {
         "properties": {

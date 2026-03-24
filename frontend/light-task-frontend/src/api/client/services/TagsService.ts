@@ -33,18 +33,23 @@ export class TagsService {
      * Create Tag
      * @param projectId
      * @param requestBody
+     * @param xClientMutationId
      * @returns TagRead Successful Response
      * @throws ApiError
      */
     public createTagApiProjectsProjectIdTagsPost(
         projectId: number,
         requestBody: TagCreate,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<TagRead> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/api/projects/{project_id}/tags',
             path: {
                 'project_id': projectId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -57,18 +62,23 @@ export class TagsService {
      * Update Tag
      * @param tagId
      * @param requestBody
+     * @param xClientMutationId
      * @returns TagRead Successful Response
      * @throws ApiError
      */
     public updateTagApiTagsTagIdPatch(
         tagId: number,
         requestBody: TagUpdate,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<TagRead> {
         return this.httpRequest.request({
             method: 'PATCH',
             url: '/api/tags/{tag_id}',
             path: {
                 'tag_id': tagId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -80,17 +90,22 @@ export class TagsService {
     /**
      * Delete Tag
      * @param tagId
+     * @param xClientMutationId
      * @returns void
      * @throws ApiError
      */
     public deleteTagApiTagsTagIdDelete(
         tagId: number,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<void> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/api/tags/{tag_id}',
             path: {
                 'tag_id': tagId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             errors: {
                 422: `Validation Error`,

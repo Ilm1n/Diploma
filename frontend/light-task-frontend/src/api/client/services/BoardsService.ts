@@ -40,18 +40,23 @@ export class BoardsService {
      * Create Column
      * @param projectId
      * @param requestBody
+     * @param xClientMutationId
      * @returns ColumnRead Successful Response
      * @throws ApiError
      */
     public createColumnApiProjectsProjectIdColumnsPost(
         projectId: number,
         requestBody: ColumnCreate,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<ColumnRead> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/api/projects/{project_id}/columns',
             path: {
                 'project_id': projectId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -65,6 +70,7 @@ export class BoardsService {
      * @param projectId
      * @param columnId
      * @param requestBody
+     * @param xClientMutationId
      * @returns ColumnRead Successful Response
      * @throws ApiError
      */
@@ -72,6 +78,7 @@ export class BoardsService {
         projectId: number,
         columnId: number,
         requestBody: ColumnUpdate,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<ColumnRead> {
         return this.httpRequest.request({
             method: 'PATCH',
@@ -79,6 +86,9 @@ export class BoardsService {
             path: {
                 'project_id': projectId,
                 'column_id': columnId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -91,12 +101,14 @@ export class BoardsService {
      * Delete Column
      * @param projectId
      * @param columnId
+     * @param xClientMutationId
      * @returns void
      * @throws ApiError
      */
     public deleteColumnApiProjectsProjectIdColumnsColumnIdDelete(
         projectId: number,
         columnId: number,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<void> {
         return this.httpRequest.request({
             method: 'DELETE',
@@ -104,6 +116,9 @@ export class BoardsService {
             path: {
                 'project_id': projectId,
                 'column_id': columnId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             errors: {
                 422: `Validation Error`,
@@ -114,18 +129,23 @@ export class BoardsService {
      * Reorder Columns
      * @param projectId
      * @param requestBody
+     * @param xClientMutationId
      * @returns void
      * @throws ApiError
      */
     public reorderColumnsApiProjectsProjectIdColumnsReorderPost(
         projectId: number,
         requestBody: ColumnReorderRequest,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<void> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/api/projects/{project_id}/columns/reorder',
             path: {
                 'project_id': projectId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -139,6 +159,7 @@ export class BoardsService {
      * @param projectId
      * @param columnId
      * @param requestBody
+     * @param xClientMutationId
      * @returns TaskRead Successful Response
      * @throws ApiError
      */
@@ -146,6 +167,7 @@ export class BoardsService {
         projectId: number,
         columnId: number,
         requestBody: TaskCreate,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<TaskRead> {
         return this.httpRequest.request({
             method: 'POST',
@@ -153,6 +175,9 @@ export class BoardsService {
             path: {
                 'project_id': projectId,
                 'column_id': columnId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -216,18 +241,23 @@ export class BoardsService {
      * Update Task
      * @param taskId
      * @param requestBody
+     * @param xClientMutationId
      * @returns TaskRead Successful Response
      * @throws ApiError
      */
     public updateTaskApiTasksTaskIdPatch(
         taskId: number,
         requestBody: TaskUpdate,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<TaskRead> {
         return this.httpRequest.request({
             method: 'PATCH',
             url: '/api/tasks/{task_id}',
             path: {
                 'task_id': taskId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -239,17 +269,22 @@ export class BoardsService {
     /**
      * Delete Task
      * @param taskId
+     * @param xClientMutationId
      * @returns void
      * @throws ApiError
      */
     public deleteTaskApiTasksTaskIdDelete(
         taskId: number,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<void> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/api/tasks/{task_id}',
             path: {
                 'task_id': taskId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             errors: {
                 422: `Validation Error`,
@@ -260,18 +295,23 @@ export class BoardsService {
      * Move Task
      * @param taskId
      * @param requestBody
+     * @param xClientMutationId
      * @returns TaskMoveResponse Successful Response
      * @throws ApiError
      */
     public moveTaskApiTasksTaskIdMovePatch(
         taskId: number,
         requestBody: TaskMove,
+        xClientMutationId?: (string | null),
     ): CancelablePromise<TaskMoveResponse> {
         return this.httpRequest.request({
             method: 'PATCH',
             url: '/api/tasks/{task_id}/move',
             path: {
                 'task_id': taskId,
+            },
+            headers: {
+                'X-Client-Mutation-Id': xClientMutationId,
             },
             body: requestBody,
             mediaType: 'application/json',
