@@ -29,9 +29,10 @@ Production topology:
 - `gateway` (`Caddy`) раздаёт frontend и проксирует `/api/*` в backend
 - `backend` (`FastAPI + SQLAlchemy async + Alembic`)
 - `db` (`PostgreSQL`)
+- `redis` (`Redis Pub/Sub` для realtime fanout + presence)
 
 Development topology:
-- `db + backend` поднимаются через `docker-compose.dev.yml`
+- `db + redis + backend` поднимаются через `docker-compose.dev.yml`
 - frontend обычно запускается локально через `pnpm dev`
 
 ## 3. Структура репозитория
@@ -39,8 +40,8 @@ Development topology:
 .
 ├── backend/light_task/              # FastAPI backend + Alembic + Dockerfile
 ├── frontend/light-task-frontend/    # Vue 3 frontend + Vite + Pinia
-├── docker-compose.dev.yml           # Dev окружение (db + backend)
-├── docker-compose.prod.yml          # Prod окружение (gateway + backend + db)
+├── docker-compose.dev.yml           # Dev окружение (db + redis + backend)
+├── docker-compose.prod.yml          # Prod окружение (gateway + backend + db + redis)
 ├── Caddyfile                        # Gateway config + basic auth для docs
 ├── .env.template                    # Шаблон .env для development
 ├── .env.prod.template               # Шаблон .env для ручного production deploy
@@ -62,7 +63,7 @@ cp .env.template .env
 ### 4.3 Сгенерировать JWT ключи
 См. инструкцию: [backend/light_task/src/auth/README.md](./backend/light_task/src/auth/README.md).
 
-### 4.4 Запустить backend + db
+### 4.4 Запустить backend + db + redis
 ```bash
 docker compose -f docker-compose.dev.yml up --build
 ```
@@ -96,6 +97,9 @@ Frontend: `http://localhost:5173`
 
 Важно для localhost cookie-flow:
 - `LIGHTTASK_CONFIG__AUTH_JWT__SECURE=False`
+
+Важно для realtime:
+- `LIGHTTASK_CONFIG__REALTIME__REDIS_URL` (в compose dev/prod уже настроен на сервис `redis`)
 
 ### 5.2 Production (manual deploy без GitHub Actions)
 Используй `.env.prod.template`.
@@ -195,6 +199,26 @@ st run http://127.0.0.1:8000/openapi.json --checks all --max-examples 50
 cd backend/light_task
 uv run alembic upgrade head
 ```
+
+### Backend realtime integration tests
+```bash
+docker compose -f docker-compose.test.yml up -d
+
+cd backend/light_task
+LIGHTTASK_TEST_DB_HOST=127.0.0.1 \
+LIGHTTASK_TEST_DB_PORT=55432 \
+LIGHTTASK_TEST_DB_USER=postgres \
+LIGHTTASK_TEST_DB_PASSWORD=postgres \
+LIGHTTASK_TEST_DB_NAME=lighttask_test \
+LIGHTTASK_TEST_REDIS_URL=redis://127.0.0.1:56379/15 \
+uv run pytest -q tests/test_realtime_integration.py
+
+docker compose -f docker-compose.test.yml down -v
+```
+
+Важно:
+- для integration tests использовать отдельные test PostgreSQL/Redis (не dev базы);
+- тесты в `conftest.py` имеют safety-check и по умолчанию откажутся работать с non-test DB и Redis DB 0.
 
 ## 10. Документация проекта
 - [AGENT_CONTEXT.md](./AGENT_CONTEXT.md) - короткий entrypoint для агентов

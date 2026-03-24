@@ -21,6 +21,7 @@ FastAPI backend для Kantano.
 ## 2. Требования
 - Python `>=3.12`
 - PostgreSQL 15 (или через Docker Compose из корня проекта)
+- Redis 7 (для realtime event bus и presence)
 - RSA key pair для JWT (см. [src/auth/README.md](./src/auth/README.md))
 - доступ к S3-compatible bucket (аватары)
 
@@ -57,6 +58,7 @@ docker compose -f docker-compose.dev.yml up --build
 ```bash
 uv sync
 uv run alembic upgrade head
+# убедись, что Redis запущен и доступен по LIGHTTASK_CONFIG__REALTIME__REDIS_URL
 uv run uvicorn src.main:main_app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -82,3 +84,24 @@ st run http://127.0.0.1:8000/openapi.json --checks all --header "Authorization: 
 
 ## 8. JWT ключи
 Подробная инструкция: [src/auth/README.md](./src/auth/README.md)
+
+## 9. Realtime integration tests
+Из `backend/light_task`:
+```bash
+docker compose -f ../../docker-compose.test.yml up -d
+
+LIGHTTASK_TEST_DB_HOST=127.0.0.1 \
+LIGHTTASK_TEST_DB_PORT=55432 \
+LIGHTTASK_TEST_DB_USER=postgres \
+LIGHTTASK_TEST_DB_PASSWORD=postgres \
+LIGHTTASK_TEST_DB_NAME=lighttask_test \
+LIGHTTASK_TEST_REDIS_URL=redis://127.0.0.1:56379/15 \
+uv run pytest -q tests/test_realtime_integration.py
+
+docker compose -f ../../docker-compose.test.yml down -v
+```
+
+Важно:
+- тесты требуют реальный PostgreSQL (test DB) и реальный Redis;
+- использовать отдельные test сервисы (не `docker-compose.dev.yml`);
+- тесты имеют safety-check и откажутся стартовать с non-test DB и Redis DB 0.
