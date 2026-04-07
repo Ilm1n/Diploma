@@ -6,37 +6,41 @@ kantano.ru {
     encode zstd gzip
 
     header {
-               Strict-Transport-Security "max-age=31536000;"
-               X-Content-Type-Options "nosniff"
-               X-Frame-Options "SAMEORIGIN"
-               Referrer-Policy "strict-origin-when-cross-origin"
-               -Server
-           }
+        Strict-Transport-Security "max-age=31536000;"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    @deny_iframe {
+        not header_regexp allowed_referer Referer ^https?://([^/]+\.)?(kantano\.ru|webvisor\.com|metri[ck]a\.yandex\.(com|ru|by|com\.tr))/
+    }
+    header @deny_iframe X-Frame-Options "SAMEORIGIN"
 
     @swagger path /docs* /openapi.json* /redoc*
     basic_auth @swagger {
-                            Ilm1n {$SWAGGER_HASH}
-                        }
+        Ilm1n {$SWAGGER_HASH}
+    }
 
     @backend path /api/* /ws/* /docs* /openapi.json* /redoc*
     handle @backend {
-                        reverse_proxy backend:8000
-                    }
+        reverse_proxy backend:8000
+    }
 
     handle {
-               root * /usr/share/caddy/html
+        root * /usr/share/caddy/html
 
-               @immutable {
-                              path /assets/*
-                          }
-               header @immutable Cache-Control "public, max-age=31536000, immutable"
+        @immutable {
+            path /assets/*
+        }
+        header @immutable Cache-Control "public, max-age=31536000, immutable"
 
-               @revalidate {
-                               not path /assets/*
-                           }
-               header @revalidate Cache-Control "no-cache, no-store, must-revalidate"
+        @revalidate {
+            not path /assets/*
+        }
+        header @revalidate Cache-Control "no-cache, no-store, must-revalidate"
 
-               try_files {path} /index.html
-               file_server
-           }
+        try_files {path} /index.html
+        file_server
+    }
 }
