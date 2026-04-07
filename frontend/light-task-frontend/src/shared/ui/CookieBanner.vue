@@ -9,6 +9,10 @@ import {
   setConsent,
   type CookieConsent,
 } from '@/shared/consent/consent';
+import {
+  isTrustedYandexReplayContext,
+  shouldShowCookieBanner,
+} from '@/shared/analytics/replay-context';
 
 const isBannerVisible = ref(false);
 const isSettingsVisible = ref(false);
@@ -20,7 +24,12 @@ onMounted(() => {
   const saved = getStoredConsent();
   analyticsEnabled.value = saved?.analytics ?? false;
 
-  if (!saved) {
+  if (
+    shouldShowCookieBanner({
+      hasStoredDecision: saved !== null,
+      trustedReplayContext: isTrustedYandexReplayContext(),
+    })
+  ) {
     setTimeout(() => {
       isBannerVisible.value = true;
     }, 800);

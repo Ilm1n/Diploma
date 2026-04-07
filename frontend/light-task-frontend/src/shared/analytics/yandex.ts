@@ -1,4 +1,8 @@
 import { isAnalyticsConsentGranted } from '@/shared/consent/consent';
+import {
+  isAnalyticsRuntimeAllowed,
+  isTrustedYandexReplayContext,
+} from '@/shared/analytics/replay-context';
 
 declare global {
   interface Window {
@@ -78,7 +82,13 @@ function shouldEnableByEnvironment(): boolean {
 }
 
 function isConsentAllowedNow(): boolean {
-  return shouldEnableByEnvironment() && isAnalyticsConsentGranted();
+  // Allow Yandex replay tools to bootstrap the counter inside their iframe
+  // without changing the stored consent requirement for normal visitors.
+  return isAnalyticsRuntimeAllowed({
+    environmentEnabled: shouldEnableByEnvironment(),
+    storedConsentGranted: isAnalyticsConsentGranted(),
+    trustedReplayContext: isTrustedYandexReplayContext(),
+  });
 }
 
 function createYmStub(): void {

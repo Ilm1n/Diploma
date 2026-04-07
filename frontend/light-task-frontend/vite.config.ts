@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
@@ -34,8 +35,16 @@ export default defineConfig({
   },
   esbuild: {
     drop: ['console', 'debugger'],
-  }
-  ,
+  },
+  test: {
+    environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        url: 'https://kantano.ru/',
+      },
+    },
+    include: ['src/**/*.test.ts'],
+  },
   server: {
     proxy: {
       '/api': {
