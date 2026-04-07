@@ -3,7 +3,7 @@
 !.env.template
 !.env.prod.template
 !frontend/light-task-frontend/.env.template
-
+.codex
 .idea/
 .vscode/
 
