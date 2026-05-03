@@ -2,7 +2,7 @@
 import {defineStore} from 'pinia';
 import {computed, ref} from 'vue';
 import {apiClient} from '@/api/config';
-import type {Body_login_for_access_token_api_auth_login_post, UserCreate, UserRead, UserUpdate,} from '@/api/client';
+import type {Body_login_for_access_token_api_auth_login_post, UserCreate, UserPasswordUpdate, UserRead, UserUpdate,} from '@/api/client';
 import {useRouter} from 'vue-router';
 import {
   accessTokenState,
@@ -132,6 +132,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updatePassword(payload: UserPasswordUpdate) {
+    isLoading.value = true;
+    try {
+      user.value = await apiClient.users.updateUserPasswordApiUsersMePasswordPatch(payload);
+    } catch (error) {
+      console.error('Failed to update password:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function uploadAvatar(file: File) {
     isLoading.value = true;
     try {
@@ -187,6 +199,7 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
     setAccessToken,
     updateProfile,
+    updatePassword,
     uploadAvatar,
     deleteAvatar,
   };

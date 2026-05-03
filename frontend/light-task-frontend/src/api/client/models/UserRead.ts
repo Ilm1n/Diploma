@@ -7,6 +7,7 @@ export type UserRead = {
     email: string;
     id: number;
     isActive: boolean;
+    hasPassword: boolean;
     fullName?: (string | null);
     avatarUrl?: (string | null);
 };

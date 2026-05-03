@@ -41,6 +41,7 @@ export type { TaskUpdate } from './models/TaskUpdate';
 export type { Token } from './models/Token';
 export type { UserCollaborator } from './models/UserCollaborator';
 export type { UserCreate } from './models/UserCreate';
+export type { UserPasswordUpdate } from './models/UserPasswordUpdate';
 export type { UserPublic } from './models/UserPublic';
 export type { UserRead } from './models/UserRead';
 export type { UserUpdate } from './models/UserUpdate';

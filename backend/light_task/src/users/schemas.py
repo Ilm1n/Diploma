@@ -15,6 +15,7 @@ class UserCreate(UserBase):
 class UserRead(UserBase):
     id: int
     is_active: bool
+    has_password: bool
     full_name: str | None = Field(None, min_length=1, max_length=255)
     avatar_url: str | None = Field(None, max_length=512)
 
@@ -31,6 +32,11 @@ class UserUpdate(BaseSchema):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+
+class UserPasswordUpdate(BaseSchema):
+    current_password: str | None = Field(None, min_length=8)
+    new_password: str = Field(min_length=8)
 
 
 class UserPublic(BaseSchema):

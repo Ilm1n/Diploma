@@ -11,6 +11,9 @@ export const RU_ERROR_MESSAGES: Record<string, string> = {
   INACTIVE_USER: 'Пользователь не активен',
   USERNAME_OR_EMAIL_EXISTS: 'Пользователь с таким именем или почтой уже существует',
   USERNAME_TAKEN: 'Имя пользователя уже занято',
+  PASSWORD_LOGIN_UNAVAILABLE: 'У этого аккаунта ещё нет пароля. Войдите через Yandex и задайте пароль в профиле.',
+  CURRENT_PASSWORD_REQUIRED: 'Введите текущий пароль',
+  INVALID_CURRENT_PASSWORD: 'Текущий пароль указан неверно',
 
   PROJECT_NOT_FOUND: 'Проект не найден',
   INSUFFICIENT_PERMISSIONS: 'У вас недостаточно прав для выполнения этого действия',

@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { Body_upload_avatar_api_users_me_avatar_post } from '../models/Body_upload_avatar_api_users_me_avatar_post';
 import type { UserCreate } from '../models/UserCreate';
+import type { UserPasswordUpdate } from '../models/UserPasswordUpdate';
 import type { UserPublic } from '../models/UserPublic';
 import type { UserRead } from '../models/UserRead';
 import type { UserUpdate } from '../models/UserUpdate';
@@ -53,6 +54,25 @@ export class UsersService {
         return this.httpRequest.request({
             method: 'PATCH',
             url: '/api/users/me',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update User Password
+     * @param requestBody
+     * @returns UserRead Successful Response
+     * @throws ApiError
+     */
+    public updateUserPasswordApiUsersMePasswordPatch(
+        requestBody: UserPasswordUpdate,
+    ): CancelablePromise<UserRead> {
+        return this.httpRequest.request({
+            method: 'PATCH',
+            url: '/api/users/me/password',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

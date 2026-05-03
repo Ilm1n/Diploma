@@ -27,11 +27,22 @@ class AuthService:
         )
         user = (await self.session.execute(query)).scalar_one_or_none()
 
-        if (
-            not user
-            or not user.hashed_password
-            or not security.validate_password(password, user.hashed_password)
-        ):
+        if not user:
+            auth_logger.warning(f"Failed login attempt for {username_or_email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=ErrorCode.INVALID_CREDENTIALS,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not user.hashed_password:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=ErrorCode.PASSWORD_LOGIN_UNAVAILABLE,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not security.validate_password(password, user.hashed_password):
             auth_logger.warning(f"Failed login attempt for {username_or_email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

@@ -278,3 +278,103 @@ def test_password_login_still_works(client: TestClient) -> None:
 
     assert response.status_code == 200, response.text
     assert response.json()["accessToken"]
+
+
+def test_yandex_user_can_set_password_and_use_password_login(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    _patch_yandex_success(monkeypatch)
+    state = _state_from_start_response(client)
+
+    callback_response = client.get(
+        "/api/auth/yandex/callback",
+        params={"code": "valid-code", "state": state},
+        follow_redirects=False,
+    )
+    assert callback_response.status_code == 302, callback_response.text
+
+    login_response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "ivan",
+            "password": PASSWORD,
+        },
+    )
+    assert login_response.status_code == 401, login_response.text
+    assert login_response.json()["error"]["code"] == "PASSWORD_LOGIN_UNAVAILABLE"
+
+    refresh_response = client.post("/api/auth/refresh")
+    assert refresh_response.status_code == 200, refresh_response.text
+    access_token = refresh_response.json()["accessToken"]
+
+    password_response = client.patch(
+        "/api/users/me/password",
+        json={"newPassword": PASSWORD},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert password_response.status_code == 200, password_response.text
+    assert password_response.json()["hasPassword"] is True
+
+    login_response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "ivan",
+            "password": PASSWORD,
+        },
+    )
+    assert login_response.status_code == 200, login_response.text
+    assert login_response.json()["accessToken"]
+
+
+def test_password_update_requires_current_password_for_password_user(
+    client: TestClient,
+) -> None:
+    register_response = client.post(
+        "/api/users/register",
+        json={
+            "username": "password_update_user",
+            "email": "password-update-user@example.com",
+            "password": PASSWORD,
+        },
+    )
+    assert register_response.status_code == 201, register_response.text
+
+    login_response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "password_update_user",
+            "password": PASSWORD,
+        },
+    )
+    assert login_response.status_code == 200, login_response.text
+    access_token = login_response.json()["accessToken"]
+
+    password_response = client.patch(
+        "/api/users/me/password",
+        json={"newPassword": "NewVeryStrongPass123!"},
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert password_response.status_code == 400, password_response.text
+    assert password_response.json()["error"]["code"] == "CURRENT_PASSWORD_REQUIRED"
+
+    password_response = client.patch(
+        "/api/users/me/password",
+        json={
+            "currentPassword": "wrong-password",
+            "newPassword": "NewVeryStrongPass123!",
+        },
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert password_response.status_code == 400, password_response.text
+    assert password_response.json()["error"]["code"] == "INVALID_CURRENT_PASSWORD"
+
+    password_response = client.patch(
+        "/api/users/me/password",
+        json={
+            "currentPassword": PASSWORD,
+            "newPassword": "NewVeryStrongPass123!",
+        },
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert password_response.status_code == 200, password_response.text

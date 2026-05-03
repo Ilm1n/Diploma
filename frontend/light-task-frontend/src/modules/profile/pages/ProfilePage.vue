@@ -12,6 +12,7 @@ import { openCookieSettings } from "@/shared/consent/consent";
 // UI
 import InputText from "primevue/inputtext";
 import Button from "primevue/button";
+import Password from "primevue/password";
 import UserAvatar from "@/shared/ui/UserAvatar.vue";
 
 const authStore = useAuthStore();
@@ -22,6 +23,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 // --- 1. Avatar Logic ---
 const avatarUrl = computed(() => authStore.user?.avatarUrl);
 const currentEmail = computed(() => authStore.user?.email || "");
+const hasPassword = computed(() => authStore.user?.hasPassword ?? true);
 const userInitials = computed(
   () => authStore.user?.username?.slice(0, 1).toUpperCase() || "ME",
 );
@@ -131,6 +133,67 @@ const onSubmit = handleSubmit(async (values) => {
       severity: "success",
       summary: "Сохранено",
       detail: "Данные профиля обновлены",
+      life: 3000,
+    });
+  } catch (e) {
+    toast.add({
+      severity: "error",
+      summary: "Ошибка",
+      detail: getErrorMessage(e),
+      life: 3000,
+    });
+  }
+});
+
+const passwordValidationSchema = toTypedSchema(
+  z
+    .object({
+      currentPassword: z.string().optional(),
+      newPassword: z.string().min(8, "Минимум 8 символов"),
+      confirmPassword: z.string().min(8, "Минимум 8 символов"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: "Пароли не совпадают",
+      path: ["confirmPassword"],
+    })
+    .refine((data) => !hasPassword.value || !!data.currentPassword, {
+      message: "Введите текущий пароль",
+      path: ["currentPassword"],
+    }),
+);
+
+const {
+  defineField: definePasswordField,
+  handleSubmit: handlePasswordSubmit,
+  errors: passwordErrors,
+  isSubmitting: isPasswordSubmitting,
+  resetForm: resetPasswordForm,
+} = useForm({
+  validationSchema: passwordValidationSchema,
+  initialValues: {
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  },
+});
+
+const [currentPassword, currentPasswordAttrs] =
+  definePasswordField("currentPassword");
+const [newPassword, newPasswordAttrs] = definePasswordField("newPassword");
+const [confirmPassword, confirmPasswordAttrs] =
+  definePasswordField("confirmPassword");
+
+const onPasswordSubmit = handlePasswordSubmit(async (values) => {
+  try {
+    await authStore.updatePassword({
+      currentPassword: hasPassword.value ? values.currentPassword : null,
+      newPassword: values.newPassword,
+    });
+    resetPasswordForm();
+    toast.add({
+      severity: "success",
+      summary: "Сохранено",
+      detail: "Пароль обновлён",
       life: 3000,
     });
   } catch (e) {
@@ -301,6 +364,102 @@ const onSubmit = handleSubmit(async (values) => {
                 label="Сохранить изменения"
                 icon="pi pi-check"
                 :loading="isSubmitting"
+                class="!bg-primary-600 dark:!text-white !border-none"
+              />
+            </div>
+          </form>
+        </div>
+
+        <div
+          class="mt-6 bg-white dark:bg-dark-surface p-6 rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm"
+        >
+          <h2
+            class="text-lg font-bold text-slate-800 dark:text-white mb-6 border-b border-gray-100 dark:border-slate-700 pb-2"
+          >
+            Пароль
+          </h2>
+
+          <div
+            v-if="!hasPassword"
+            class="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200"
+          >
+            Аккаунт создан через Yandex. Задайте пароль, если хотите входить по
+            email или никнейму без Yandex.
+          </div>
+
+          <form @submit.prevent="onPasswordSubmit" class="space-y-5">
+            <div v-if="hasPassword" class="flex flex-col gap-2">
+              <label
+                for="current-password"
+                class="font-medium text-slate-700 dark:text-slate-300"
+                >Текущий пароль</label
+              >
+              <Password
+                inputId="current-password"
+                v-model="currentPassword"
+                v-bind="currentPasswordAttrs"
+                :invalid="!!passwordErrors.currentPassword"
+                :feedback="false"
+                toggleMask
+                class="w-full"
+                inputClass="w-full"
+                :inputProps="{ autocomplete: 'current-password' }"
+              />
+              <small class="text-red-500" v-if="passwordErrors.currentPassword">{{
+                passwordErrors.currentPassword
+              }}</small>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label
+                for="new-password"
+                class="font-medium text-slate-700 dark:text-slate-300"
+                >Новый пароль</label
+              >
+              <Password
+                inputId="new-password"
+                v-model="newPassword"
+                v-bind="newPasswordAttrs"
+                :invalid="!!passwordErrors.newPassword"
+                :feedback="false"
+                toggleMask
+                class="w-full"
+                inputClass="w-full"
+                :inputProps="{ autocomplete: 'new-password' }"
+              />
+              <small class="text-red-500" v-if="passwordErrors.newPassword">{{
+                passwordErrors.newPassword
+              }}</small>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label
+                for="confirm-password"
+                class="font-medium text-slate-700 dark:text-slate-300"
+                >Повторите новый пароль</label
+              >
+              <Password
+                inputId="confirm-password"
+                v-model="confirmPassword"
+                v-bind="confirmPasswordAttrs"
+                :invalid="!!passwordErrors.confirmPassword"
+                :feedback="false"
+                toggleMask
+                class="w-full"
+                inputClass="w-full"
+                :inputProps="{ autocomplete: 'new-password' }"
+              />
+              <small class="text-red-500" v-if="passwordErrors.confirmPassword">{{
+                passwordErrors.confirmPassword
+              }}</small>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <Button
+                type="submit"
+                :label="hasPassword ? 'Обновить пароль' : 'Задать пароль'"
+                icon="pi pi-key"
+                :loading="isPasswordSubmitting"
                 class="!bg-primary-600 dark:!text-white !border-none"
               />
             </div>

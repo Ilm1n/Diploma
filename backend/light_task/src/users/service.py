@@ -13,7 +13,7 @@ from src.logger import user_logger
 from src.errors import ErrorCode
 from src.s3 import S3Client
 from src.users.models import User
-from src.users.schemas import UserCreate, UserUpdate
+from src.users.schemas import UserCreate, UserPasswordUpdate, UserUpdate
 
 
 class UserService:
@@ -80,6 +80,33 @@ class UserService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=ErrorCode.USERNAME_TAKEN,
             )
+
+    async def update_password(
+        self,
+        user: User,
+        password_update: UserPasswordUpdate,
+    ) -> User:
+        if user.hashed_password:
+            if not password_update.current_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=ErrorCode.CURRENT_PASSWORD_REQUIRED,
+                )
+            if not security.validate_password(
+                password_update.current_password,
+                user.hashed_password,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=ErrorCode.INVALID_CURRENT_PASSWORD,
+                )
+
+        user.hashed_password = security.hash_password(password_update.new_password)
+
+        await self.session.commit()
+        await self.session.refresh(user)
+        user_logger.info(f"Password updated for user {user.id}")
+        return user
 
     async def upload_avatar(
         self,

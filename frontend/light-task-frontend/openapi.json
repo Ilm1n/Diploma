@@ -225,6 +225,52 @@
         ]
       }
     },
+    "/api/users/me/password": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update User Password",
+        "operationId": "update_user_password_api_users_me_password_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPasswordUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/users/{user_id}": {
       "get": {
         "tags": [
@@ -3140,6 +3186,32 @@
         ],
         "title": "UserCreate"
       },
+      "UserPasswordUpdate": {
+        "properties": {
+          "currentPassword": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentpassword"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Newpassword"
+          }
+        },
+        "type": "object",
+        "required": [
+          "newPassword"
+        ],
+        "title": "UserPasswordUpdate"
+      },
       "UserPublic": {
         "properties": {
           "id": {
@@ -3203,6 +3275,10 @@
             "type": "boolean",
             "title": "Isactive"
           },
+          "hasPassword": {
+            "type": "boolean",
+            "title": "Haspassword"
+          },
           "fullName": {
             "anyOf": [
               {
@@ -3234,7 +3310,8 @@
           "username",
           "email",
           "id",
-          "isActive"
+          "isActive",
+          "hasPassword"
         ],
         "title": "UserRead"
       },
