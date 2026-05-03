@@ -304,6 +304,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "filetype" },
     { name = "gunicorn" },
+    { name = "httpx" },
     { name = "orjson" },
     { name = "pip" },
     { name = "pwdlib", extra = ["argon2"] },
@@ -317,7 +318,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "black" },
-    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -332,6 +332,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.118.0" },
     { name = "filetype", specifier = ">=1.2.0" },
     { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "orjson", specifier = ">=3.11.4" },
     { name = "pip", specifier = ">=25.3" },
     { name = "pwdlib", extras = ["argon2"], specifier = ">=0.3.0" },
@@ -345,7 +346,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=25.9.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },

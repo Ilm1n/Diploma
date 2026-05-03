@@ -20,6 +20,21 @@ class InvitationConfig(BaseModel):
     base_url: str = "http://localhost:5173/invite"
 
 
+class FrontendConfig(BaseModel):
+    base_url: str = "http://localhost:5173"
+
+
+class YandexConfig(BaseModel):
+    client_id: str = ""
+    client_secret: str = ""
+    redirect_uri: str = "http://localhost:8000/api/auth/yandex/callback"
+    authorize_url: str = "https://oauth.yandex.com/authorize"
+    token_url: str = "https://oauth.yandex.com/token"
+    userinfo_url: str = "https://login.yandex.ru/info"
+    state_cookie_name: str = "yandex_oauth_state"
+    state_cookie_max_age_seconds: int = 10 * 60
+
+
 class DatabaseConfig(BaseModel):
     user: str
     password: str
@@ -96,6 +111,8 @@ class Settings(BaseSettings):
     db: DatabaseConfig
     auth_jwt: AuthJWT = AuthJWT()
     invite: InvitationConfig = InvitationConfig()
+    frontend: FrontendConfig = FrontendConfig()
+    yandex: YandexConfig = YandexConfig()
     s3: S3Config
     files: Files = Files()
     realtime: RealtimeConfig = RealtimeConfig()

@@ -27,7 +27,11 @@ class AuthService:
         )
         user = (await self.session.execute(query)).scalar_one_or_none()
 
-        if not user or not security.validate_password(password, user.hashed_password):
+        if (
+            not user
+            or not user.hashed_password
+            or not security.validate_password(password, user.hashed_password)
+        ):
             auth_logger.warning(f"Failed login attempt for {username_or_email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

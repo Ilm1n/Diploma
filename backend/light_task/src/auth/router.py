@@ -1,11 +1,18 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Cookie, Depends, Query, Response
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.auth import schemas
 from src.auth.dependencies import get_current_user_for_refresh
 from src.auth.service import AuthService, get_auth_service
+from src.auth.yandex import (
+    YandexAuthService,
+    YandexOAuthError,
+    get_yandex_auth_service,
+)
+from src.config import settings
 from src.users.models import User
 
 router = APIRouter(
@@ -28,6 +35,45 @@ async def login_for_access_token(
         password=form_data.password,
     )
     return auth_service.set_tokens(user, response)
+
+
+@router.get("/yandex/start", include_in_schema=False)
+async def start_yandex_auth(
+    yandex_auth_service: Annotated[
+        YandexAuthService,
+        Depends(get_yandex_auth_service),
+    ],
+    next_path: Annotated[str | None, Query(alias="next")] = None,
+) -> RedirectResponse:
+    return yandex_auth_service.build_start_redirect(next_path)
+
+
+@router.get("/yandex/callback", include_in_schema=False)
+async def yandex_auth_callback(
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    yandex_auth_service: Annotated[
+        YandexAuthService,
+        Depends(get_yandex_auth_service),
+    ],
+    code: str | None = None,
+    state: str | None = None,
+    state_cookie: Annotated[
+        str | None,
+        Cookie(alias=settings.yandex.state_cookie_name),
+    ] = None,
+) -> RedirectResponse:
+    try:
+        user, next_path = await yandex_auth_service.authenticate_callback(
+            code=code,
+            state=state,
+            state_cookie=state_cookie,
+        )
+    except YandexOAuthError as exc:
+        return yandex_auth_service.build_frontend_error_redirect(exc.code)
+
+    response = yandex_auth_service.build_frontend_success_redirect(next_path)
+    auth_service.set_tokens(user, response)
+    return response
 
 
 @router.post(

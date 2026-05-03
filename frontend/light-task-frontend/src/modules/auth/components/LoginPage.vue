@@ -3,7 +3,8 @@
     lang="ts"
 >
 import {useAuthStore} from '../store/auth.store';
-import {useRouter} from 'vue-router';
+import {onMounted} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import {useToast} from 'primevue/usetoast';
 import {useForm} from 'vee-validate';
 import {useHead} from "@unhead/vue";
@@ -15,8 +16,11 @@ import { getErrorMessage } from '@/utils/error';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
+import yandexLogo from '@/assets/images/brand/yandex.svg';
+import {redirectToYandexAuth} from '@/modules/auth/lib/yandex-auth';
 
 const authStore = useAuthStore();
+const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const {isDark, toggleTheme} = useTheme();
@@ -58,6 +62,18 @@ const onSubmit = handleSubmit(async (values) => {
   }
 });
 
+onMounted(() => {
+  if (!route.query.oauth_error) {
+    return;
+  }
+
+  toast.add({
+    severity: 'error',
+    summary: 'Ошибка входа через Yandex',
+    detail: 'Не удалось завершить вход через Yandex. Попробуйте ещё раз.',
+    life: 5000,
+  });
+});
 
 useHead({
   title: 'Вход в Kantano',
@@ -162,6 +178,25 @@ useHead({
             class="w-full !rounded-xl !bg-primary-600 hover:!bg-primary-700 !border-none !py-3.5 !text-base !font-semibold shadow-md shadow-primary-500/30 !text-white mt-2"
         />
       </form>
+
+      <div class="my-5 flex items-center gap-3 text-xs uppercase text-slate-400 dark:text-slate-500">
+        <span class="h-px flex-1 bg-slate-200 dark:bg-dark-border"></span>
+        <span>или</span>
+        <span class="h-px flex-1 bg-slate-200 dark:bg-dark-border"></span>
+      </div>
+
+      <button
+          type="button"
+          class="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-800 transition-colors hover:bg-slate-50 dark:border-dark-border dark:bg-dark-bg dark:text-white dark:hover:bg-slate-800"
+          @click="redirectToYandexAuth"
+      >
+        <img
+            :src="yandexLogo"
+            alt=""
+            class="h-5 w-5"
+        >
+        <span>Войти через Yandex</span>
+      </button>
 
       <div class="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         Нет аккаунта?

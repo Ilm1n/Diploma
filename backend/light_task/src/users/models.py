@@ -24,7 +24,13 @@ class User(Base, TimestampMixin):
         unique=True,
         index=True,
     )
-    hashed_password: Mapped[str] = mapped_column(String(255))
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    yandex_id: Mapped[str | None] = mapped_column(
+        String(64),
+        unique=True,
+        index=True,
+        nullable=True,
+    )
     full_name: Mapped[str | None] = mapped_column(String(255))
     is_admin: Mapped[bool] = mapped_column(default=False)
     avatar_url: Mapped[str | None] = mapped_column(String(512))

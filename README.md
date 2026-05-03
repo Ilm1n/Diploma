@@ -18,6 +18,7 @@ Kantano - lightweight Kanban task manager (дипломный проект) на
 ## 1. Что это
 Основные возможности:
 - регистрация/логин с JWT (`access` + `refresh` cookie)
+- вход через Yandex ID как дополнительный способ авторизации
 - проекты и роли (`OWNER`, `MANAGER`, `MEMBER`)
 - Kanban board: колонки, задачи, drag-and-drop
 - теги, исполнители, приоритеты, фильтрация
@@ -98,6 +99,15 @@ Frontend: `http://localhost:5173`
 Важно для localhost cookie-flow:
 - `LIGHTTASK_CONFIG__AUTH_JWT__SECURE=False`
 
+Yandex OAuth / Yandex ID:
+- `LIGHTTASK_CONFIG__YANDEX__CLIENT_ID`
+- `LIGHTTASK_CONFIG__YANDEX__CLIENT_SECRET`
+- `LIGHTTASK_CONFIG__YANDEX__REDIRECT_URI`
+- `LIGHTTASK_CONFIG__FRONTEND__BASE_URL`
+
+Для production callback: `https://kantano.ru/api/auth/yandex/callback`.
+Backend завершает OAuth flow сам, ставит текущую `refresh_token` cookie и возвращает frontend на `/auth/yandex/callback`; access token через URL не передаётся.
+
 Важно для realtime:
 - `LIGHTTASK_CONFIG__REALTIME__REDIS_URL` (в compose dev/prod уже настроен на сервис `redis`)
 
@@ -109,6 +119,10 @@ Frontend: `http://localhost:5173`
 - `LIGHTTASK_CONFIG__S3__ACCESS_KEY`
 - `LIGHTTASK_CONFIG__S3__SECRET_KEY`
 - `LIGHTTASK_CONFIG__S3__BUCKET_NAME`
+- `LIGHTTASK_CONFIG__YANDEX__CLIENT_ID`
+- `LIGHTTASK_CONFIG__YANDEX__CLIENT_SECRET`
+- `LIGHTTASK_CONFIG__YANDEX__REDIRECT_URI`
+- `LIGHTTASK_CONFIG__FRONTEND__BASE_URL`
 - `IMAGE_REPO_OWNER`
 - `IMAGE_TAG`
 - `SWAGGER_HASH`
@@ -157,6 +171,10 @@ Workflow: [deploy.yml](./.github/workflows/deploy.yml)
 - `VPS_HOST`
 - `VPS_USER`
 - `VPS_KEY`
+- `YANDEX_CLIENT_ID`
+- `YANDEX_CLIENT_SECRET`
+- `YANDEX_REDIRECT_URI`
+- `FRONTEND_BASE_URL`
 
 Подробная памятка: [.github/workflows/README.md](./.github/workflows/README.md)
 

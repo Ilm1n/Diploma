@@ -7,6 +7,7 @@ const AppLayout = () => import('@/layouts/components/AppLayout.vue');
 // Pages
 const LoginPage = () => import('@/modules/auth/components/LoginPage.vue');
 const RegisterPage = () => import('@/modules/auth/components/RegisterPage.vue');
+const YandexCallbackPage = () => import('@/modules/auth/components/YandexCallbackPage.vue');
 const ProjectsList = () => import('@/modules/projects/components/ProjectsList.vue');
 const BoardPage = () => import('@/modules/board/pages/BoardPage.vue');
 const ProfilePage = () => import('@/modules/profile/pages/ProfilePage.vue');
@@ -34,6 +35,12 @@ const router = createRouter({
       path: '/register',
       name: 'register',
       component: RegisterPage,
+      meta: {requiresAuth: false}
+    },
+    {
+      path: '/auth/yandex/callback',
+      name: 'yandex-callback',
+      component: YandexCallbackPage,
       meta: {requiresAuth: false}
     },
     {
