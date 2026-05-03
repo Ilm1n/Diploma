@@ -1,0 +1,61 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "Участник проекта" as Member
+actor "Менеджер проекта" as Manager
+actor "Владелец проекта" as Owner
+
+Manager --|> Member
+Owner --|> Manager
+
+rectangle "Kantano: доска, задачи и realtime" {
+  package "Доска" {
+    usecase "Открывать доску проекта" as UC_OpenBoard
+    usecase "Фильтровать задачи" as UC_FilterTasks
+    usecase "Получать обновления доски\nв реальном времени" as UC_BoardUpdates
+  }
+
+  package "Колонки" {
+    usecase "Создавать колонку" as UC_CreateColumn
+    usecase "Переименовывать колонку" as UC_RenameColumn
+    usecase "Менять порядок колонок" as UC_ReorderColumns
+    usecase "Удалять колонку" as UC_DeleteColumn
+  }
+
+  package "Задачи" {
+    usecase "Просматривать задачу" as UC_ViewTask
+    usecase "Создавать задачу" as UC_CreateTask
+    usecase "Редактировать назначенную\nна себя задачу" as UC_EditOwnAssignedTask
+    usecase "Перемещать назначенную\nна себя задачу" as UC_MoveOwnAssignedTask
+    usecase "Редактировать любую задачу" as UC_EditAnyTask
+    usecase "Удалять любую задачу" as UC_DeleteAnyTask
+  }
+
+  package "Теги и совместная работа" {
+    usecase "Управлять тегами проекта" as UC_ManageTags
+    usecase "Видеть, кто просматривает задачу" as UC_SeeViewers
+    usecase "Видеть, кто редактирует задачу" as UC_SeeEditors
+  }
+}
+
+Member --> UC_OpenBoard
+Member --> UC_FilterTasks
+Member --> UC_ViewTask
+Member --> UC_CreateTask
+Member --> UC_EditOwnAssignedTask
+Member --> UC_MoveOwnAssignedTask
+Member --> UC_BoardUpdates
+Member --> UC_SeeViewers
+Member --> UC_SeeEditors
+
+Manager --> UC_CreateColumn
+Manager --> UC_RenameColumn
+Manager --> UC_ReorderColumns
+Manager --> UC_DeleteColumn
+Manager --> UC_EditAnyTask
+Manager --> UC_DeleteAnyTask
+Manager --> UC_ManageTags
+
+@enduml

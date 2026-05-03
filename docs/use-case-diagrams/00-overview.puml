@@ -1,0 +1,54 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "Гость" as Guest
+actor "Пользователь" as User
+actor "Участник проекта" as Member
+actor "Менеджер проекта" as Manager
+actor "Владелец проекта" as Owner
+
+
+rectangle "Система Kantano" {
+  package "Публичная часть" {
+    usecase "Просматривать лендинг" as UC_Landing
+    usecase "Зарегистрироваться" as UC_Register
+    usecase "Войти в систему" as UC_Login
+    usecase "Присоединиться к проекту\nпо приглашению" as UC_JoinInvite
+  }
+
+  package "Личный кабинет" {
+    usecase "Управлять профилем" as UC_Profile
+    usecase "Просматривать свои проекты" as UC_ProjectList
+    usecase "Создать проект" as UC_CreateProject
+  }
+
+  package "Работа в проекте" {
+    usecase "Работать с Kanban-доской" as UC_BoardWork
+    usecase "Управлять командой проекта" as UC_Team
+    usecase "Управлять приглашениями" as UC_Invitations
+    usecase "Управлять проектом" as UC_ProjectAdmin
+    usecase "Получать совместные обновления\nв реальном времени" as UC_Realtime
+  }
+}
+
+Guest --> UC_Landing
+Guest --> UC_Register
+Guest --> UC_Login
+Guest --> UC_JoinInvite
+
+User --> UC_Profile
+User --> UC_ProjectList
+User --> UC_CreateProject
+User --> UC_JoinInvite
+
+Member --> UC_BoardWork
+Member --> UC_Realtime
+
+Manager --> UC_Team
+Manager --> UC_Invitations
+
+Owner --> UC_ProjectAdmin
+
+@enduml
