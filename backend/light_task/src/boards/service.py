@@ -299,6 +299,7 @@ class BoardService:
             title=data.title,
             description=data.description,
             priority=data.priority,
+            deadline_at=data.deadline_at,
             project_id=project_id,
             column_id=column_id,
             assignee_id=data.assignee_id,

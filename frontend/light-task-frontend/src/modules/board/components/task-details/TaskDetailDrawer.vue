@@ -37,6 +37,7 @@ const localTitle = ref("");
 const localDescription = ref("");
 const localAssigneeId = ref<number | null>(null);
 const localPriority = ref<TaskPriority | null>(null);
+const localDeadlineAt = ref<Date | null>(null);
 const localTagIds = ref<number[]>([]);
 
 // Состояния сохранения
@@ -55,12 +56,31 @@ const lastSavedTime = computed(() => {
 const toSortedTagIds = (task: TaskRead | null): number[] =>
   [...(task?.tags?.map((tag) => tag.id) ?? [])].sort((a, b) => a - b);
 
+const parseDeadline = (deadlineAt?: string | null): Date | null => {
+  if (!deadlineAt) return null;
+  const date = new Date(deadlineAt);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toDeadlinePayload = (deadlineAt: Date | null): string | null => {
+  if (!deadlineAt) return null;
+  return deadlineAt.toISOString();
+};
+
+const isSameDeadline = (first: Date | null, second?: string | null): boolean => {
+  const secondDate = parseDeadline(second);
+  if (!first && !secondDate) return true;
+  if (!first || !secondDate) return false;
+  return first.getTime() === secondDate.getTime();
+};
+
 const setLocalFromTask = (task: TaskRead) => {
   isHydrating.value = true;
   localTitle.value = task.title;
   localDescription.value = task.description || "";
   localAssigneeId.value = task.assigneeId || null;
   localPriority.value = task.priority || null;
+  localDeadlineAt.value = parseDeadline(task.deadlineAt);
   localTagIds.value = task.tags?.map((tag) => tag.id) || [];
   isHydrating.value = false;
 };
@@ -70,6 +90,7 @@ const hasUnsavedLocalChanges = (task: TaskRead): boolean => {
   if (localDescription.value !== (task.description || "")) return true;
   if ((localAssigneeId.value || null) !== (task.assigneeId || null)) return true;
   if ((localPriority.value || null) !== (task.priority || null)) return true;
+  if (!isSameDeadline(localDeadlineAt.value, task.deadlineAt)) return true;
 
   const localTags = [...localTagIds.value].sort((a, b) => a - b);
   const taskTags = toSortedTagIds(task);
@@ -166,7 +187,7 @@ const onClose = () => {
 };
 
 watch(
-  [localTitle, localDescription, localAssigneeId, localPriority, localTagIds],
+  [localTitle, localDescription, localAssigneeId, localPriority, localDeadlineAt, localTagIds],
   () => {
     if (!store.selectedTask || isHydrating.value) return;
     if (!editingPresenceActive.value) {
@@ -232,6 +253,12 @@ watch(localPriority, (newVal) => {
   }
 });
 
+watch(localDeadlineAt, (newVal) => {
+  if (!store.selectedTask || isHydrating.value) return;
+  if (isSameDeadline(newVal, store.selectedTask.deadlineAt)) return;
+  performSave({ deadlineAt: toDeadlinePayload(newVal) });
+});
+
 watch(localTagIds, (newVal) => {
   // Сравниваем массивы (грубо, но для ID пойдет)
   const currentIds = store.selectedTask?.tags?.map((t) => t.id) || [];
@@ -261,6 +288,7 @@ const saveAllAndClose = async () => {
     description: localDescription.value,
     assigneeId: localAssigneeId.value,
     priority: localPriority.value,
+    deadlineAt: toDeadlinePayload(localDeadlineAt.value),
     tagIds: localTagIds.value,
   });
   onClose();
@@ -489,6 +517,7 @@ onUnmounted(() => {
             <TaskSidebar
               v-model:assigneeId="localAssigneeId"
               v-model:priority="localPriority"
+              v-model:deadlineAt="localDeadlineAt"
               v-model:tagIds="localTagIds"
             >
             </TaskSidebar>

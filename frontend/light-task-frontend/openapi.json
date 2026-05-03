@@ -2777,8 +2777,14 @@
             "title": "Title"
           },
           "priority": {
-            "$ref": "#/components/schemas/TaskPriority",
-            "default": "MEDIUM"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskPriority"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "assigneeId": {
             "anyOf": [
@@ -2790,6 +2796,18 @@
               }
             ],
             "title": "Assigneeid"
+          },
+          "deadlineAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadlineat"
           },
           "description": {
             "anyOf": [
@@ -2878,8 +2896,14 @@
             "title": "Title"
           },
           "priority": {
-            "$ref": "#/components/schemas/TaskPriority",
-            "default": "MEDIUM"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskPriority"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "assigneeId": {
             "anyOf": [
@@ -2891,6 +2915,18 @@
               }
             ],
             "title": "Assigneeid"
+          },
+          "deadlineAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadlineat"
           },
           "id": {
             "type": "integer",
@@ -2945,8 +2981,14 @@
             "title": "Title"
           },
           "priority": {
-            "$ref": "#/components/schemas/TaskPriority",
-            "default": "MEDIUM"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskPriority"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "assigneeId": {
             "anyOf": [
@@ -2958,6 +3000,18 @@
               }
             ],
             "title": "Assigneeid"
+          },
+          "deadlineAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadlineat"
           },
           "id": {
             "type": "integer",
@@ -3074,6 +3128,18 @@
               }
             ],
             "title": "Assigneeid"
+          },
+          "deadlineAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadlineat"
           },
           "tagIds": {
             "anyOf": [

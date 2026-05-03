@@ -8,6 +8,7 @@ export type TaskUpdate = {
     description?: (string | null);
     priority?: (TaskPriority | null);
     assigneeId?: (number | null);
+    deadlineAt?: (string | null);
     tagIds?: (Array<number> | null);
 };
 

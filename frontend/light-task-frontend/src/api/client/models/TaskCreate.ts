@@ -5,8 +5,9 @@
 import type { TaskPriority } from './TaskPriority';
 export type TaskCreate = {
     title: string;
-    priority?: TaskPriority;
+    priority?: (TaskPriority | null);
     assigneeId?: (number | null);
+    deadlineAt?: (string | null);
     description?: (string | null);
     tagIds?: Array<number>;
 };

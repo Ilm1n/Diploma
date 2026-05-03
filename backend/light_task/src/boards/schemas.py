@@ -9,8 +9,9 @@ from src.tags.schemas import TagRead
 
 class TaskBase(BaseSchema):
     title: str = Field(min_length=1, max_length=200)
-    priority: TaskPriority = TaskPriority.MEDIUM
+    priority: TaskPriority | None = None
     assignee_id: int | None = None
+    deadline_at: datetime | None = None
 
 
 class TaskCreate(TaskBase):
@@ -23,6 +24,7 @@ class TaskUpdate(BaseSchema):
     description: str | None = None
     priority: TaskPriority | None = None
     assignee_id: int | None = None
+    deadline_at: datetime | None = None
     tag_ids: list[int] | None = None
 
 
@@ -44,6 +46,7 @@ class TaskRead(TaskPreview):
     author_id: int | None
     created_at: datetime
     updated_at: datetime
+
 
 class TaskMoveResponse(BaseSchema):
     id: int

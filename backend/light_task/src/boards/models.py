@@ -1,7 +1,9 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     Enum as SQLEnum,
     Float,
     ForeignKey,
@@ -59,16 +61,19 @@ class Task(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    priority: Mapped[TaskPriority] = mapped_column(
+    priority: Mapped[TaskPriority | None] = mapped_column(
         SQLEnum(
             TaskPriority,
             native_enum=False,
             values_callable=lambda x: [e.value for e in x],
         ),
-        default=TaskPriority.MEDIUM,
-        nullable=False,
+        nullable=True,
     )
     position: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    deadline_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     project_id: Mapped[int] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE")

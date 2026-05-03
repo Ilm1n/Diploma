@@ -6,8 +6,9 @@ import type { TagRead } from './TagRead';
 import type { TaskPriority } from './TaskPriority';
 export type TaskRead = {
     title: string;
-    priority?: TaskPriority;
+    priority?: (TaskPriority | null);
     assigneeId?: (number | null);
+    deadlineAt?: (string | null);
     id: number;
     columnId: number;
     projectId: number;

@@ -35,9 +35,57 @@ const priorityConfig = computed(() => {
       return { severity: 'warn', label: 'High', icon: 'pi pi-arrow-up' };
     case 'LOW':
       return { severity: 'success', label: 'Low', icon: 'pi pi-arrow-down' };
-    default:
+    case 'MEDIUM':
       return { severity: 'info', label: 'Medium', icon: 'pi pi-minus' };
+    default:
+      return null;
   }
+});
+
+const deadlineConfig = computed(() => {
+  if (!props.task.deadlineAt) return null;
+
+  const deadline = new Date(props.task.deadlineAt);
+  if (Number.isNaN(deadline.getTime())) return null;
+
+  const today = new Date();
+  const startOfToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const startOfDeadline = new Date(
+    deadline.getFullYear(),
+    deadline.getMonth(),
+    deadline.getDate(),
+  );
+
+  const diffDays = Math.round(
+    (startOfDeadline.getTime() - startOfToday.getTime()) / 86_400_000,
+  );
+  const dateLabel = deadline.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+  });
+
+  if (diffDays < 0) {
+    return {
+      label: dateLabel,
+      class: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20',
+    };
+  }
+
+  if (diffDays === 0) {
+    return {
+      label: 'Сегодня',
+      class: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20',
+    };
+  }
+
+  return {
+    label: dateLabel,
+    class: 'text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60',
+  };
 });
 
 const presence = computed(() => store.getTaskPresence(props.task.id));
@@ -89,12 +137,24 @@ const viewingOthersCount = computed(() => {
         <span v-if="editingOthersCount > 0">{{ editingOthersCount }} редактируют</span>
         <span v-else>{{ viewingOthersCount }} просматривают</span>
       </div>
+      <div
+        v-if="deadlineConfig"
+        class="mt-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold"
+        :class="deadlineConfig.class"
+      >
+        <i class="pi pi-calendar text-[10px]"></i>
+        <span>{{ deadlineConfig.label }}</span>
+      </div>
     </div>
 
     <!-- Footer: Priority & Assignee -->
-    <div class="flex items-center justify-between mt-auto">
+    <div
+      v-if="priorityConfig || task.assigneeId"
+      class="flex items-center justify-between mt-auto"
+    >
       <!-- Priority Badge -->
       <Tag
+          v-if="priorityConfig"
           :value="priorityConfig.label"
           :severity="(priorityConfig.severity as any)"
           class="!text-[10px] !px-2 !py-0.5 !h-5 !font-bold"
@@ -105,7 +165,7 @@ const viewingOthersCount = computed(() => {
       </Tag>
 
       <!-- Assignee Avatar -->
-      <div v-if="task.assigneeId" class="flex">
+      <div v-if="task.assigneeId" class="flex ml-auto">
         <UserAvatar
             class="!w-6 !h-6 !text-[10px] "
             :image="avatarUrl || undefined"

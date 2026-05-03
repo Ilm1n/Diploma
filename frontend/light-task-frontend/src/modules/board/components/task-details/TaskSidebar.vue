@@ -5,12 +5,14 @@ import { TaskPriority } from '@/api/client';
 // UI
 import Select from 'primevue/select';
 import MultiSelect from 'primevue/multiselect';
+import DatePicker from 'primevue/datepicker';
 import UserAvatar from '@/shared/ui/UserAvatar.vue';
 
 const store = useBoardStore();
 
 const assigneeId = defineModel<number | null>('assigneeId');
 const priority = defineModel<TaskPriority | null>('priority');
+const deadlineAt = defineModel<Date | null>('deadlineAt');
 const tagIds = defineModel<number[]>('tagIds', { default: [] });
 
 const priorityOptions = [
@@ -72,10 +74,24 @@ const priorityOptions = [
       <Select
           v-model="priority"
           :options="priorityOptions"
-
+          showClear
           optionLabel="label"
           optionValue="value"
           placeholder="Без приоритета"
+          class="w-full"
+          fluid
+      />
+    </div>
+
+    <!-- Дедлайн -->
+    <div class="flex flex-col gap-1.5">
+      <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 ml-1">Дедлайн</label>
+      <DatePicker
+          v-model="deadlineAt"
+          dateFormat="dd.mm.yy"
+          placeholder="Без дедлайна"
+          showIcon
+          showButtonBar
           class="w-full"
           fluid
       />
