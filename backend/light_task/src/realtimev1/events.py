@@ -52,6 +52,9 @@ class RealtimeEventType(StrEnum):
     TASK_EDITING_STOPPED = "task.editing.stopped"
     TASK_PRESENCE_SYNC = "task.presence.sync"
 
+    PROJECT_PRESENCE_SYNC = "project.presence.sync"
+    PROJECT_PRESENCE_CHANGED = "project.presence.changed"
+
 
 class RealtimeEventEnvelope(BaseSchema):
     schema_version: int = SCHEMA_VERSION

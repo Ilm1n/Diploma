@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
 import { apiClient } from '@/api/config';
 import { withClientMutationId } from '@/modules/realtime/lib/mutation-id';
+import { getPlural } from '@/utils/plural';
 import {
   TaskPriority,
   type ColumnRead,
@@ -52,6 +53,7 @@ export const useBoardStore = defineStore('board', () => {
   const activeInvitations = ref<InvitationRead[]>([]);
   const pendingMutationIds = ref<Set<string>>(new Set());
   const presenceByTaskId = ref<Record<number, { viewingUserIds: number[]; editingUserIds: number[] }>>({});
+  const activeBoardUserCount = ref<number | null>(null);
 
   const filters = reactive<BoardFilters>({
     search: '',
@@ -67,6 +69,11 @@ export const useBoardStore = defineStore('board', () => {
       filters.tagIds.length > 0 ||
       filters.priorities.length > 0
     );
+  });
+
+  const activeBoardPresenceLabel = computed(() => {
+    const count = Math.max(1, activeBoardUserCount.value ?? 1);
+    return `${count} ${getPlural(count, ['на доске', 'на доске', 'на доске'])}`;
   });
 
   function canReadInvitations(): boolean {
@@ -150,6 +157,15 @@ export const useBoardStore = defineStore('board', () => {
     presenceByTaskId.value = next;
   }
 
+  function applyProjectPresence(payload: Record<string, any>) {
+    if (typeof payload.activeUserCount !== 'number') return;
+    activeBoardUserCount.value = Math.max(1, payload.activeUserCount);
+  }
+
+  function resetActiveBoardUserCount() {
+    activeBoardUserCount.value = null;
+  }
+
   const filteredColumns = computed(() => {
     if (!isFilterActive.value) {
       return columns.value;
@@ -215,6 +231,7 @@ export const useBoardStore = defineStore('board', () => {
       members.value = membersData;
       tags.value = tagsData;
       presenceByTaskId.value = {};
+      resetActiveBoardUserCount();
     } catch (error) {
       console.error('Ошибка загрузки доски:', error);
       throw error;
@@ -629,6 +646,10 @@ export const useBoardStore = defineStore('board', () => {
       case 'task.presence.sync':
         applyPresenceSync(event.payload.items ?? []);
         return;
+      case 'project.presence.sync':
+      case 'project.presence.changed':
+        applyProjectPresence(event.payload);
+        return;
       default:
         await fetchBoard(project.value.id);
         return;
@@ -656,6 +677,7 @@ export const useBoardStore = defineStore('board', () => {
     columns.value = [];
     selectedTask.value = null;
     presenceByTaskId.value = {};
+    resetActiveBoardUserCount();
   }
 
   return {
@@ -668,6 +690,8 @@ export const useBoardStore = defineStore('board', () => {
     activeColumnIdForTaskCreation,
     isLoading,
     isTaskLoading,
+    activeBoardUserCount,
+    activeBoardPresenceLabel,
     fetchBoard,
     fetchTaskDetails,
     createColumn,
@@ -702,5 +726,6 @@ export const useBoardStore = defineStore('board', () => {
     getTaskPresence,
     getEditingUsers,
     getViewingUsers,
+    resetActiveBoardUserCount,
   };
 });

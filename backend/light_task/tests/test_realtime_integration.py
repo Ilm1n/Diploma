@@ -131,12 +131,13 @@ def _auth_user_ws(client: TestClient, *, token: str):
 def _auth_project_ws(client: TestClient, *, token: str, project_id: int):
     with client.websocket_connect(f"/ws/projects/{project_id}") as ws:
         ws.send_json({"type": "auth", "accessToken": token})
-        # Initial presence sync is sent right after auth.
-        initial_sync = ws.receive_json()
-        assert initial_sync["eventType"] == RealtimeEventType.TASK_PRESENCE_SYNC
+        # Initial project and task presence syncs are sent right after auth.
+        project_presence_sync = ws.receive_json()
+        assert project_presence_sync["eventType"] == RealtimeEventType.PROJECT_PRESENCE_SYNC
+        task_presence_sync = ws.receive_json()
+        assert task_presence_sync["eventType"] == RealtimeEventType.TASK_PRESENCE_SYNC
         ws.send_json({"type": "ping"})
-        pong = ws.receive_json()
-        assert pong["type"] == "pong"
+        _receive_pong(ws)
         yield ws
 
 
@@ -148,6 +149,14 @@ def _receive_event(ws, event_type: str, max_messages: int = 20) -> dict:
     raise AssertionError(f"Event {event_type} was not received")
 
 
+def _receive_pong(ws, max_messages: int = 10) -> None:
+    for _ in range(max_messages):
+        message = ws.receive_json()
+        if message.get("type") == "pong":
+            return
+    raise AssertionError("Pong was not received from websocket")
+
+
 def _receive_until_pong_without_invitation(ws, max_messages: int = 10) -> None:
     ws.send_json({"type": "ping"})
     for _ in range(max_messages):
@@ -157,6 +166,12 @@ def _receive_until_pong_without_invitation(ws, max_messages: int = 10) -> None:
         if message.get("type") == "pong":
             return
     raise AssertionError("Pong was not received from websocket")
+
+
+def _assert_project_presence_event(message: dict, *, expected_count: int) -> None:
+    assert message["eventType"] == "project.presence.sync"
+    assert message["payload"]["projectId"] == message["projectId"]
+    assert message["payload"]["activeUserCount"] == expected_count
 
 
 def _expect_disconnect(ws, max_messages: int = 20) -> None:
@@ -209,6 +224,71 @@ def test_project_subscription_permission(client: TestClient) -> None:
         with client.websocket_connect(f"/ws/projects/{project['id']}") as ws:
             ws.send_json({"type": "auth", "accessToken": outsider["token"]})
             ws.receive_json()
+
+
+def test_project_presence_count_lifecycle(client: TestClient) -> None:
+    owner = _register_and_login(
+        client,
+        username="owner_project_presence",
+        email="owner_project_presence@example.com",
+    )
+    member = _register_and_login(
+        client,
+        username="member_project_presence",
+        email="member_project_presence@example.com",
+    )
+    outsider = _register_and_login(
+        client,
+        username="outsider_project_presence",
+        email="outsider_project_presence@example.com",
+    )
+    project = _create_project(client, token=owner["token"], name="Project Presence")
+    _add_member_via_invite(
+        client,
+        owner_token=owner["token"],
+        member_token=member["token"],
+        project_id=project["id"],
+    )
+
+    with client.websocket_connect(f"/ws/projects/{project['id']}") as ws_owner:
+        ws_owner.send_json({"type": "auth", "accessToken": owner["token"]})
+        _assert_project_presence_event(ws_owner.receive_json(), expected_count=1)
+        assert ws_owner.receive_json()["eventType"] == RealtimeEventType.TASK_PRESENCE_SYNC
+
+        with client.websocket_connect(f"/ws/projects/{project['id']}") as ws_member:
+            ws_member.send_json({"type": "auth", "accessToken": member["token"]})
+            _assert_project_presence_event(ws_member.receive_json(), expected_count=2)
+            assert ws_member.receive_json()["eventType"] == RealtimeEventType.TASK_PRESENCE_SYNC
+            changed = _receive_event(ws_owner, "project.presence.changed")
+            assert changed["payload"]["activeUserCount"] == 2
+
+            with client.websocket_connect(f"/ws/projects/{project['id']}") as ws_member_second_tab:
+                ws_member_second_tab.send_json(
+                    {"type": "auth", "accessToken": member["token"]}
+                )
+                _assert_project_presence_event(
+                    ws_member_second_tab.receive_json(),
+                    expected_count=2,
+                )
+                assert (
+                    ws_member_second_tab.receive_json()["eventType"]
+                    == RealtimeEventType.TASK_PRESENCE_SYNC
+                )
+                changed_same_user = _receive_event(ws_owner, "project.presence.changed")
+                assert changed_same_user["payload"]["activeUserCount"] == 2
+
+            changed_after_tab_close = _receive_event(ws_owner, "project.presence.changed")
+            assert changed_after_tab_close["payload"]["activeUserCount"] == 2
+
+            with pytest.raises(WebSocketDisconnect):
+                with client.websocket_connect(f"/ws/projects/{project['id']}") as ws_outsider:
+                    ws_outsider.send_json(
+                        {"type": "auth", "accessToken": outsider["token"]}
+                    )
+                    ws_outsider.receive_json()
+
+        changed_after_member_close = _receive_event(ws_owner, "project.presence.changed")
+        assert changed_after_member_close["payload"]["activeUserCount"] == 1
 
 
 def test_task_created_event_delivery(client: TestClient) -> None:

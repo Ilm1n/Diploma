@@ -102,10 +102,21 @@ async def project_realtime_ws(
             websocket=websocket,
         )
         expiry_task = _spawn_expiry_task(websocket, context.expires_at)
+        await _send_project_presence_sync(
+            websocket=websocket,
+            runtime=runtime,
+            project_id=project_id,
+        )
         await _send_initial_presence_sync(
             websocket=websocket,
             runtime=runtime,
             project_id=project_id,
+        )
+        await _publish_project_presence_changed(
+            runtime=runtime,
+            project_id=project_id,
+            actor_user_id=context.user_id,
+            exclude_user_ids=[context.user_id],
         )
 
         while True:
@@ -138,6 +149,11 @@ async def project_realtime_ws(
                 project_id=connection_context.project_id,
                 user_id=connection_context.user_id,
                 states=connection_context.presence_states,
+            )
+            await _publish_project_presence_changed(
+                runtime=runtime,
+                project_id=connection_context.project_id,
+                actor_user_id=connection_context.user_id,
             )
 
 
@@ -287,6 +303,63 @@ async def _publish_presence_event(
         RealtimeDeliveryMessage(
             envelope=envelope,
             project_id=project_id,
+        )
+    )
+
+
+async def _send_project_presence_sync(
+    *,
+    websocket: WebSocket,
+    runtime: RealtimeRuntime,
+    project_id: int,
+) -> None:
+    active_user_count = await runtime.connections.active_project_user_count(
+        project_id=project_id,
+    )
+    envelope = new_event_envelope(
+        event_type=RealtimeEventType.PROJECT_PRESENCE_SYNC,
+        scope=RealtimeScope.PROJECT,
+        actor_user_id=0,
+        project_id=project_id,
+        payload={
+            "projectId": project_id,
+            "activeUserCount": active_user_count,
+        },
+    )
+    await websocket.send_json(
+        envelope.model_dump(
+            mode="json",
+            by_alias=True,
+            exclude_none=True,
+        )
+    )
+
+
+async def _publish_project_presence_changed(
+    *,
+    runtime: RealtimeRuntime,
+    project_id: int,
+    actor_user_id: int,
+    exclude_user_ids: list[int] | None = None,
+) -> None:
+    active_user_count = await runtime.connections.active_project_user_count(
+        project_id=project_id,
+    )
+    envelope = new_event_envelope(
+        event_type=RealtimeEventType.PROJECT_PRESENCE_CHANGED,
+        scope=RealtimeScope.PROJECT,
+        project_id=project_id,
+        actor_user_id=actor_user_id,
+        payload={
+            "projectId": project_id,
+            "activeUserCount": active_user_count,
+        },
+    )
+    await runtime.dispatch_local(
+        RealtimeDeliveryMessage(
+            envelope=envelope,
+            project_id=project_id,
+            exclude_user_ids=exclude_user_ids or [],
         )
     )
 

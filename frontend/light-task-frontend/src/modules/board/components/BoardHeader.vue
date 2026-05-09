@@ -2,13 +2,11 @@
 import { useRouter } from "vue-router";
 import { ref } from "vue";
 import { useBoardStore } from "../store/board.store";
-import AvatarGroup from "primevue/avatargroup";
 import Button from "primevue/button";
 import Skeleton from "primevue/skeleton";
 import InviteMemberDialog from "@/modules/invitations/components/InviteMemberDialog.vue";
 import ProjectSettingsDialog from "./ProjectSettingsDialog.vue";
 import { ProjectRole } from "@/api/client";
-import UserAvatar from "@/shared/ui/UserAvatar.vue";
 import BoardFilters from "./BoardFilters.vue";
 
 const isSettingsVisible = ref(false);
@@ -69,25 +67,18 @@ const goBack = () => {
         class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"
       ></div>
 
-      <!-- Team Avatars  -->
-      <AvatarGroup v-if="store.members.length > 0" class="hidden md:flex">
-        <UserAvatar
-          v-for="member in store.members.slice(0, 2)"
-          :key="member.id"
-          :image="member.user.avatarUrl || undefined"
-          :label="
-            !member.user.avatarUrl
-              ? member.user.username.charAt(0).toUpperCase()
-              : undefined
-          "
-          size="md"
-        />
-        <UserAvatar
-          v-if="store.members.length > 2"
-          :label="`+${store.members.length - 2}`"
-          size="sm"
-        />
-      </AvatarGroup>
+      <!-- Board Presence -->
+      <div
+        v-if="store.project"
+        class="hidden md:inline-flex h-8 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 text-xs font-bold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300"
+        :title="store.activeBoardPresenceLabel"
+      >
+        <span
+          class="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(34,197,94,0.18)]"
+          aria-hidden="true"
+        ></span>
+        <span>{{ store.activeBoardPresenceLabel }}</span>
+      </div>
 
       <!-- Settings  -->
       <Button
@@ -117,8 +108,3 @@ const goBack = () => {
   </div>
 </template>
 
-<style scoped>
-:deep(.p-avatar) {
-  border-width: 1px !important;
-}
-</style>

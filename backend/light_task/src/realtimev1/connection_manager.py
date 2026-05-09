@@ -116,6 +116,10 @@ class ConnectionManager:
         async with self._lock:
             return [project_id for project_id, users in self._project_connections.items() if users]
 
+    async def active_project_user_count(self, *, project_id: int) -> int:
+        async with self._lock:
+            return len(self._project_connections.get(project_id, {}))
+
     async def update_role(self, *, project_id: int, user_id: int, role: ProjectRole) -> None:
         async with self._lock:
             project_map = self._project_connections.get(project_id, {})

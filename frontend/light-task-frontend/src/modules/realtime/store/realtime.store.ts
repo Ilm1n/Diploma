@@ -217,6 +217,11 @@ export const useRealtimeStore = defineStore('realtime', () => {
     const token = authStore.accessToken;
     if (!token) return;
 
+    if (currentProjectId.value !== projectId) {
+      const boardStore = useBoardStore();
+      boardStore.resetActiveBoardUserCount();
+    }
+
     shouldKeepProjectConnection.value = true;
     currentProjectId.value = projectId;
     resetProjectSocket();
@@ -262,10 +267,12 @@ export const useRealtimeStore = defineStore('realtime', () => {
   }
 
   function disconnectProject() {
+    const boardStore = useBoardStore();
     shouldKeepProjectConnection.value = false;
     projectStatus.value = 'idle';
     projectReconnectAttempt.value = 0;
     currentProjectId.value = null;
+    boardStore.resetActiveBoardUserCount();
     resetProjectSocket();
   }
 
