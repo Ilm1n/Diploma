@@ -8,6 +8,40 @@ from src.boards.constants import TaskPriority
 
 
 @dataclass(frozen=True, kw_only=True)
+class CreateColumnCommand:
+    project_id: int
+    actor_user_id: int
+    name: str
+    tasks_limit: int | None
+    client_mutation_id: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class UpdateColumnCommand:
+    project_id: int
+    column_id: int
+    actor_user_id: int
+    changes: dict[str, Any]
+    client_mutation_id: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeleteColumnCommand:
+    project_id: int
+    column_id: int
+    actor_user_id: int
+    client_mutation_id: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ReorderColumnsCommand:
+    project_id: int
+    actor_user_id: int
+    column_ids: list[int]
+    client_mutation_id: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class CreateTaskCommand:
     project_id: int
     column_id: int

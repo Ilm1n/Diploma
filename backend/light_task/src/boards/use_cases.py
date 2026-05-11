@@ -4,13 +4,26 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 
 from src.boards.dto import (
+    CreateColumnCommand,
     CreateTaskCommand,
+    DeleteColumnCommand,
     DeleteTaskCommand,
     MoveTaskCommand,
+    ReorderColumnsCommand,
+    UpdateColumnCommand,
     UpdateTaskCommand,
 )
-from src.boards.events import TaskCreated, TaskDeleted, TaskMoved, TaskUpdated
-from src.boards.models import Task
+from src.boards.events import (
+    ColumnCreated,
+    ColumnDeleted,
+    ColumnUpdated,
+    ColumnsReordered,
+    TaskCreated,
+    TaskDeleted,
+    TaskMoved,
+    TaskUpdated,
+)
+from src.boards.models import BoardColumn, Task
 from src.boards.ordering import POSITION_GAP, TaskOrdering
 from src.boards.permissions import BoardPermissions
 from src.boards.repository import BoardRepository
@@ -24,6 +37,235 @@ from src.shared.errors import (
     DatabaseError,
     NotFoundError,
 )
+
+
+class CreateColumnUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, command: CreateColumnCommand) -> BoardColumn:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = BoardRepository(uow.session)
+                actor_member = await repository.get_project_member(
+                    project_id=command.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._permissions.ensure_can_manage_columns(actor_member=actor_member)
+
+                max_position = await repository.get_max_column_position(
+                    command.project_id
+                )
+                column = repository.add_column(
+                    project_id=command.project_id,
+                    name=command.name,
+                    tasks_limit=command.tasks_limit,
+                    position=max_position + POSITION_GAP,
+                )
+                await repository.touch_project(command.project_id)
+                await repository.flush()
+
+                loaded_column = await repository.get_column_with_tasks(column.id)
+                if loaded_column is None:
+                    raise DatabaseError()
+
+                uow.collect_event(
+                    ColumnCreated(
+                        column_id=loaded_column.id,
+                        actor_user_id=command.actor_user_id,
+                        project_id=command.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+                return loaded_column
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to create column in project %s",
+                command.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class UpdateColumnUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, command: UpdateColumnCommand) -> BoardColumn:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = BoardRepository(uow.session)
+                actor_member = await repository.get_project_member(
+                    project_id=command.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._permissions.ensure_can_manage_columns(actor_member=actor_member)
+
+                column = await repository.get_column_in_project(
+                    project_id=command.project_id,
+                    column_id=command.column_id,
+                )
+                if column is None:
+                    raise NotFoundError(ErrorCode.COLUMN_NOT_FOUND)
+
+                for key, value in command.changes.items():
+                    setattr(column, key, value)
+
+                repository.save_column(column)
+                await repository.touch_project(command.project_id)
+                await repository.flush()
+
+                updated_column = await repository.get_column_with_tasks(column.id)
+                if updated_column is None:
+                    raise DatabaseError()
+
+                uow.collect_event(
+                    ColumnUpdated(
+                        column_id=updated_column.id,
+                        actor_user_id=command.actor_user_id,
+                        project_id=command.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+                return updated_column
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to update column %s",
+                command.column_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class DeleteColumnUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, command: DeleteColumnCommand) -> None:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = BoardRepository(uow.session)
+                actor_member = await repository.get_project_member(
+                    project_id=command.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._permissions.ensure_can_manage_columns(actor_member=actor_member)
+
+                column = await repository.get_column_in_project(
+                    project_id=command.project_id,
+                    column_id=command.column_id,
+                )
+                if column is None:
+                    raise NotFoundError(ErrorCode.COLUMN_NOT_FOUND)
+
+                await repository.delete_column(column)
+                await repository.touch_project(command.project_id)
+                await repository.flush()
+
+                uow.collect_event(
+                    ColumnDeleted(
+                        column_id=command.column_id,
+                        actor_user_id=command.actor_user_id,
+                        project_id=command.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to delete column %s",
+                command.column_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class ReorderColumnsUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, command: ReorderColumnsCommand) -> None:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = BoardRepository(uow.session)
+                actor_member = await repository.get_project_member(
+                    project_id=command.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._permissions.ensure_can_manage_columns(actor_member=actor_member)
+
+                columns = await repository.list_project_columns_by_ids(
+                    project_id=command.project_id,
+                    column_ids=command.column_ids,
+                )
+                col_map = {column.id: column for column in columns}
+                for index, column_id in enumerate(command.column_ids):
+                    column = col_map.get(column_id)
+                    if column is None:
+                        continue
+
+                    column.position = (index + 1) * POSITION_GAP
+                    repository.save_column(column)
+
+                if not columns:
+                    return
+
+                await repository.touch_project(command.project_id)
+                await repository.flush()
+                uow.collect_event(
+                    ColumnsReordered(
+                        column_ids=command.column_ids,
+                        actor_user_id=command.actor_user_id,
+                        project_id=command.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to reorder columns in project %s",
+                command.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
 
 
 class CreateTaskUseCase:

@@ -3,10 +3,21 @@ from __future__ import annotations
 from src.errors import ErrorCode
 from src.projects.constants import ProjectRole
 from src.projects.models import ProjectMember
-from src.shared.errors import ForbiddenError
+from src.shared.errors import ForbiddenError, NotFoundError
 
 
 class BoardPermissions:
+    def ensure_can_manage_columns(
+        self,
+        *,
+        actor_member: ProjectMember | None,
+    ) -> None:
+        if actor_member is None:
+            raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+        if actor_member.role not in [ProjectRole.OWNER, ProjectRole.MANAGER]:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+
     def ensure_task_assignee_allowed(
         self,
         *,

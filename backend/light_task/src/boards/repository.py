@@ -17,8 +17,86 @@ class BoardRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
+    async def list_project_columns(self, project_id: int) -> list[BoardColumn]:
+        stmt = (
+            select(BoardColumn)
+            .where(BoardColumn.project_id == project_id)
+            .order_by(BoardColumn.position.asc())
+            .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def get_column(self, column_id: int) -> BoardColumn | None:
         return await self.session.get(BoardColumn, column_id)
+
+    async def get_column_in_project(
+        self,
+        *,
+        project_id: int,
+        column_id: int,
+    ) -> BoardColumn | None:
+        stmt = (
+            select(BoardColumn)
+            .where(
+                BoardColumn.id == column_id,
+                BoardColumn.project_id == project_id,
+            )
+            .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
+        )
+        return (await self.session.execute(stmt)).scalar_one_or_none()
+
+    async def get_column_with_tasks(self, column_id: int) -> BoardColumn | None:
+        stmt = (
+            select(BoardColumn)
+            .where(BoardColumn.id == column_id)
+            .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
+        )
+        return (await self.session.execute(stmt)).scalar_one_or_none()
+
+    async def get_max_column_position(self, project_id: int) -> float:
+        stmt = select(func.max(BoardColumn.position)).where(
+            BoardColumn.project_id == project_id
+        )
+        return await self.session.scalar(stmt) or 0.0
+
+    def add_column(
+        self,
+        *,
+        project_id: int,
+        name: str,
+        tasks_limit: int | None,
+        position: float,
+    ) -> BoardColumn:
+        column = BoardColumn(
+            name=name,
+            tasks_limit=tasks_limit,
+            project_id=project_id,
+            position=position,
+            tasks=[],
+        )
+        self.session.add(column)
+        return column
+
+    def save_column(self, column: BoardColumn) -> None:
+        self.session.add(column)
+
+    async def delete_column(self, column: BoardColumn) -> None:
+        await self.session.delete(column)
+
+    async def list_project_columns_by_ids(
+        self,
+        *,
+        project_id: int,
+        column_ids: Sequence[int],
+    ) -> list[BoardColumn]:
+        if not column_ids:
+            return []
+
+        stmt = select(BoardColumn).where(
+            BoardColumn.project_id == project_id,
+            BoardColumn.id.in_(column_ids),
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
 
     async def count_tasks_in_column(self, column_id: int) -> int:
         stmt = select(func.count()).select_from(Task).where(Task.column_id == column_id)

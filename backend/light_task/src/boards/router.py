@@ -6,13 +6,17 @@ from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.boards import dependencies
 from src.boards.dto import (
+    CreateColumnCommand,
     CreateTaskCommand,
+    DeleteColumnCommand,
     DeleteTaskCommand,
     MoveTaskCommand,
+    ReorderColumnsCommand,
+    UpdateColumnCommand,
     UpdateTaskCommand,
 )
 from src.boards.events import BoardsDomainEventDispatcher
-from src.boards.models import BoardColumn, Task
+from src.boards.models import Task
 from src.boards.schemas import (
     ColumnCreate,
     ColumnRead,
@@ -27,9 +31,13 @@ from src.boards.schemas import (
 )
 from src.boards.service import BoardService, get_board_service
 from src.boards.use_cases import (
+    CreateColumnUseCase,
     CreateTaskUseCase,
+    DeleteColumnUseCase,
     DeleteTaskUseCase,
     MoveTaskUseCase,
+    ReorderColumnsUseCase,
+    UpdateColumnUseCase,
     UpdateTaskUseCase,
 )
 from src.db.database import db_helper
@@ -37,12 +45,49 @@ from src.db.unit_of_work import UnitOfWork
 from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
 from src.realtimev1.publisher import DomainEventPublisher
 
-from src.projects.dependencies import (
-    check_project_member,
-    check_project_manager,
-)
+from src.projects.dependencies import check_project_member
 
 router = APIRouter(tags=["Boards"])
+
+
+def get_create_column_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> CreateColumnUseCase:
+    dispatcher = BoardsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return CreateColumnUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
+
+
+def get_update_column_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> UpdateColumnUseCase:
+    dispatcher = BoardsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return UpdateColumnUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
+
+
+def get_delete_column_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> DeleteColumnUseCase:
+    dispatcher = BoardsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return DeleteColumnUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
+
+
+def get_reorder_columns_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> ReorderColumnsUseCase:
+    dispatcher = BoardsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return ReorderColumnsUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
 
 
 def get_create_task_use_case(
@@ -102,17 +147,18 @@ async def get_project_board(
 async def create_column(
     project_id: int,
     column_in: ColumnCreate,
-    _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    use_case: Annotated[CreateColumnUseCase, Depends(get_create_column_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.create_column(
-        project_id,
-        column_in,
+    command = CreateColumnCommand(
+        project_id=project_id,
         actor_user_id=current_user.sub,
+        name=column_in.name,
+        tasks_limit=column_in.tasks_limit,
         client_mutation_id=client_mutation_id,
     )
+    return await use_case.execute(command)
 
 
 @router.patch(
@@ -120,19 +166,21 @@ async def create_column(
     response_model=ColumnRead,
 )
 async def update_column(
+    project_id: int,
+    column_id: int,
     column_update: ColumnUpdate,
-    _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    use_case: Annotated[UpdateColumnUseCase, Depends(get_update_column_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.update_column(
-        column,
-        column_update,
+    command = UpdateColumnCommand(
+        project_id=project_id,
+        column_id=column_id,
         actor_user_id=current_user.sub,
+        changes=column_update.model_dump(exclude_unset=True),
         client_mutation_id=client_mutation_id,
     )
+    return await use_case.execute(command)
 
 
 @router.delete(
@@ -140,17 +188,19 @@ async def update_column(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_column(
-    _: Annotated[None, Depends(check_project_manager)],
+    project_id: int,
+    column_id: int,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    use_case: Annotated[DeleteColumnUseCase, Depends(get_delete_column_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await board_service.delete_column(
-        column,
+    command = DeleteColumnCommand(
+        project_id=project_id,
+        column_id=column_id,
         actor_user_id=current_user.sub,
         client_mutation_id=client_mutation_id,
     )
+    await use_case.execute(command)
 
 
 @router.post(
@@ -160,17 +210,17 @@ async def delete_column(
 async def reorder_columns(
     project_id: int,
     reorder_data: ColumnReorderRequest,
-    _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    use_case: Annotated[ReorderColumnsUseCase, Depends(get_reorder_columns_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await board_service.reorder_columns(
-        project_id,
-        reorder_data,
+    command = ReorderColumnsCommand(
+        project_id=project_id,
         actor_user_id=current_user.sub,
+        column_ids=reorder_data.column_ids,
         client_mutation_id=client_mutation_id,
     )
+    await use_case.execute(command)
 
 
 @router.post(
