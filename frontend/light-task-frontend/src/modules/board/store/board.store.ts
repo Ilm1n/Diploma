@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
 import { apiClient } from '@/api/config';
-import { withClientMutationId } from '@/modules/realtime/lib/mutation-id';
+import { useAuthStore } from '@/modules/auth/store/auth.store';
+import {
+  hasPendingClientMutationId,
+  rememberClientMutationId,
+  withClientMutationId,
+} from '@/modules/realtime/lib/mutation-id';
 import { getPlural } from '@/utils/plural';
 import {
   TaskPriority,
@@ -112,8 +117,147 @@ export const useBoardStore = defineStore('board', () => {
     }
   }
 
+  function sortByPosition<T extends { position: number }>(items: T[]): T[] {
+    return [...items].sort((a, b) => a.position - b.position);
+  }
+
+  function removeTaskFromColumns(taskId: number) {
+    for (const col of columns.value) {
+      if (!col.tasks) continue;
+      col.tasks = col.tasks.filter((task) => task.id !== taskId);
+    }
+  }
+
+  function upsertTaskInColumn(task: TaskRead): boolean {
+    removeTaskFromColumns(task.id);
+
+    const targetColumn = columns.value.find((col) => col.id === task.columnId);
+    if (!targetColumn) return false;
+
+    targetColumn.tasks = sortByPosition([...(targetColumn.tasks ?? []), task]);
+    applyTaskSnapshot(task);
+    return true;
+  }
+
+  function removeTaskSnapshot(taskId: number) {
+    removeTaskFromColumns(taskId);
+
+    const nextTaskDetails = { ...taskDetailsById.value };
+    delete nextTaskDetails[taskId];
+    taskDetailsById.value = nextTaskDetails;
+
+    if (selectedTask.value?.id === taskId) {
+      selectedTask.value = null;
+    }
+  }
+
+  function upsertColumnSnapshot(column: ColumnRead) {
+    const existingIndex = columns.value.findIndex((item) => item.id === column.id);
+    if (existingIndex === -1) {
+      columns.value = sortByPosition([...columns.value, column]);
+      return;
+    }
+
+    const existing = columns.value[existingIndex]!;
+    const hasIncomingTasks = Array.isArray(column.tasks) && column.tasks.length > 0;
+    columns.value[existingIndex] = {
+      ...existing,
+      ...column,
+      tasks: hasIncomingTasks ? sortByPosition(column.tasks ?? []) : existing.tasks,
+    };
+    columns.value = sortByPosition(columns.value);
+  }
+
+  function reorderColumnSnapshots(columnOrder: number[]) {
+    const orderById = new Map(columnOrder.map((id, index) => [id, index]));
+    columns.value = [...columns.value].sort((a, b) => {
+      const aOrder = orderById.get(a.id);
+      const bOrder = orderById.get(b.id);
+
+      if (aOrder !== undefined && bOrder !== undefined) return aOrder - bOrder;
+      if (aOrder !== undefined) return -1;
+      if (bOrder !== undefined) return 1;
+      return a.position - b.position;
+    });
+  }
+
+  function upsertTagSnapshot(tag: TagRead) {
+    const existingIndex = tags.value.findIndex((item) => item.id === tag.id);
+    if (existingIndex === -1) {
+      tags.value = [...tags.value, tag].sort((a, b) => a.name.localeCompare(b.name));
+      return;
+    }
+
+    tags.value[existingIndex] = tag;
+    tags.value = [...tags.value].sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const col of columns.value) {
+      for (const task of col.tasks ?? []) {
+        if (!task.tags) continue;
+        task.tags = task.tags.map((item) => item.id === tag.id ? tag : item);
+      }
+    }
+
+    taskDetailsById.value = Object.fromEntries(
+      Object.entries(taskDetailsById.value).map(([taskId, task]) => [
+        taskId,
+        task.tags
+          ? { ...task, tags: task.tags.map((item) => item.id === tag.id ? tag : item) }
+          : task,
+      ])
+    );
+
+    if (selectedTask.value?.tags) {
+      selectedTask.value = {
+        ...selectedTask.value,
+        tags: selectedTask.value.tags.map((item) => item.id === tag.id ? tag : item),
+      };
+    }
+  }
+
+  function removeTagSnapshot(tagId: number) {
+    tags.value = tags.value.filter((tag) => tag.id !== tagId);
+
+    for (const col of columns.value) {
+      for (const task of col.tasks ?? []) {
+        if (!task.tags) continue;
+        task.tags = task.tags.filter((tag) => tag.id !== tagId);
+      }
+    }
+
+    taskDetailsById.value = Object.fromEntries(
+      Object.entries(taskDetailsById.value).map(([taskKey, task]) => [
+        taskKey,
+        task.tags ? { ...task, tags: task.tags.filter((tag) => tag.id !== tagId) } : task,
+      ])
+    );
+
+    if (selectedTask.value?.tags) {
+      selectedTask.value = {
+        ...selectedTask.value,
+        tags: selectedTask.value.tags.filter((tag) => tag.id !== tagId),
+      };
+    }
+  }
+
+  function applyMemberRoleSnapshot(userId: number, role: any) {
+    const member = members.value.find((item) => item.user.id === userId);
+    if (member) {
+      member.role = role;
+    }
+
+    const authStore = useAuthStore();
+    if (project.value && authStore.user?.id === userId) {
+      project.value = {
+        ...project.value,
+        currentUserRole: role,
+      };
+    }
+  }
+
   function rememberPendingMutation(mutationId: string) {
     pendingMutationIds.value.add(mutationId);
+    rememberClientMutationId(mutationId);
     window.setTimeout(() => {
       pendingMutationIds.value.delete(mutationId);
     }, 60_000);
@@ -121,17 +265,13 @@ export const useBoardStore = defineStore('board', () => {
 
   function consumePendingMutation(mutationId?: string | null): boolean {
     if (!mutationId) return false;
-    const found = pendingMutationIds.value.has(mutationId);
-    if (found) {
-      pendingMutationIds.value.delete(mutationId);
-    }
-    return found;
+    return pendingMutationIds.value.has(mutationId) || hasPendingClientMutationId(mutationId);
   }
 
-  async function runMutation<T>(callback: () => Promise<T>): Promise<T> {
+  async function runMutation<T>(callback: (mutationId: string) => Promise<T>): Promise<T> {
     return withClientMutationId(async (mutationId) => {
       rememberPendingMutation(mutationId);
-      return callback();
+      return callback(mutationId);
     });
   }
 
@@ -289,8 +429,8 @@ export const useBoardStore = defineStore('board', () => {
   async function createColumn(payload: ColumnCreate) {
     if (!project.value) return;
     try {
-      const newCol = await runMutation(() =>
-        apiClient.boards.createColumnApiProjectsProjectIdColumnsPost(project.value!.id, payload)
+      const newCol = await runMutation((mutationId) =>
+        apiClient.boards.createColumnApiProjectsProjectIdColumnsPost(project.value!.id, payload, mutationId)
       );
       columns.value.push(newCol);
     } catch (error) {
@@ -302,11 +442,12 @@ export const useBoardStore = defineStore('board', () => {
   async function updateColumn(columnId: number, payload: ColumnUpdate) {
     if (!project.value) return;
     try {
-      const updatedCol = await runMutation(() =>
+      const updatedCol = await runMutation((mutationId) =>
         apiClient.boards.updateColumnApiProjectsProjectIdColumnsColumnIdPatch(
           project.value!.id,
           columnId,
-          payload
+          payload,
+          mutationId
         )
       );
       const index = columns.value.findIndex(c => c.id === columnId);
@@ -322,8 +463,8 @@ export const useBoardStore = defineStore('board', () => {
   async function deleteColumn(columnId: number) {
     if (!project.value) return;
     try {
-      await runMutation(() =>
-        apiClient.boards.deleteColumnApiProjectsProjectIdColumnsColumnIdDelete(project.value!.id, columnId)
+      await runMutation((mutationId) =>
+        apiClient.boards.deleteColumnApiProjectsProjectIdColumnsColumnIdDelete(project.value!.id, columnId, mutationId)
       );
       columns.value = columns.value.filter(c => c.id !== columnId);
     } catch (error) {
@@ -337,10 +478,10 @@ export const useBoardStore = defineStore('board', () => {
     columns.value = newOrder;
     try {
       const ids = newOrder.map(c => c.id);
-      await runMutation(() =>
+      await runMutation((mutationId) =>
         apiClient.boards.reorderColumnsApiProjectsProjectIdColumnsReorderPost(project.value!.id, {
           columnIds: ids
-        })
+        }, mutationId)
       );
     } catch (error) {
       console.error('Ошибка перемещения колонки:', error);
@@ -354,11 +495,12 @@ export const useBoardStore = defineStore('board', () => {
   async function createTask(columnId: number, payload: TaskCreate) {
     if (!project.value) return;
     try {
-      const newTask = await runMutation(() =>
+      const newTask = await runMutation((mutationId) =>
         apiClient.boards.createTaskApiProjectsProjectIdColumnsColumnIdTasksPost(
           project.value!.id,
           columnId,
-          payload
+          payload,
+          mutationId
         )
       );
 
@@ -381,8 +523,8 @@ export const useBoardStore = defineStore('board', () => {
 
   async function updateTask(taskId: number, payload: TaskUpdate) {
     try {
-      const updatedTask = await runMutation(() =>
-        apiClient.boards.updateTaskApiTasksTaskIdPatch(taskId, payload)
+      const updatedTask = await runMutation((mutationId) =>
+        apiClient.boards.updateTaskApiTasksTaskIdPatch(taskId, payload, mutationId)
       );
 
       if (selectedTask.value && selectedTask.value.id === taskId) {
@@ -419,8 +561,8 @@ export const useBoardStore = defineStore('board', () => {
     taskDetailsById.value = nextTaskDetails;
 
     try {
-      await runMutation(() =>
-        apiClient.boards.deleteTaskApiTasksTaskIdDelete(taskId)
+      await runMutation((mutationId) =>
+        apiClient.boards.deleteTaskApiTasksTaskIdDelete(taskId, mutationId)
       );
 
       for (const col of columns.value) {
@@ -470,8 +612,8 @@ export const useBoardStore = defineStore('board', () => {
         afterTaskId: afterTaskId
       };
 
-      await runMutation(() =>
-        apiClient.boards.moveTaskApiTasksTaskIdMovePatch(taskId, payload)
+      await runMutation((mutationId) =>
+        apiClient.boards.moveTaskApiTasksTaskIdMovePatch(taskId, payload, mutationId)
       );
 
     } catch (error) {
@@ -488,10 +630,11 @@ export const useBoardStore = defineStore('board', () => {
     if (!project.value) throw new Error('Project not loaded');
 
     try {
-      const res = await runMutation(() =>
+      const res = await runMutation((mutationId) =>
         apiClient.invitations.createInvitationApiProjectsProjectIdInvitePost(
           project.value!.id,
-          payload
+          payload,
+          mutationId
         )
       );
 
@@ -508,8 +651,8 @@ export const useBoardStore = defineStore('board', () => {
 
   async function acceptInvitation(token: string) {
     try {
-      const res = await runMutation(() =>
-        apiClient.invitations.acceptInvitationApiInvitationsTokenAcceptPost(token)
+      const res = await runMutation((mutationId) =>
+        apiClient.invitations.acceptInvitationApiInvitationsTokenAcceptPost(token, mutationId)
       );
       return res;
     } catch (error) {
@@ -531,10 +674,11 @@ export const useBoardStore = defineStore('board', () => {
   async function deleteInvitation(invitationId: number) {
     if (!project.value) return;
     try {
-      await runMutation(() =>
+      await runMutation((mutationId) =>
         apiClient.invitations.deleteInvitationApiProjectsProjectIdInvitationsInvitationIdDelete(
           project.value!.id,
-          invitationId
+          invitationId,
+          mutationId
         )
       );
       activeInvitations.value = activeInvitations.value.filter(i => i.id !== invitationId);
@@ -547,8 +691,8 @@ export const useBoardStore = defineStore('board', () => {
   async function updateProject(payload: ProjectUpdate) {
     if (!project.value) return;
     try {
-      const updated = await runMutation(() =>
-        apiClient.projects.updateProjectApiProjectsProjectIdPatch(project.value!.id, payload)
+      const updated = await runMutation((mutationId) =>
+        apiClient.projects.updateProjectApiProjectsProjectIdPatch(project.value!.id, payload, mutationId)
       );
       project.value = updated;
     } catch (error) {
@@ -560,8 +704,8 @@ export const useBoardStore = defineStore('board', () => {
   async function deleteProject() {
     if (!project.value) return;
     try {
-      await runMutation(() =>
-        apiClient.projects.deleteProjectApiProjectsProjectIdDelete(project.value!.id)
+      await runMutation((mutationId) =>
+        apiClient.projects.deleteProjectApiProjectsProjectIdDelete(project.value!.id, mutationId)
       );
       // После удаления уходим на список проектов
     } catch (error) {
@@ -573,11 +717,12 @@ export const useBoardStore = defineStore('board', () => {
   async function updateMemberRole(userId: number, role: any) {
     if (!project.value) return;
     try {
-      const updatedMember = await runMutation(() =>
+      const updatedMember = await runMutation((mutationId) =>
         apiClient.projects.updateMemberRoleApiProjectsProjectIdMembersUserIdPatch(
           project.value!.id,
           userId,
-          { role }
+          { role },
+          mutationId
         )
       );
       const index = members.value.findIndex(m => m.user.id === userId);
@@ -591,8 +736,8 @@ export const useBoardStore = defineStore('board', () => {
   async function removeMember(userId: number) {
     if (!project.value) return;
     try {
-      await runMutation(() =>
-        apiClient.projects.removeProjectMemberApiProjectsProjectIdMembersUserIdDelete(project.value!.id, userId)
+      await runMutation((mutationId) =>
+        apiClient.projects.removeProjectMemberApiProjectsProjectIdMembersUserIdDelete(project.value!.id, userId, mutationId)
       );
       members.value = members.value.filter(m => m.user.id !== userId);
     } catch (error) {
@@ -605,8 +750,8 @@ export const useBoardStore = defineStore('board', () => {
   async function createTag(payload: TagCreate) {
     if (!project.value) return;
     try {
-      const newTag = await runMutation(() =>
-        apiClient.tags.createTagApiProjectsProjectIdTagsPost(project.value!.id, payload)
+      const newTag = await runMutation((mutationId) =>
+        apiClient.tags.createTagApiProjectsProjectIdTagsPost(project.value!.id, payload, mutationId)
       );
       tags.value.push(newTag);
     } catch (error) {
@@ -617,8 +762,8 @@ export const useBoardStore = defineStore('board', () => {
 
   async function updateTag(tagId: number, payload: TagUpdate) {
     try {
-      const updated = await runMutation(() =>
-        apiClient.tags.updateTagApiTagsTagIdPatch(tagId, payload)
+      const updated = await runMutation((mutationId) =>
+        apiClient.tags.updateTagApiTagsTagIdPatch(tagId, payload, mutationId)
       );
       const index = tags.value.findIndex(t => t.id === tagId);
       if (index !== -1) {
@@ -632,8 +777,8 @@ export const useBoardStore = defineStore('board', () => {
 
   async function deleteTag(tagId: number) {
     try {
-      await runMutation(() =>
-        apiClient.tags.deleteTagApiTagsTagIdDelete(tagId)
+      await runMutation((mutationId) =>
+        apiClient.tags.deleteTagApiTagsTagIdDelete(tagId, mutationId)
       );
       tags.value = tags.value.filter(t => t.id !== tagId);
     } catch (error) {
@@ -656,9 +801,62 @@ export const useBoardStore = defineStore('board', () => {
           project.value = event.payload.project as ProjectRead;
         }
         return;
+      case 'project.list_item_updated':
+        return;
+      case 'column.created':
+      case 'column.updated':
+        if (event.payload?.column) {
+          upsertColumnSnapshot(event.payload.column as ColumnRead);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'column.deleted':
+        if (typeof event.payload?.columnId === 'number') {
+          columns.value = columns.value.filter((column) => column.id !== event.payload.columnId);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'columns.reordered':
+        if (Array.isArray(event.payload?.columnOrder)) {
+          reorderColumnSnapshots(event.payload.columnOrder);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'task.created':
+      case 'task.moved':
+        if (event.payload?.task && upsertTaskInColumn(event.payload.task as TaskRead)) {
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
       case 'task.updated':
         if (event.payload?.task) {
           applyTaskSnapshot(event.payload.task as TaskRead);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'task.deleted':
+        if (typeof event.payload?.taskId === 'number') {
+          removeTaskSnapshot(event.payload.taskId);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'tag.created':
+      case 'tag.updated':
+        if (event.payload?.tag) {
+          upsertTagSnapshot(event.payload.tag as TagRead);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'tag.deleted':
+        if (typeof event.payload?.tagId === 'number') {
+          removeTagSnapshot(event.payload.tagId);
           return;
         }
         await fetchBoard(project.value.id);
@@ -670,6 +868,20 @@ export const useBoardStore = defineStore('board', () => {
       case 'member.added':
         await fetchBoard(project.value.id);
         await refreshInvitationsIfAllowed();
+        return;
+      case 'member.role_changed':
+        if (typeof event.payload?.userId === 'number' && event.payload?.role) {
+          applyMemberRoleSnapshot(event.payload.userId, event.payload.role);
+          return;
+        }
+        await fetchBoard(project.value.id);
+        return;
+      case 'member.removed':
+        if (typeof event.payload?.userId === 'number') {
+          members.value = members.value.filter((member) => member.user.id !== event.payload.userId);
+          return;
+        }
+        await fetchBoard(project.value.id);
         return;
       case 'project.deleted':
         clearState();

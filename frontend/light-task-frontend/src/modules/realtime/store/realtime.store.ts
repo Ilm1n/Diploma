@@ -107,6 +107,7 @@ export const useRealtimeStore = defineStore('realtime', () => {
     await projectsStore.applyUserScopeEvent({
       eventType: message.eventType,
       clientMutationId: message.clientMutationId,
+      payload: message.payload ?? {},
     });
 
     if (

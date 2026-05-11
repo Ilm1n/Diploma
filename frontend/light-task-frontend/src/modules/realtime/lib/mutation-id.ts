@@ -1,7 +1,20 @@
 const mutationStack: string[] = [];
+const pendingMutationIds = new Set<string>();
 
 export function currentClientMutationId(): string | null {
   return mutationStack.length > 0 ? (mutationStack[mutationStack.length - 1] ?? null) : null;
+}
+
+export function rememberClientMutationId(mutationId: string, ttlMs = 60_000) {
+  pendingMutationIds.add(mutationId);
+  window.setTimeout(() => {
+    pendingMutationIds.delete(mutationId);
+  }, ttlMs);
+}
+
+export function hasPendingClientMutationId(mutationId?: string | null): boolean {
+  if (!mutationId) return false;
+  return pendingMutationIds.has(mutationId);
 }
 
 export async function withClientMutationId<T>(
