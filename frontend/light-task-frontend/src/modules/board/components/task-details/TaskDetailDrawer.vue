@@ -132,10 +132,16 @@ watch(
       const id = Number(newId);
       if (!isNaN(id)) {
         isVisible.value = true;
-        await store.fetchTaskDetails(id);
         startViewingPresence(id);
 
+        const detailsPromise = store.fetchTaskDetails(id);
         if (store.selectedTask) {
+          setLocalFromTask(store.selectedTask);
+          lastSavedAt.value = null;
+        }
+
+        await detailsPromise;
+        if (Number(route.query.taskId) === id && store.selectedTask?.id === id) {
           setLocalFromTask(store.selectedTask);
           lastSavedAt.value = null;
         }
@@ -433,7 +439,7 @@ onUnmounted(() => {
     <!-- BODY (Scrollable) -->
     <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
       <!-- LOADING STATE -->
-      <div v-if="store.isTaskLoading || !store.selectedTask" class="space-y-6">
+      <div v-if="!store.selectedTask" class="space-y-6">
         <Skeleton height="2.5rem" class="!bg-gray-100 dark:!bg-slate-800" />
         <div class="space-y-2">
           <Skeleton
@@ -600,18 +606,4 @@ onUnmounted(() => {
   box-shadow: none !important;
 }
 
-.flex-col {
-  animation: slideIn 0.2s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 </style>

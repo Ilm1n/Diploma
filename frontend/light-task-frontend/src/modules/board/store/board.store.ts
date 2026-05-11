@@ -41,6 +41,7 @@ export const useBoardStore = defineStore('board', () => {
   const project = ref<ProjectRead | null>(null);
   const columns = ref<ColumnRead[]>([]);
   const selectedTask = ref<TaskRead | null>(null);
+  const taskDetailsById = ref<Record<number, TaskRead>>({});
 
   const members = ref<ProjectMemberRead[]>([]);
   const tags = ref<TagRead[]>([]);
@@ -49,6 +50,7 @@ export const useBoardStore = defineStore('board', () => {
 
   const isLoading = ref(false);
   const isTaskLoading = ref(false);
+  const requestedTaskDetailsId = ref<number | null>(null);
 
   const activeInvitations = ref<InvitationRead[]>([]);
   const pendingMutationIds = ref<Set<string>>(new Set());
@@ -91,6 +93,11 @@ export const useBoardStore = defineStore('board', () => {
   }
 
   function applyTaskSnapshot(task: TaskRead) {
+    taskDetailsById.value = {
+      ...taskDetailsById.value,
+      [task.id]: task,
+    };
+
     for (const col of columns.value) {
       if (!col.tasks) continue;
       const taskIndex = col.tasks.findIndex((item) => item.id === task.id);
@@ -218,6 +225,12 @@ export const useBoardStore = defineStore('board', () => {
   }
 
   async function fetchBoard(projectId: number) {
+    if (project.value?.id !== projectId) {
+      selectedTask.value = null;
+      taskDetailsById.value = {};
+      requestedTaskDetailsId.value = null;
+    }
+
     isLoading.value = true;
     try {
       const [projectData, columnsData, membersData, tagsData] = await Promise.all([
@@ -241,16 +254,33 @@ export const useBoardStore = defineStore('board', () => {
   }
 
   async function fetchTaskDetails(taskId: number) {
+    requestedTaskDetailsId.value = taskId;
     isTaskLoading.value = true;
-    selectedTask.value = null;
+
+    const cachedTask = taskDetailsById.value[taskId];
+    if (cachedTask) {
+      selectedTask.value = cachedTask;
+    } else if (selectedTask.value?.id !== taskId) {
+      selectedTask.value = null;
+    }
+
     try {
       const task = await apiClient.boards.getTaskDetailsApiTasksTaskIdGet(taskId);
-      selectedTask.value = task;
+      taskDetailsById.value = {
+        ...taskDetailsById.value,
+        [taskId]: task,
+      };
+
+      if (requestedTaskDetailsId.value === taskId) {
+        selectedTask.value = task;
+      }
     } catch (error) {
       console.error('Ошибка загрузки задачи:', error);
       throw error;
     } finally {
-      isTaskLoading.value = false;
+      if (requestedTaskDetailsId.value === taskId) {
+        isTaskLoading.value = false;
+      }
     }
   }
 
@@ -332,6 +362,10 @@ export const useBoardStore = defineStore('board', () => {
         )
       );
 
+      taskDetailsById.value = {
+        ...taskDetailsById.value,
+        [newTask.id]: newTask,
+      };
 
       const col = columns.value.find(c => c.id === columnId);
       if (col) {
@@ -355,6 +389,11 @@ export const useBoardStore = defineStore('board', () => {
         Object.assign(selectedTask.value, updatedTask);
       }
 
+      taskDetailsById.value = {
+        ...taskDetailsById.value,
+        [taskId]: updatedTask,
+      };
+
       for (const col of columns.value) {
         if (!col.tasks) continue;
         const taskIndex = col.tasks.findIndex(t => t.id === taskId);
@@ -374,6 +413,10 @@ export const useBoardStore = defineStore('board', () => {
     if (selectedTask.value?.id === taskId) {
       selectedTask.value = null;
     }
+
+    const nextTaskDetails = { ...taskDetailsById.value };
+    delete nextTaskDetails[taskId];
+    taskDetailsById.value = nextTaskDetails;
 
     try {
       await runMutation(() =>
@@ -676,6 +719,9 @@ export const useBoardStore = defineStore('board', () => {
     project.value = null;
     columns.value = [];
     selectedTask.value = null;
+    taskDetailsById.value = {};
+    requestedTaskDetailsId.value = null;
+    isTaskLoading.value = false;
     presenceByTaskId.value = {};
     resetActiveBoardUserCount();
   }
@@ -686,6 +732,7 @@ export const useBoardStore = defineStore('board', () => {
     members,
     tags,
     selectedTask,
+    taskDetailsById,
     activeInvitations,
     activeColumnIdForTaskCreation,
     isLoading,
