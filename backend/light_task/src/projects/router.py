@@ -7,9 +7,10 @@ from src.auth.schemas import UserPayload
 from src.projects.dependencies import (
     check_project_manager,
     check_project_member,
-    check_project_owner,
     require_project_owner,
 )
+from src.projects.dto import RemoveMemberCommand, UpdateMemberRoleCommand
+from src.projects.events import ProjectsDomainEventDispatcher
 from src.projects.models import Project
 from src.projects.schemas import (
     ProjectCreate,
@@ -19,9 +20,33 @@ from src.projects.schemas import (
     ProjectMemberUpdate,
 )
 from src.projects.service import ProjectService, get_project_service
-from src.realtimev1.dependencies import get_client_mutation_id
+from src.projects.use_cases import RemoveMemberUseCase, UpdateMemberRoleUseCase
+from src.db.database import db_helper
+from src.db.unit_of_work import UnitOfWork
+from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
+from src.realtimev1.publisher import DomainEventPublisher
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
+
+
+def get_remove_member_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> RemoveMemberUseCase:
+    dispatcher = ProjectsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return RemoveMemberUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
+
+
+def get_update_member_role_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> UpdateMemberRoleUseCase:
+    dispatcher = ProjectsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return UpdateMemberRoleUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
 
 
 @router.post(
@@ -108,17 +133,17 @@ async def get_project_members(
 async def remove_project_member(
     project_id: int,
     user_id: int,
-    _: Annotated[None, Depends(check_project_manager)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    project_service: Annotated[ProjectService, Depends(get_project_service)],
+    use_case: Annotated[RemoveMemberUseCase, Depends(get_remove_member_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    await project_service.remove_member(
+    command = RemoveMemberCommand(
         project_id=project_id,
         user_id=user_id,
         requester_id=current_user.sub,
         client_mutation_id=client_mutation_id,
     )
+    await use_case.execute(command)
 
 
 @router.patch("/{project_id}/members/{user_id}", response_model=ProjectMemberRead)
@@ -127,14 +152,16 @@ async def update_member_role(
     user_id: int,
     member_update: ProjectMemberUpdate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    _: Annotated[None, Depends(check_project_owner)],
-    project_service: Annotated[ProjectService, Depends(get_project_service)],
+    use_case: Annotated[
+        UpdateMemberRoleUseCase, Depends(get_update_member_role_use_case)
+    ],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await project_service.update_member_role(
+    command = UpdateMemberRoleCommand(
         project_id=project_id,
         user_id=user_id,
-        data=member_update,
+        role=member_update.role,
         requester_id=current_user.sub,
         client_mutation_id=client_mutation_id,
     )
+    return await use_case.execute(command)

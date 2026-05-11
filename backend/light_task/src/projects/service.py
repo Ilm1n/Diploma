@@ -17,7 +17,6 @@ from src.projects.schemas import (
     ProjectCreate,
     ProjectUpdate,
     ProjectRead,
-    ProjectMemberUpdate,
 )
 from src.tags.constants import DEFAULT_PROJECT_TAGS
 from src.tags.models import Tag
@@ -254,194 +253,6 @@ class ProjectService:
         result = await self.session.execute(query)
         return result.scalars().all()
 
-    async def remove_member(
-        self,
-        project_id: int,
-        user_id: int,
-        requester_id: int,
-        client_mutation_id: str | None = None,
-    ) -> None:
-        target_query = select(ProjectMember).where(
-            ProjectMember.project_id == project_id, ProjectMember.user_id == user_id
-        )
-        target_member = await self.session.scalar(target_query)
-
-        if not target_member:
-            raise HTTPException(status_code=404, detail=ErrorCode.MEMBER_NOT_FOUND)
-
-        requester_query = select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == requester_id,
-        )
-        requester_member = await self.session.scalar(requester_query)
-
-        if not requester_member:
-            raise HTTPException(
-                status_code=403, detail=ErrorCode.NOT_A_PROJECT_MEMBER
-            )
-
-        if target_member.role == ProjectRole.OWNER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=ErrorCode.CANNOT_REMOVE_OWNER,
-            )
-
-        if requester_member.role == ProjectRole.MEMBER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
-            )
-
-        if (
-            requester_member.role == ProjectRole.MANAGER
-            and target_member.role == ProjectRole.MANAGER
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=ErrorCode.MANAGERS_CANNOT_REMOVE,
-            )
-
-        await self.session.delete(target_member)
-        await touch_project(self.session, project_id)
-        try:
-            await self.session.commit()
-            project_logger.info(f"Member {user_id} removed from project {project_id}")
-        except Exception as e:
-            await self.session.rollback()
-            project_logger.exception(
-                f"Failed to remove member {user_id} from project {project_id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorCode.DATABASE_ERROR,
-            )
-
-        await self.event_publisher.publish_event(
-            event_type=RealtimeEventType.MEMBER_REMOVED,
-            scope=RealtimeScope.PROJECT,
-            actor_user_id=requester_id,
-            project_id=project_id,
-            payload={"userId": user_id},
-            client_mutation_id=client_mutation_id,
-        )
-
-        await self.event_publisher.publish_event(
-            event_type=RealtimeEventType.PROJECT_REMOVED_FROM_USER,
-            scope=RealtimeScope.USER,
-            actor_user_id=requester_id,
-            project_id=project_id,
-            user_ids=[user_id],
-            payload={"projectId": project_id},
-            client_mutation_id=client_mutation_id,
-        )
-
-        remaining_user_ids = await get_project_member_user_ids(self.session, project_id)
-        await self._publish_project_list_item_updated(
-            project_id=project_id,
-            actor_user_id=requester_id,
-            user_ids=remaining_user_ids,
-            reason=RealtimeEventType.MEMBER_REMOVED,
-            client_mutation_id=client_mutation_id,
-        )
-
-    async def update_member_role(
-        self,
-        project_id: int,
-        user_id: int,
-        data: ProjectMemberUpdate,
-        requester_id: int,
-        client_mutation_id: str | None = None,
-    ) -> ProjectMember:
-        requester_query = select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == requester_id,
-        )
-        requester_member = await self.session.scalar(requester_query)
-
-        if not requester_member:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=ErrorCode.NOT_A_PROJECT_MEMBER,
-            )
-
-        query = (
-            select(ProjectMember)
-            .where(
-                ProjectMember.project_id == project_id,
-                ProjectMember.user_id == user_id,
-            )
-            .options(selectinload(ProjectMember.user))
-        )
-        member = await self.session.scalar(query)
-
-        if not member:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ErrorCode.MEMBER_NOT_FOUND,
-            )
-
-        if requester_member.role == ProjectRole.MEMBER:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
-            )
-
-        if requester_member.role == ProjectRole.MANAGER:
-            if member.role in [ProjectRole.MANAGER, ProjectRole.OWNER]:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=ErrorCode.INSUFFICIENT_PERMISSIONS,
-                )
-
-        if member.role == ProjectRole.OWNER:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.CANNOT_CHANGE_OWNER_ROLE,
-            )
-
-        previous_role = member.role
-        member.role = data.role
-        self.session.add(member)
-        try:
-            await touch_project(self.session, project_id)
-            await self.session.commit()
-            await self.session.refresh(member)
-            project_logger.info(
-                f"Member {user_id} role updated to {data.role} in project {project_id}"
-            )
-        except Exception as e:
-            await self.session.rollback()
-            project_logger.exception(
-                f"Failed to update member {user_id} role in project {project_id}"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorCode.DATABASE_ERROR,
-            )
-
-        await self.event_publisher.publish_event(
-            event_type=RealtimeEventType.MEMBER_ROLE_CHANGED,
-            scope=RealtimeScope.PROJECT,
-            actor_user_id=requester_id,
-            project_id=project_id,
-            payload={
-                "userId": user_id,
-                "role": member.role,
-                "previousRole": previous_role,
-            },
-            client_mutation_id=client_mutation_id,
-        )
-
-        affected_user_ids = await get_project_member_user_ids(self.session, project_id)
-        await self._publish_project_list_item_updated(
-            project_id=project_id,
-            actor_user_id=requester_id,
-            user_ids=affected_user_ids,
-            reason=RealtimeEventType.MEMBER_ROLE_CHANGED,
-            client_mutation_id=client_mutation_id,
-        )
-        return member
-
     async def _publish_project_updated(
         self,
         *,
@@ -475,7 +286,9 @@ class ProjectService:
         actor_user_id: int,
         client_mutation_id: str | None,
     ) -> None:
-        payload = {"project": dump_project(project, current_user_role=ProjectRole.OWNER)}
+        payload = {
+            "project": dump_project(project, current_user_role=ProjectRole.OWNER)
+        }
         await self.event_publisher.publish_event(
             event_type=RealtimeEventType.PROJECT_ADDED_TO_USER,
             scope=RealtimeScope.USER,
