@@ -106,6 +106,60 @@ class BoardRepository:
         stmt = select(Task).where(Task.id == task_id).options(selectinload(Task.tags))
         return (await self.session.execute(stmt)).scalar_one_or_none()
 
+    async def get_task_for_update(self, task_id: int) -> Task | None:
+        stmt = select(Task).where(Task.id == task_id).options(selectinload(Task.tags))
+        return (await self.session.execute(stmt)).scalar_one_or_none()
+
+    def save_task(self, task: Task) -> None:
+        self.session.add(task)
+
+    async def get_first_task_position_for_update(self, column_id: int) -> float | None:
+        stmt = (
+            select(Task.position)
+            .where(Task.column_id == column_id)
+            .order_by(Task.position.asc())
+            .limit(1)
+            .with_for_update()
+        )
+        return await self.session.scalar(stmt)
+
+    async def get_anchor_task_position_for_update(
+        self,
+        *,
+        column_id: int,
+        after_task_id: int,
+    ) -> float | None:
+        stmt = (
+            select(Task.position)
+            .where(Task.id == after_task_id, Task.column_id == column_id)
+            .with_for_update()
+        )
+        return await self.session.scalar(stmt)
+
+    async def get_next_task_position_for_update(
+        self,
+        *,
+        column_id: int,
+        anchor_position: float,
+    ) -> float | None:
+        stmt = (
+            select(Task.position)
+            .where(Task.column_id == column_id, Task.position > anchor_position)
+            .order_by(Task.position.asc())
+            .limit(1)
+            .with_for_update()
+        )
+        return await self.session.scalar(stmt)
+
+    async def list_column_tasks_for_update(self, column_id: int) -> list[Task]:
+        stmt = (
+            select(Task)
+            .where(Task.column_id == column_id)
+            .order_by(Task.position.asc())
+            .with_for_update()
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def get_project_member_user_ids(self, project_id: int) -> list[int]:
         stmt = select(ProjectMember.user_id).where(
             ProjectMember.project_id == project_id

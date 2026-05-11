@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status, Query
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.boards import dependencies
-from src.boards.dto import CreateTaskCommand
+from src.boards.dto import CreateTaskCommand, MoveTaskCommand
 from src.boards.events import BoardsDomainEventDispatcher
 from src.boards.models import BoardColumn, Task
 from src.boards.schemas import (
@@ -21,7 +21,7 @@ from src.boards.schemas import (
     TaskPreview,
 )
 from src.boards.service import BoardService, get_board_service
-from src.boards.use_cases import CreateTaskUseCase
+from src.boards.use_cases import CreateTaskUseCase, MoveTaskUseCase
 from src.db.database import db_helper
 from src.db.unit_of_work import UnitOfWork
 from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
@@ -43,6 +43,16 @@ def get_create_task_use_case(
         event_publisher,
     )
     return CreateTaskUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
+
+
+def get_move_task_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> MoveTaskUseCase:
+    dispatcher = BoardsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return MoveTaskUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
 
 
 @router.get("/projects/{project_id}/columns", response_model=list[ColumnRead])
@@ -185,18 +195,20 @@ async def get_task_details(
 
 @router.patch("/tasks/{task_id}/move", response_model=TaskMoveResponse)
 async def move_task(
+    task_id: int,
     move_data: TaskMove,
-    task: Annotated[Task, Depends(dependencies.get_task_for_update)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    use_case: Annotated[MoveTaskUseCase, Depends(get_move_task_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.move_task(
-        task,
-        move_data,
+    command = MoveTaskCommand(
+        task_id=task_id,
         actor_user_id=current_user.sub,
+        new_column_id=move_data.new_column_id,
+        after_task_id=move_data.after_task_id,
         client_mutation_id=client_mutation_id,
     )
+    return await use_case.execute(command)
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskRead)

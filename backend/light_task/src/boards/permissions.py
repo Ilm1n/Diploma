@@ -21,3 +21,19 @@ class BoardPermissions:
             and assignee_id != actor_user_id
         ):
             raise ForbiddenError(ErrorCode.MEMBERS_ONLY_OWN_TASKS)
+
+    def ensure_task_update_allowed(
+        self,
+        *,
+        actor_member: ProjectMember | None,
+        actor_user_id: int,
+        task_assignee_id: int | None,
+    ) -> None:
+        if actor_member is None:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+
+        if actor_member.role in [ProjectRole.OWNER, ProjectRole.MANAGER]:
+            return
+
+        if task_assignee_id != actor_user_id:
+            raise ForbiddenError(ErrorCode.MEMBERS_ONLY_OWN_TASKS)

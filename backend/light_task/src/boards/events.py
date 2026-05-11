@@ -17,6 +17,13 @@ class TaskCreated(DomainEvent):
     task_id: int
 
 
+@dataclass(frozen=True, kw_only=True)
+class TaskMoved(DomainEvent):
+    task_id: int
+    from_column_id: int
+    to_column_id: int
+
+
 class BoardsDomainEventDispatcher:
     def __init__(
         self,
@@ -30,6 +37,8 @@ class BoardsDomainEventDispatcher:
         for event in events:
             if isinstance(event, TaskCreated):
                 await self._publish_task_created(event)
+            if isinstance(event, TaskMoved):
+                await self._publish_task_moved(event)
 
     async def _publish_task_created(self, event: TaskCreated) -> None:
         async with self._session_factory() as session:
@@ -71,6 +80,49 @@ class BoardsDomainEventDispatcher:
                     "projectId": task.project_id,
                     "updatedAt": project_updated_at,
                     "reason": str(RealtimeEventType.TASK_CREATED),
+                },
+                client_mutation_id=event.client_mutation_id,
+            )
+
+    async def _publish_task_moved(self, event: TaskMoved) -> None:
+        async with self._session_factory() as session:
+            repository = BoardRepository(session)
+            task = await repository.get_task_with_tags(event.task_id)
+            if task is None or event.actor_user_id is None:
+                return
+
+            await self._event_publisher.publish_event(
+                event_type=RealtimeEventType.TASK_MOVED,
+                scope=RealtimeScope.PROJECT,
+                actor_user_id=event.actor_user_id,
+                project_id=task.project_id,
+                payload={
+                    "task": dump_task(task),
+                    "fromColumnId": event.from_column_id,
+                    "toColumnId": event.to_column_id,
+                },
+                client_mutation_id=event.client_mutation_id,
+            )
+
+            affected_user_ids = await repository.get_project_member_user_ids(
+                task.project_id
+            )
+            if not affected_user_ids:
+                return
+
+            project_updated_at = await repository.get_project_updated_at(
+                task.project_id
+            )
+            await self._event_publisher.publish_event(
+                event_type=RealtimeEventType.PROJECT_LIST_ITEM_UPDATED,
+                scope=RealtimeScope.USER,
+                actor_user_id=event.actor_user_id,
+                user_ids=affected_user_ids,
+                project_id=task.project_id,
+                payload={
+                    "projectId": task.project_id,
+                    "updatedAt": project_updated_at,
+                    "reason": str(RealtimeEventType.TASK_MOVED),
                 },
                 client_mutation_id=event.client_mutation_id,
             )

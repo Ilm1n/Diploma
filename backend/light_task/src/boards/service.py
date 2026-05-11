@@ -12,7 +12,6 @@ from src.boards.models import BoardColumn, Task
 from src.boards.schemas import (
     ColumnCreate,
     TaskCreate,
-    TaskMove,
     TaskUpdate,
     ColumnReorderRequest,
     ColumnUpdate,
@@ -33,7 +32,6 @@ from src.realtimev1.events import RealtimeEventType, RealtimeScope
 from src.realtimev1.publisher import DomainEventPublisher
 
 POSITION_GAP = 65536.0
-MIN_POSITION_DELTA = 0.001
 
 
 class BoardService:
@@ -387,157 +385,6 @@ class BoardService:
 
         result = await self.session.execute(stmt)
         return result.scalars().all()
-
-    async def move_task(
-        self,
-        task: Task,
-        data: TaskMove,
-        actor_user_id: int,
-        client_mutation_id: str | None = None,
-    ) -> Task:
-        from_column_id = task.column_id
-        if task.column_id != data.new_column_id:
-            target_col = await self.session.get(BoardColumn, data.new_column_id)
-            if not target_col or target_col.project_id != task.project_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=ErrorCode.INVALID_TARGET_COLUMN,
-                )
-
-            if target_col.tasks_limit is not None:
-                cnt = await self.session.scalar(
-                    select(func.count())
-                    .select_from(Task)
-                    .where(Task.column_id == data.new_column_id)
-                )
-                if cnt >= target_col.tasks_limit:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail=ErrorCode.COLUMN_TASK_LIMIT_REACHED,
-                    )
-
-        attempts = 0
-        while attempts < 2:
-            attempts += 1
-            new_position = await self._calculate_new_position(
-                data.new_column_id, data.after_task_id
-            )
-
-            if new_position is None:
-                await self._rebalance_column(data.new_column_id)
-                continue
-
-            task.column_id = data.new_column_id
-            task.position = new_position
-            task.updated_at = datetime.now(timezone.utc)
-
-            self.session.add(task)
-            await touch_project(self.session, task.project_id)
-            try:
-                await self.session.commit()
-                board_logger.info(
-                    f"Task {task.id} moved to column {data.new_column_id}"
-                )
-            except Exception as e:
-                await self.session.rollback()
-                board_logger.exception(f"Failed to move task {task.id}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=ErrorCode.DATABASE_ERROR,
-                )
-            moved_task = await self._get_task_with_tags(task.id)
-            await self.event_publisher.publish_event(
-                event_type=RealtimeEventType.TASK_MOVED,
-                scope=RealtimeScope.PROJECT,
-                actor_user_id=actor_user_id,
-                project_id=task.project_id,
-                payload={
-                    "task": dump_task(moved_task),
-                    "fromColumnId": from_column_id,
-                    "toColumnId": data.new_column_id,
-                },
-                client_mutation_id=client_mutation_id,
-            )
-            await self._publish_project_list_item_updated(
-                project_id=task.project_id,
-                actor_user_id=actor_user_id,
-                reason=RealtimeEventType.TASK_MOVED,
-                client_mutation_id=client_mutation_id,
-            )
-            return task
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=ErrorCode.DATABASE_ERROR,
-        )
-
-    async def _calculate_new_position(
-        self,
-        column_id: int,
-        after_task_id: int | None,
-    ) -> float | None:
-        if after_task_id is None:
-            stmt = (
-                select(Task.position)
-                .where(Task.column_id == column_id)
-                .order_by(Task.position.asc())
-                .limit(1)
-                .with_for_update()
-            )
-            first_pos = await self.session.scalar(stmt)
-
-            if first_pos is None:
-                return POSITION_GAP
-
-            new_pos = first_pos / 2.0
-            return new_pos if new_pos > MIN_POSITION_DELTA else None
-
-        else:
-            anchor_stmt = (
-                select(Task.position)
-                .where(Task.id == after_task_id, Task.column_id == column_id)
-                .with_for_update()
-            )
-            anchor_pos = await self.session.scalar(anchor_stmt)
-
-            if anchor_pos is None:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=ErrorCode.ANCHOR_TASK_NOT_FOUND,
-                )
-
-            next_stmt = (
-                select(Task.position)
-                .where(Task.column_id == column_id, Task.position > anchor_pos)
-                .order_by(Task.position.asc())
-                .limit(1)
-                .with_for_update()
-            )
-            next_pos = await self.session.scalar(next_stmt)
-
-            if next_pos is None:
-                return anchor_pos + POSITION_GAP
-
-            delta = next_pos - anchor_pos
-            if delta <= MIN_POSITION_DELTA:
-                return None
-
-            return anchor_pos + (delta / 2.0)
-
-    async def _rebalance_column(self, column_id: int):
-        stmt = (
-            select(Task)
-            .where(Task.column_id == column_id)
-            .order_by(Task.position.asc())
-            .with_for_update()
-        )
-        tasks = (await self.session.execute(stmt)).scalars().all()
-
-        for index, task in enumerate(tasks):
-            task.position = (index + 1) * POSITION_GAP
-            self.session.add(task)
-
-        await self.session.flush()
 
     async def update_task(
         self,
