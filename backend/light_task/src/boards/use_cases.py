@@ -3,8 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from src.boards.dto import CreateTaskCommand, MoveTaskCommand
-from src.boards.events import TaskCreated, TaskMoved
+from src.boards.dto import (
+    CreateTaskCommand,
+    DeleteTaskCommand,
+    MoveTaskCommand,
+    UpdateTaskCommand,
+)
+from src.boards.events import TaskCreated, TaskDeleted, TaskMoved, TaskUpdated
 from src.boards.models import Task
 from src.boards.ordering import POSITION_GAP, TaskOrdering
 from src.boards.permissions import BoardPermissions
@@ -203,6 +208,143 @@ class MoveTaskUseCase:
         except Exception as exc:
             board_logger.exception(
                 "Failed to move task %s",
+                command.task_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class UpdateTaskUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, command: UpdateTaskCommand) -> Task:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = BoardRepository(uow.session)
+                task = await repository.get_task_for_update(command.task_id)
+                if task is None:
+                    raise NotFoundError(ErrorCode.TASK_NOT_FOUND)
+
+                actor_member = await repository.get_project_member(
+                    project_id=task.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._permissions.ensure_task_update_allowed(
+                    actor_member=actor_member,
+                    actor_user_id=command.actor_user_id,
+                    task_assignee_id=task.assignee_id,
+                )
+
+                assignee_id = command.changes.get("assignee_id")
+                if (
+                    "assignee_id" in command.changes
+                    and assignee_id is not None
+                    and task.assignee_id != assignee_id
+                ):
+                    assignee_exists = await repository.project_member_exists(
+                        project_id=task.project_id,
+                        user_id=assignee_id,
+                    )
+                    if not assignee_exists:
+                        raise BadRequestError(ErrorCode.ASSIGNEE_NOT_PROJECT_MEMBER)
+
+                if command.tag_ids is not None:
+                    tags = await repository.list_tags_by_ids(
+                        project_id=task.project_id,
+                        tag_ids=command.tag_ids,
+                    )
+                    if len(tags) != len(command.tag_ids):
+                        raise BadRequestError(ErrorCode.INVALID_TAG_IDS)
+                    task.tags = list(tags)
+
+                for key, value in command.changes.items():
+                    setattr(task, key, value)
+
+                task.updated_at = datetime.now(timezone.utc)
+                repository.save_task(task)
+                await repository.touch_project(task.project_id)
+                await repository.flush()
+
+                updated_task = await repository.get_task_with_tags(task.id)
+                if updated_task is None:
+                    raise DatabaseError()
+
+                uow.collect_event(
+                    TaskUpdated(
+                        task_id=updated_task.id,
+                        actor_user_id=command.actor_user_id,
+                        project_id=updated_task.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+                return updated_task
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to update task %s",
+                command.task_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class DeleteTaskUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, command: DeleteTaskCommand) -> None:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = BoardRepository(uow.session)
+                task = await repository.get_task_for_update(command.task_id)
+                if task is None:
+                    raise NotFoundError(ErrorCode.TASK_NOT_FOUND)
+
+                actor_member = await repository.get_project_member(
+                    project_id=task.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._permissions.ensure_task_delete_allowed(actor_member=actor_member)
+
+                task_id = task.id
+                project_id = task.project_id
+                column_id = task.column_id
+                await repository.delete_task(task)
+                await repository.touch_project(project_id)
+                await repository.flush()
+
+                uow.collect_event(
+                    TaskDeleted(
+                        task_id=task_id,
+                        column_id=column_id,
+                        actor_user_id=command.actor_user_id,
+                        project_id=project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to delete task %s",
                 command.task_id,
                 exc_info=exc,
             )

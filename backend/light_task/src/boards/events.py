@@ -24,6 +24,17 @@ class TaskMoved(DomainEvent):
     to_column_id: int
 
 
+@dataclass(frozen=True, kw_only=True)
+class TaskUpdated(DomainEvent):
+    task_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class TaskDeleted(DomainEvent):
+    task_id: int
+    column_id: int
+
+
 class BoardsDomainEventDispatcher:
     def __init__(
         self,
@@ -39,6 +50,10 @@ class BoardsDomainEventDispatcher:
                 await self._publish_task_created(event)
             if isinstance(event, TaskMoved):
                 await self._publish_task_moved(event)
+            if isinstance(event, TaskUpdated):
+                await self._publish_task_updated(event)
+            if isinstance(event, TaskDeleted):
+                await self._publish_task_deleted(event)
 
     async def _publish_task_created(self, event: TaskCreated) -> None:
         async with self._session_factory() as session:
@@ -83,6 +98,81 @@ class BoardsDomainEventDispatcher:
                 },
                 client_mutation_id=event.client_mutation_id,
             )
+
+    async def _publish_task_updated(self, event: TaskUpdated) -> None:
+        async with self._session_factory() as session:
+            repository = BoardRepository(session)
+            task = await repository.get_task_with_tags(event.task_id)
+            if task is None or event.actor_user_id is None:
+                return
+
+            await self._event_publisher.publish_event(
+                event_type=RealtimeEventType.TASK_UPDATED,
+                scope=RealtimeScope.PROJECT,
+                actor_user_id=event.actor_user_id,
+                project_id=task.project_id,
+                payload={"task": dump_task(task)},
+                client_mutation_id=event.client_mutation_id,
+            )
+
+            await self._publish_project_list_item_updated(
+                repository=repository,
+                project_id=task.project_id,
+                actor_user_id=event.actor_user_id,
+                reason=RealtimeEventType.TASK_UPDATED,
+                client_mutation_id=event.client_mutation_id,
+            )
+
+    async def _publish_task_deleted(self, event: TaskDeleted) -> None:
+        if event.project_id is None or event.actor_user_id is None:
+            return
+
+        await self._event_publisher.publish_event(
+            event_type=RealtimeEventType.TASK_DELETED,
+            scope=RealtimeScope.PROJECT,
+            actor_user_id=event.actor_user_id,
+            project_id=event.project_id,
+            payload={"taskId": event.task_id, "columnId": event.column_id},
+            client_mutation_id=event.client_mutation_id,
+        )
+
+        async with self._session_factory() as session:
+            repository = BoardRepository(session)
+            await self._publish_project_list_item_updated(
+                repository=repository,
+                project_id=event.project_id,
+                actor_user_id=event.actor_user_id,
+                reason=RealtimeEventType.TASK_DELETED,
+                client_mutation_id=event.client_mutation_id,
+            )
+
+    async def _publish_project_list_item_updated(
+        self,
+        *,
+        repository: BoardRepository,
+        project_id: int,
+        actor_user_id: int,
+        reason: RealtimeEventType,
+        client_mutation_id: str | None,
+    ) -> None:
+        affected_user_ids = await repository.get_project_member_user_ids(project_id)
+        if not affected_user_ids:
+            return
+
+        project_updated_at = await repository.get_project_updated_at(project_id)
+        await self._event_publisher.publish_event(
+            event_type=RealtimeEventType.PROJECT_LIST_ITEM_UPDATED,
+            scope=RealtimeScope.USER,
+            actor_user_id=actor_user_id,
+            user_ids=affected_user_ids,
+            project_id=project_id,
+            payload={
+                "projectId": project_id,
+                "updatedAt": project_updated_at,
+                "reason": str(reason),
+            },
+            client_mutation_id=client_mutation_id,
+        )
 
     async def _publish_task_moved(self, event: TaskMoved) -> None:
         async with self._session_factory() as session:

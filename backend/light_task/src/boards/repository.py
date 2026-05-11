@@ -113,6 +113,9 @@ class BoardRepository:
     def save_task(self, task: Task) -> None:
         self.session.add(task)
 
+    async def delete_task(self, task: Task) -> None:
+        await self.session.delete(task)
+
     async def get_first_task_position_for_update(self, column_id: int) -> float | None:
         stmt = (
             select(Task.position)

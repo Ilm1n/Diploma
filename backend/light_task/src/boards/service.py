@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import HTTPException, status, Depends
@@ -12,7 +11,6 @@ from src.boards.models import BoardColumn, Task
 from src.boards.schemas import (
     ColumnCreate,
     TaskCreate,
-    TaskUpdate,
     ColumnReorderRequest,
     ColumnUpdate,
 )
@@ -385,119 +383,6 @@ class BoardService:
 
         result = await self.session.execute(stmt)
         return result.scalars().all()
-
-    async def update_task(
-        self,
-        task: Task,
-        data: TaskUpdate,
-        actor_user_id: int,
-        client_mutation_id: str | None = None,
-    ) -> Task:
-        if data.assignee_id is not None and task.assignee_id != data.assignee_id:
-            member_exists = await self.session.scalar(
-                select(1)
-                .where(
-                    ProjectMember.project_id == task.project_id,
-                    ProjectMember.user_id == data.assignee_id,
-                )
-                .limit(1)
-            )
-            if not member_exists:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=ErrorCode.ASSIGNEE_NOT_PROJECT_MEMBER,
-                )
-
-        if data.tag_ids is not None:
-            tags = (
-                (
-                    await self.session.execute(
-                        select(Tag).where(
-                            Tag.id.in_(data.tag_ids), Tag.project_id == task.project_id
-                        )
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            if len(tags) != len(data.tag_ids):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=ErrorCode.INVALID_TAG_IDS,
-                )
-            task.tags = list(tags)
-
-        for key, value in data.model_dump(
-            exclude_unset=True, exclude={"tag_ids"}
-        ).items():
-            setattr(task, key, value)
-
-        task.updated_at = datetime.now(timezone.utc)
-        self.session.add(task)
-        await touch_project(self.session, task.project_id)
-        try:
-            await self.session.commit()
-            board_logger.info(f"Task updated: {task.id}")
-        except Exception as e:
-            await self.session.rollback()
-            board_logger.exception(f"Failed to update task {task.id}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorCode.DATABASE_ERROR,
-            )
-
-        updated_task = await self._get_task_with_tags(task.id)
-        await self.event_publisher.publish_event(
-            event_type=RealtimeEventType.TASK_UPDATED,
-            scope=RealtimeScope.PROJECT,
-            actor_user_id=actor_user_id,
-            project_id=task.project_id,
-            payload={"task": dump_task(updated_task)},
-            client_mutation_id=client_mutation_id,
-        )
-        await self._publish_project_list_item_updated(
-            project_id=task.project_id,
-            actor_user_id=actor_user_id,
-            reason=RealtimeEventType.TASK_UPDATED,
-            client_mutation_id=client_mutation_id,
-        )
-        return updated_task
-
-    async def delete_task(
-        self,
-        task: Task,
-        actor_user_id: int,
-        client_mutation_id: str | None = None,
-    ) -> None:
-        task_id = task.id
-        project_id = task.project_id
-        column_id = task.column_id
-        await self.session.delete(task)
-        await touch_project(self.session, project_id)
-        try:
-            await self.session.commit()
-            board_logger.info(f"Task deleted: {task_id}")
-        except Exception as e:
-            await self.session.rollback()
-            board_logger.exception(f"Failed to delete task {task_id}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=ErrorCode.DATABASE_ERROR,
-            )
-        await self.event_publisher.publish_event(
-            event_type=RealtimeEventType.TASK_DELETED,
-            scope=RealtimeScope.PROJECT,
-            actor_user_id=actor_user_id,
-            project_id=project_id,
-            payload={"taskId": task_id, "columnId": column_id},
-            client_mutation_id=client_mutation_id,
-        )
-        await self._publish_project_list_item_updated(
-            project_id=project_id,
-            actor_user_id=actor_user_id,
-            reason=RealtimeEventType.TASK_DELETED,
-            client_mutation_id=client_mutation_id,
-        )
 
     async def _get_task_with_tags(self, task_id: int) -> Task:
         stmt = select(Task).where(Task.id == task_id).options(selectinload(Task.tags))

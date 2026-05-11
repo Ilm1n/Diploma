@@ -37,3 +37,14 @@ class BoardPermissions:
 
         if task_assignee_id != actor_user_id:
             raise ForbiddenError(ErrorCode.MEMBERS_ONLY_OWN_TASKS)
+
+    def ensure_task_delete_allowed(
+        self,
+        *,
+        actor_member: ProjectMember | None,
+    ) -> None:
+        if actor_member is None:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+
+        if actor_member.role not in [ProjectRole.OWNER, ProjectRole.MANAGER]:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
