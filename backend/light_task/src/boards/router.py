@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, status, Query
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.boards import dependencies
+from src.boards.dto import CreateTaskCommand
+from src.boards.events import BoardsDomainEventDispatcher
 from src.boards.models import BoardColumn, Task
 from src.boards.schemas import (
     ColumnCreate,
@@ -19,7 +21,11 @@ from src.boards.schemas import (
     TaskPreview,
 )
 from src.boards.service import BoardService, get_board_service
-from src.realtimev1.dependencies import get_client_mutation_id
+from src.boards.use_cases import CreateTaskUseCase
+from src.db.database import db_helper
+from src.db.unit_of_work import UnitOfWork
+from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
+from src.realtimev1.publisher import DomainEventPublisher
 
 from src.projects.dependencies import (
     check_project_member,
@@ -27,6 +33,16 @@ from src.projects.dependencies import (
 )
 
 router = APIRouter(tags=["Boards"])
+
+
+def get_create_task_use_case(
+    event_publisher: Annotated[DomainEventPublisher, Depends(get_event_publisher)],
+) -> CreateTaskUseCase:
+    dispatcher = BoardsDomainEventDispatcher(
+        db_helper.async_session_maker,
+        event_publisher,
+    )
+    return CreateTaskUseCase(lambda: UnitOfWork(event_dispatcher=dispatcher))
 
 
 @router.get("/projects/{project_id}/columns", response_model=list[ColumnRead])
@@ -124,20 +140,26 @@ async def reorder_columns(
 )
 async def create_task(
     project_id: int,
+    column_id: int,
     task_in: TaskCreate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    column: Annotated[BoardColumn, Depends(dependencies.get_valid_column)],
     _: Annotated[None, Depends(check_project_member)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    use_case: Annotated[CreateTaskUseCase, Depends(get_create_task_use_case)],
     client_mutation_id: Annotated[str | None, Depends(get_client_mutation_id)],
 ):
-    return await board_service.create_task(
+    command = CreateTaskCommand(
         project_id=project_id,
-        column_id=column.id,
-        data=task_in,
         author_id=current_user.sub,
+        column_id=column_id,
+        title=task_in.title,
+        description=task_in.description,
+        priority=task_in.priority,
+        assignee_id=task_in.assignee_id,
+        deadline_at=task_in.deadline_at,
+        tag_ids=task_in.tag_ids,
         client_mutation_id=client_mutation_id,
     )
+    return await use_case.execute(command)
 
 
 @router.get("/projects/{project_id}/tasks", response_model=list[TaskPreview])
