@@ -9,6 +9,7 @@ from src.config import settings
 from src.db.database import db_helper
 from src.errors import ErrorCode, normalize_error_detail, error_response
 from src.logger import setup_logging, get_logger
+from src.shared.errors import AppError
 from src.auth.router import router as auth_router
 from src.boards.router import router as board_router
 from src.projects.router import router as project_router
@@ -72,6 +73,14 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
         status_code=exc.status_code,
         content=normalize_error_detail(exc.detail),
         headers=exc.headers,
+    )
+
+
+@main_app.exception_handler(AppError)
+async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_response(exc.code, params=exc.params),
     )
 
 
