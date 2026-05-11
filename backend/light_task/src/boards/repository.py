@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,6 +24,37 @@ class BoardRepository:
             .order_by(BoardColumn.position.asc())
             .options(selectinload(BoardColumn.tasks).selectinload(Task.tags))
         )
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def list_project_tasks(
+        self,
+        *,
+        project_id: int,
+        assignee_id: int | None = None,
+        tag_ids: list[int] | None = None,
+        search: str | None = None,
+    ) -> list[Task]:
+        stmt = (
+            select(Task)
+            .where(Task.project_id == project_id)
+            .options(selectinload(Task.tags), selectinload(Task.assignee))
+            .order_by(Task.updated_at.desc())
+        )
+
+        if assignee_id:
+            stmt = stmt.where(Task.assignee_id == assignee_id)
+
+        if search:
+            stmt = stmt.where(
+                or_(
+                    Task.title.ilike(f"%{search}%"),
+                    Task.description.ilike(f"%{search}%"),
+                )
+            )
+
+        if tag_ids:
+            stmt = stmt.join(Task.tags).where(Tag.id.in_(tag_ids)).distinct()
+
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def get_column(self, column_id: int) -> BoardColumn | None:

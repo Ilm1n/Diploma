@@ -7,6 +7,22 @@ from src.shared.errors import ForbiddenError, NotFoundError
 
 
 class BoardPermissions:
+    def ensure_project_member_can_read(
+        self,
+        *,
+        actor_member: ProjectMember | None,
+    ) -> None:
+        if actor_member is None:
+            raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+    def ensure_task_read_allowed(
+        self,
+        *,
+        actor_member: ProjectMember | None,
+    ) -> None:
+        if actor_member is None:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+
     def ensure_can_manage_columns(
         self,
         *,

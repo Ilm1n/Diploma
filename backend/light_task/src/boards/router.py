@@ -4,19 +4,20 @@ from fastapi import APIRouter, Depends, status, Query
 
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
-from src.boards import dependencies
 from src.boards.dto import (
     CreateColumnCommand,
     CreateTaskCommand,
     DeleteColumnCommand,
     DeleteTaskCommand,
+    GetProjectBoardQuery,
+    GetTaskDetailsQuery,
+    ListProjectTasksQuery,
     MoveTaskCommand,
     ReorderColumnsCommand,
     UpdateColumnCommand,
     UpdateTaskCommand,
 )
 from src.boards.events import BoardsDomainEventDispatcher
-from src.boards.models import Task
 from src.boards.schemas import (
     ColumnCreate,
     ColumnRead,
@@ -29,12 +30,14 @@ from src.boards.schemas import (
     TaskMoveResponse,
     TaskPreview,
 )
-from src.boards.service import BoardService, get_board_service
 from src.boards.use_cases import (
     CreateColumnUseCase,
     CreateTaskUseCase,
     DeleteColumnUseCase,
     DeleteTaskUseCase,
+    GetProjectBoardUseCase,
+    GetTaskDetailsUseCase,
+    ListProjectTasksUseCase,
     MoveTaskUseCase,
     ReorderColumnsUseCase,
     UpdateColumnUseCase,
@@ -44,10 +47,21 @@ from src.db.database import db_helper
 from src.db.unit_of_work import UnitOfWork
 from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
 from src.realtimev1.publisher import DomainEventPublisher
-
 from src.projects.dependencies import check_project_member
 
 router = APIRouter(tags=["Boards"])
+
+
+def get_project_board_use_case() -> GetProjectBoardUseCase:
+    return GetProjectBoardUseCase(db_helper.async_session_maker)
+
+
+def get_list_project_tasks_use_case() -> ListProjectTasksUseCase:
+    return ListProjectTasksUseCase(db_helper.async_session_maker)
+
+
+def get_task_details_use_case() -> GetTaskDetailsUseCase:
+    return GetTaskDetailsUseCase(db_helper.async_session_maker)
 
 
 def get_create_column_use_case(
@@ -133,10 +147,14 @@ def get_delete_task_use_case(
 @router.get("/projects/{project_id}/columns", response_model=list[ColumnRead])
 async def get_project_board(
     project_id: int,
-    _: Annotated[None, Depends(check_project_member)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    use_case: Annotated[GetProjectBoardUseCase, Depends(get_project_board_use_case)],
 ):
-    return await board_service.get_board(project_id)
+    query = GetProjectBoardQuery(
+        project_id=project_id,
+        actor_user_id=current_user.sub,
+    )
+    return await use_case.execute(query)
 
 
 @router.post(
@@ -255,22 +273,35 @@ async def create_task(
 @router.get("/projects/{project_id}/tasks", response_model=list[TaskPreview])
 async def get_project_tasks(
     project_id: int,
-    _: Annotated[None, Depends(check_project_member)],
-    board_service: Annotated[BoardService, Depends(get_board_service)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    use_case: Annotated[
+        ListProjectTasksUseCase, Depends(get_list_project_tasks_use_case)
+    ],
     assignee_id: Annotated[int | None, Query()] = None,
     tag_ids: Annotated[list[int] | None, Query()] = None,
     search: Annotated[str | None, Query(min_length=3)] = None,
 ):
-    return await board_service.get_project_tasks(
-        project_id=project_id, assignee_id=assignee_id, tag_ids=tag_ids, search=search
+    query = ListProjectTasksQuery(
+        project_id=project_id,
+        actor_user_id=current_user.sub,
+        assignee_id=assignee_id,
+        tag_ids=tag_ids,
+        search=search,
     )
+    return await use_case.execute(query)
 
 
 @router.get("/tasks/{task_id}", response_model=TaskRead)
 async def get_task_details(
-    task: Annotated[Task, Depends(dependencies.get_task_for_read)],
+    task_id: int,
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    use_case: Annotated[GetTaskDetailsUseCase, Depends(get_task_details_use_case)],
 ):
-    return task
+    query = GetTaskDetailsQuery(
+        task_id=task_id,
+        actor_user_id=current_user.sub,
+    )
+    return await use_case.execute(query)
 
 
 @router.patch("/tasks/{task_id}/move", response_model=TaskMoveResponse)

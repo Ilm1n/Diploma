@@ -3,11 +3,16 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.boards.dto import (
     CreateColumnCommand,
     CreateTaskCommand,
     DeleteColumnCommand,
     DeleteTaskCommand,
+    GetProjectBoardQuery,
+    GetTaskDetailsQuery,
+    ListProjectTasksQuery,
     MoveTaskCommand,
     ReorderColumnsCommand,
     UpdateColumnCommand,
@@ -37,6 +42,109 @@ from src.shared.errors import (
     DatabaseError,
     NotFoundError,
 )
+
+
+class GetProjectBoardUseCase:
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._session_factory = session_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, query: GetProjectBoardQuery) -> list[BoardColumn]:
+        try:
+            async with self._session_factory() as session:
+                repository = BoardRepository(session)
+                actor_member = await repository.get_project_member(
+                    project_id=query.project_id,
+                    user_id=query.actor_user_id,
+                )
+                self._permissions.ensure_project_member_can_read(
+                    actor_member=actor_member
+                )
+                return await repository.list_project_columns(query.project_id)
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to read board for project %s",
+                query.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class ListProjectTasksUseCase:
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._session_factory = session_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, query: ListProjectTasksQuery) -> list[Task]:
+        try:
+            async with self._session_factory() as session:
+                repository = BoardRepository(session)
+                actor_member = await repository.get_project_member(
+                    project_id=query.project_id,
+                    user_id=query.actor_user_id,
+                )
+                self._permissions.ensure_project_member_can_read(
+                    actor_member=actor_member
+                )
+                return await repository.list_project_tasks(
+                    project_id=query.project_id,
+                    assignee_id=query.assignee_id,
+                    tag_ids=query.tag_ids,
+                    search=query.search,
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to list tasks for project %s",
+                query.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class GetTaskDetailsUseCase:
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        permissions: BoardPermissions | None = None,
+    ) -> None:
+        self._session_factory = session_factory
+        self._permissions = permissions or BoardPermissions()
+
+    async def execute(self, query: GetTaskDetailsQuery) -> Task:
+        try:
+            async with self._session_factory() as session:
+                repository = BoardRepository(session)
+                task = await repository.get_task_with_tags(query.task_id)
+                if task is None:
+                    raise NotFoundError(ErrorCode.TASK_NOT_FOUND)
+
+                actor_member = await repository.get_project_member(
+                    project_id=task.project_id,
+                    user_id=query.actor_user_id,
+                )
+                self._permissions.ensure_task_read_allowed(actor_member=actor_member)
+                return task
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to read task %s",
+                query.task_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
 
 
 class CreateColumnUseCase:

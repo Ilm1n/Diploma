@@ -42,6 +42,27 @@ class ReorderColumnsCommand:
 
 
 @dataclass(frozen=True, kw_only=True)
+class GetProjectBoardQuery:
+    project_id: int
+    actor_user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ListProjectTasksQuery:
+    project_id: int
+    actor_user_id: int
+    assignee_id: int | None = None
+    tag_ids: list[int] | None = None
+    search: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class GetTaskDetailsQuery:
+    task_id: int
+    actor_user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class CreateTaskCommand:
     project_id: int
     column_id: int
