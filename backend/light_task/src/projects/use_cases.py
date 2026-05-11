@@ -1,16 +1,213 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime, timezone
 
 from src.db.unit_of_work import UnitOfWork
 from src.errors import ErrorCode
 from src.logger import project_logger
-from src.projects.dto import RemoveMemberCommand, UpdateMemberRoleCommand
-from src.projects.events import MemberRemoved, MemberRoleChanged
+from src.projects.constants import ProjectRole
+from src.projects.dto import (
+    CreateProjectCommand,
+    DeleteProjectCommand,
+    RemoveMemberCommand,
+    UpdateMemberRoleCommand,
+    UpdateProjectCommand,
+)
+from src.projects.events import (
+    MemberRemoved,
+    MemberRoleChanged,
+    ProjectCreated,
+    ProjectDeleted,
+    ProjectUpdated,
+)
 from src.projects.models import ProjectMember
 from src.projects.permissions import ProjectMemberPolicy
 from src.projects.repository import ProjectRepository
+from src.projects.schemas import ProjectRead
+from src.tags.constants import DEFAULT_PROJECT_TAGS
+from src.tags.models import Tag
 from src.shared.errors import AppError, DatabaseError, NotFoundError
+
+
+class CreateProjectUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+    ) -> None:
+        self._uow_factory = uow_factory
+
+    async def execute(self, command: CreateProjectCommand) -> ProjectRead:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = ProjectRepository(uow.session)
+                project = repository.add_project(
+                    name=command.name,
+                    description=command.description,
+                    color=command.color,
+                    owner_id=command.owner_id,
+                )
+                await repository.flush()
+
+                repository.add_member(
+                    project_id=project.id,
+                    user_id=command.owner_id,
+                    role=ProjectRole.OWNER,
+                )
+                repository.add_tags(
+                    [
+                        Tag(
+                            name=tag_data["name"],
+                            color=tag_data["color"],
+                            project_id=project.id,
+                        )
+                        for tag_data in DEFAULT_PROJECT_TAGS
+                    ]
+                )
+                await repository.flush()
+                await repository.refresh_project(project)
+
+                uow.collect_event(
+                    ProjectCreated(
+                        user_id=command.owner_id,
+                        actor_user_id=command.owner_id,
+                        project_id=project.id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+                return ProjectRead(
+                    id=project.id,
+                    name=project.name,
+                    description=project.description,
+                    color=project.color,
+                    owner_id=project.owner_id,
+                    created_at=project.created_at,
+                    updated_at=project.updated_at,
+                    current_user_role=ProjectRole.OWNER,
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            project_logger.exception(
+                "Failed to create project for user %s",
+                command.owner_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class UpdateProjectUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        policy: ProjectMemberPolicy | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._policy = policy or ProjectMemberPolicy()
+
+    async def execute(self, command: UpdateProjectCommand) -> ProjectRead:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = ProjectRepository(uow.session)
+                requester_member = await repository.get_member(
+                    project_id=command.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._policy.ensure_project_owner(requester_member=requester_member)
+
+                project = await repository.get_project(command.project_id)
+                if project is None:
+                    raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+                for key, value in command.changes.items():
+                    setattr(project, key, value)
+                project.updated_at = datetime.now(timezone.utc)
+                repository.save_project(project)
+                await repository.flush()
+                await repository.refresh_project(project)
+
+                uow.collect_event(
+                    ProjectUpdated(
+                        actor_user_id=command.actor_user_id,
+                        project_id=command.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+                return ProjectRead(
+                    id=project.id,
+                    name=project.name,
+                    description=project.description,
+                    color=project.color,
+                    owner_id=project.owner_id,
+                    created_at=project.created_at,
+                    updated_at=project.updated_at,
+                    current_user_role=ProjectRole.OWNER,
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            project_logger.exception(
+                "Failed to update project %s",
+                command.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class DeleteProjectUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        policy: ProjectMemberPolicy | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._policy = policy or ProjectMemberPolicy()
+
+    async def execute(self, command: DeleteProjectCommand) -> None:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = ProjectRepository(uow.session)
+                requester_member = await repository.get_member(
+                    project_id=command.project_id,
+                    user_id=command.actor_user_id,
+                )
+                self._policy.ensure_project_owner(requester_member=requester_member)
+
+                project = await repository.get_project(command.project_id)
+                if project is None:
+                    raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+                affected_user_ids = await repository.get_project_member_user_ids(
+                    command.project_id
+                )
+                await repository.delete_project(project)
+                await repository.flush()
+                uow.collect_event(
+                    ProjectDeleted(
+                        affected_user_ids=affected_user_ids,
+                        actor_user_id=command.actor_user_id,
+                        project_id=command.project_id,
+                        client_mutation_id=command.client_mutation_id,
+                    )
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            project_logger.exception(
+                "Failed to delete project %s",
+                command.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
 
 
 class RemoveMemberUseCase:

@@ -4,12 +4,43 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.projects.constants import ProjectRole
 from src.projects.models import Project, ProjectMember
+from src.tags.models import Tag
 
 
 class ProjectRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def get_project(self, project_id: int) -> Project | None:
+        return await self.session.get(Project, project_id)
+
+    def add_project(
+        self,
+        *,
+        name: str,
+        description: str | None,
+        color: str,
+        owner_id: int,
+    ) -> Project:
+        project = Project(
+            name=name,
+            description=description,
+            color=color,
+            owner_id=owner_id,
+        )
+        self.session.add(project)
+        return project
+
+    def save_project(self, project: Project) -> None:
+        self.session.add(project)
+
+    async def delete_project(self, project: Project) -> None:
+        await self.session.delete(project)
+
+    async def refresh_project(self, project: Project) -> None:
+        await self.session.refresh(project)
 
     async def get_member(
         self,
@@ -26,11 +57,25 @@ class ProjectRepository:
             stmt = stmt.options(selectinload(ProjectMember.user))
         return await self.session.scalar(stmt)
 
+    def add_member(
+        self,
+        *,
+        project_id: int,
+        user_id: int,
+        role: ProjectRole,
+    ) -> ProjectMember:
+        member = ProjectMember(project_id=project_id, user_id=user_id, role=role)
+        self.session.add(member)
+        return member
+
     def save_member(self, member: ProjectMember) -> None:
         self.session.add(member)
 
     async def delete_member(self, member: ProjectMember) -> None:
         await self.session.delete(member)
+
+    def add_tags(self, tags: list[Tag]) -> None:
+        self.session.add_all(tags)
 
     async def touch_project(self, project_id: int) -> None:
         await self.session.execute(

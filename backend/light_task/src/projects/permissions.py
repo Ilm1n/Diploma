@@ -7,6 +7,17 @@ from src.shared.errors import BadRequestError, ForbiddenError, NotFoundError
 
 
 class ProjectMemberPolicy:
+    def ensure_project_owner(
+        self,
+        *,
+        requester_member: ProjectMember | None,
+    ) -> None:
+        if requester_member is None:
+            raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+        if requester_member.role != ProjectRole.OWNER:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+
     def ensure_can_remove_member(
         self,
         *,
