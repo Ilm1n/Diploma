@@ -14,6 +14,12 @@ class CreateTagCommand:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ListProjectTagsQuery:
+    project_id: int
+    actor_user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class UpdateTagCommand:
     tag_id: int
     actor_user_id: int

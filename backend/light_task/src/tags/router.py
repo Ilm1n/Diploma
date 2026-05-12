@@ -6,16 +6,28 @@ from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.db.database import db_helper
 from src.db.unit_of_work import UnitOfWork
-from src.projects.dependencies import check_project_manager, check_project_member
 from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
 from src.realtimev1.publisher import DomainEventPublisher
-from src.tags.dto import CreateTagCommand, DeleteTagCommand, UpdateTagCommand
+from src.tags.dto import (
+    CreateTagCommand,
+    DeleteTagCommand,
+    ListProjectTagsQuery,
+    UpdateTagCommand,
+)
 from src.tags.events import TagsDomainEventDispatcher
 from src.tags.schemas import TagCreate, TagRead, TagUpdate
-from src.tags.service import TagService, get_tag_service
-from src.tags.use_cases import CreateTagUseCase, DeleteTagUseCase, UpdateTagUseCase
+from src.tags.use_cases import (
+    CreateTagUseCase,
+    DeleteTagUseCase,
+    ListProjectTagsUseCase,
+    UpdateTagUseCase,
+)
 
 router = APIRouter(tags=["Tags"])
+
+
+def get_list_project_tags_use_case() -> ListProjectTagsUseCase:
+    return ListProjectTagsUseCase(db_helper.async_session_maker)
 
 
 def get_create_tag_use_case(
@@ -51,10 +63,16 @@ def get_delete_tag_use_case(
 @router.get("/projects/{project_id}/tags", response_model=list[TagRead])
 async def get_project_tags(
     project_id: int,
-    _: Annotated[None, Depends(check_project_member)],
-    tag_service: Annotated[TagService, Depends(get_tag_service)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    use_case: Annotated[
+        ListProjectTagsUseCase, Depends(get_list_project_tags_use_case)
+    ],
 ):
-    return await tag_service.get_project_tags(project_id)
+    query = ListProjectTagsQuery(
+        project_id=project_id,
+        actor_user_id=current_user.sub,
+    )
+    return await use_case.execute(query)
 
 
 @router.post(

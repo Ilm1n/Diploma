@@ -35,6 +35,17 @@ class InvitationRepository:
         )
         return await self.session.scalar(stmt)
 
+    async def list_project_invitations(
+        self,
+        project_id: int,
+    ) -> list[ProjectInvitation]:
+        stmt = (
+            select(ProjectInvitation)
+            .where(ProjectInvitation.project_id == project_id)
+            .order_by(ProjectInvitation.created_at.desc())
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def get_invitation_by_token_for_update(
         self,
         token: str,

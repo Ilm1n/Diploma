@@ -91,9 +91,6 @@ class YandexOAuthClient:
         return parse_yandex_profile(response.json())
 
 
-YandexAuthService = YandexOAuthClient
-
-
 def get_yandex_oauth_client() -> YandexOAuthClient:
     return YandexOAuthClient()
 

@@ -10,6 +10,7 @@ from src.invitations.dto import (
     AcceptInvitationCommand,
     CreateInvitationCommand,
     DeleteInvitationCommand,
+    ListProjectInvitationsQuery,
 )
 from src.invitations.events import InvitationsDomainEventDispatcher
 from src.invitations.schemas import (
@@ -17,17 +18,20 @@ from src.invitations.schemas import (
     InvitationRead,
     InvitationAcceptResponse,
 )
-from src.invitations.service import InvitationService, get_invitation_service
 from src.invitations.use_cases import (
     AcceptInvitationUseCase,
     CreateInvitationUseCase,
     DeleteInvitationUseCase,
+    ListProjectInvitationsUseCase,
 )
-from src.projects.dependencies import check_project_manager
 from src.realtimev1.dependencies import get_client_mutation_id, get_event_publisher
 from src.realtimev1.publisher import DomainEventPublisher
 
 router = APIRouter(tags=["Invitations"])
+
+
+def get_list_project_invitations_use_case() -> ListProjectInvitationsUseCase:
+    return ListProjectInvitationsUseCase(db_helper.async_session_maker)
 
 
 def get_create_invitation_use_case(
@@ -89,10 +93,17 @@ async def create_invitation(
 @router.get("/projects/{project_id}/invitations", response_model=list[InvitationRead])
 async def get_project_invitations(
     project_id: int,
-    _: Annotated[None, Depends(check_project_manager)],
-    invitation_service: Annotated[InvitationService, Depends(get_invitation_service)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    use_case: Annotated[
+        ListProjectInvitationsUseCase,
+        Depends(get_list_project_invitations_use_case),
+    ],
 ):
-    return await invitation_service.get_project_invitations(project_id)
+    query = ListProjectInvitationsQuery(
+        project_id=project_id,
+        actor_user_id=current_user.sub,
+    )
+    return await use_case.execute(query)
 
 
 @router.delete(

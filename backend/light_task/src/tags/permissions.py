@@ -7,6 +7,10 @@ from src.shared.errors import ForbiddenError, NotFoundError
 
 
 class TagPermissions:
+    def ensure_can_read_project_tags(self, member: ProjectMember | None) -> None:
+        if member is None:
+            raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
     def ensure_can_create_tag(self, member: ProjectMember | None) -> None:
         if member is None:
             raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)

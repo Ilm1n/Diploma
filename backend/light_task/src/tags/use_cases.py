@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.unit_of_work import UnitOfWork
 from src.errors import ErrorCode
@@ -13,11 +14,46 @@ from src.shared.errors import (
     DatabaseError,
     NotFoundError,
 )
-from src.tags.dto import CreateTagCommand, DeleteTagCommand, UpdateTagCommand
+from src.tags.dto import (
+    CreateTagCommand,
+    DeleteTagCommand,
+    ListProjectTagsQuery,
+    UpdateTagCommand,
+)
 from src.tags.events import TagCreated, TagDeleted, TagUpdated
 from src.tags.models import Tag
 from src.tags.permissions import TagPermissions
 from src.tags.repository import TagRepository
+
+
+class ListProjectTagsUseCase:
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        permissions: TagPermissions | None = None,
+    ) -> None:
+        self._session_factory = session_factory
+        self._permissions = permissions or TagPermissions()
+
+    async def execute(self, query: ListProjectTagsQuery) -> list[Tag]:
+        try:
+            async with self._session_factory() as session:
+                repository = TagRepository(session)
+                member = await repository.get_project_member(
+                    project_id=query.project_id,
+                    user_id=query.actor_user_id,
+                )
+                self._permissions.ensure_can_read_project_tags(member)
+                return await repository.list_project_tags(query.project_id)
+        except AppError:
+            raise
+        except Exception as exc:
+            board_logger.exception(
+                "Failed to list tags for project %s",
+                query.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
 
 
 class CreateTagUseCase:

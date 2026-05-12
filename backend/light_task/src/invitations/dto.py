@@ -17,6 +17,12 @@ class CreateInvitationCommand:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ListProjectInvitationsQuery:
+    project_id: int
+    actor_user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class DeleteInvitationCommand:
     invitation_id: int
     project_id: int

@@ -4,12 +4,15 @@ import secrets
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.db.unit_of_work import UnitOfWork
 from src.errors import ErrorCode, SuccessCode
 from src.invitations.dto import (
     AcceptInvitationCommand,
     CreateInvitationCommand,
     DeleteInvitationCommand,
+    ListProjectInvitationsQuery,
 )
 from src.invitations.events import (
     InvitationAccepted,
@@ -29,6 +32,39 @@ from src.shared.errors import (
     NotFoundError,
     DatabaseError,
 )
+
+
+class ListProjectInvitationsUseCase:
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        permissions: InvitationPermissions | None = None,
+    ) -> None:
+        self._session_factory = session_factory
+        self._permissions = permissions or InvitationPermissions()
+
+    async def execute(
+        self,
+        query: ListProjectInvitationsQuery,
+    ) -> list[ProjectInvitation]:
+        try:
+            async with self._session_factory() as session:
+                repository = InvitationRepository(session)
+                member = await repository.get_project_member(
+                    project_id=query.project_id,
+                    user_id=query.actor_user_id,
+                )
+                self._permissions.ensure_can_manage_invitations(member=member)
+                return await repository.list_project_invitations(query.project_id)
+        except AppError:
+            raise
+        except Exception as exc:
+            invitation_logger.exception(
+                "Failed to list invitations for project %s",
+                query.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
 
 
 class CreateInvitationUseCase:

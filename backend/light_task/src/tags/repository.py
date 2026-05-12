@@ -26,6 +26,10 @@ class TagRepository:
     async def get_tag(self, tag_id: int) -> Tag | None:
         return await self.session.get(Tag, tag_id)
 
+    async def list_project_tags(self, project_id: int) -> list[Tag]:
+        stmt = select(Tag).where(Tag.project_id == project_id).order_by(Tag.name)
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def find_tag_by_name(
         self,
         *,
