@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status, Cookie
+from fastapi import Cookie, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +9,7 @@ from src.auth.schemas import UserPayload
 from src.logger import auth_logger
 from src.errors import ErrorCode
 from src.db.database import db_helper
+from src.shared.errors import ForbiddenError, UnauthorizedError
 from src.users.models import User
 
 http_bearer = HTTPBearer(auto_error=False)
@@ -17,13 +18,9 @@ http_bearer = HTTPBearer(auto_error=False)
 async def get_user_by_id(user_id: int, session: AsyncSession) -> User:
     user = await session.get(User, user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=ErrorCode.USER_NOT_FOUND
-        )
+        raise UnauthorizedError(ErrorCode.USER_NOT_FOUND)
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=ErrorCode.INACTIVE_USER
-        )
+        raise ForbiddenError(ErrorCode.INACTIVE_USER)
     return user
 
 
@@ -31,19 +28,15 @@ async def get_current_user(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
 ) -> UserPayload:
     if not creds:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.NOT_AUTHENTICATED,
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise UnauthorizedError(ErrorCode.NOT_AUTHENTICATED)
 
-    payload = security.decode_jwt(creds.credentials)
+    try:
+        payload = security.decode_jwt(creds.credentials)
+    except security.TokenDecodeError as exc:
+        raise UnauthorizedError(exc.code) from exc
 
     if payload.get("type") != security.ACCESS_TOKEN_TYPE:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.INVALID_TOKEN_TYPE,
-        )
+        raise UnauthorizedError(ErrorCode.INVALID_TOKEN_TYPE)
 
     user_id = payload.get("sub")
     username = payload.get("username")
@@ -51,15 +44,10 @@ async def get_current_user(
     is_active = payload.get("is_active", True)
 
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.INVALID_TOKEN_PAYLOAD,
-        )
+        raise UnauthorizedError(ErrorCode.INVALID_TOKEN_PAYLOAD)
 
     if not is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail=ErrorCode.INACTIVE_USER
-        )
+        raise ForbiddenError(ErrorCode.INACTIVE_USER)
 
     return UserPayload(
         sub=int(user_id),
@@ -75,27 +63,20 @@ async def get_current_user_for_refresh(
 ) -> User:
     if not refresh_token:
         auth_logger.warning("Refresh token missing in request")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.REFRESH_TOKEN_MISSING,
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise UnauthorizedError(ErrorCode.REFRESH_TOKEN_MISSING)
 
-    payload = security.decode_jwt(refresh_token)
+    try:
+        payload = security.decode_jwt(refresh_token)
+    except security.TokenDecodeError as exc:
+        raise UnauthorizedError(exc.code) from exc
 
     if payload.get("type") != security.REFRESH_TOKEN_TYPE:
         auth_logger.warning("Invalid refresh token type")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.INVALID_TOKEN_TYPE,
-        )
+        raise UnauthorizedError(ErrorCode.INVALID_TOKEN_TYPE)
 
     user_id = payload.get("sub")
     if not user_id:
         auth_logger.warning("Invalid refresh token payload - missing user_id")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.INVALID_TOKEN_PAYLOAD,
-        )
+        raise UnauthorizedError(ErrorCode.INVALID_TOKEN_PAYLOAD)
 
     return await get_user_by_id(int(user_id), session)

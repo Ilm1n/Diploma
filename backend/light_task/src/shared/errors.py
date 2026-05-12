@@ -12,10 +12,12 @@ class AppError(Exception):
         *,
         status_code: int,
         params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.code = code
         self.status_code = status_code
         self.params = params
+        self.headers = headers
         super().__init__(str(code))
 
 
@@ -35,8 +37,14 @@ class UnauthorizedError(AppError):
         code: ErrorCode | str,
         *,
         params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
-        super().__init__(code, status_code=401, params=params)
+        super().__init__(
+            code,
+            status_code=401,
+            params=params,
+            headers=headers or {"WWW-Authenticate": "Bearer"},
+        )
 
 
 class ForbiddenError(AppError):
