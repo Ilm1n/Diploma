@@ -1,50 +1,21 @@
 import uuid
-from urllib.parse import urlparse
 from typing import Annotated
+from urllib.parse import urlparse
 
-from fastapi import HTTPException, status, BackgroundTasks, Depends
-from sqlalchemy.exc import IntegrityError
+from fastapi import BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import src.security as security
 from src.config import settings
 from src.db.database import db_helper
-from src.logger import user_logger
 from src.errors import ErrorCode
+from src.logger import user_logger
 from src.s3 import S3Client
 from src.users.models import User
-from src.users.schemas import UserCreate, UserPasswordUpdate, UserUpdate
 
 
 class UserService:
     def __init__(self, session: AsyncSession):
         self.session = session
-
-    async def create_user(self, user_in: UserCreate) -> User:
-        hashed_password = security.hash_password(user_in.password)
-
-        new_user = User(
-            email=str(user_in.email),
-            username=user_in.username,
-            hashed_password=hashed_password,
-        )
-
-        self.session.add(new_user)
-
-        try:
-            await self.session.commit()
-            await self.session.refresh(new_user)
-            user_logger.info(f"User created successfully: {new_user.username}")
-            return new_user
-        except IntegrityError:
-            await self.session.rollback()
-            user_logger.warning(
-                f"Failed to create user - username/email already exists"
-            )
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=ErrorCode.USERNAME_OR_EMAIL_EXISTS,
-            )
 
     async def get_user_by_id(self, user_id: int) -> User:
         user = await self.session.get(User, user_id)
@@ -53,59 +24,6 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=ErrorCode.USER_NOT_FOUND,
             )
-        return user
-
-    async def update_user(
-        self,
-        user: User,
-        user_update: UserUpdate,
-    ) -> User:
-        update_data = user_update.model_dump(exclude_unset=True)
-
-        if not update_data:
-            return user
-
-        for key, value in update_data.items():
-            setattr(user, key, value)
-
-        try:
-            await self.session.commit()
-            await self.session.refresh(user)
-            user_logger.info(f"User updated successfully: {user.username}")
-            return user
-        except IntegrityError:
-            await self.session.rollback()
-            user_logger.warning(f"Failed to update user - username already taken")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=ErrorCode.USERNAME_TAKEN,
-            )
-
-    async def update_password(
-        self,
-        user: User,
-        password_update: UserPasswordUpdate,
-    ) -> User:
-        if user.hashed_password:
-            if not password_update.current_password:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=ErrorCode.CURRENT_PASSWORD_REQUIRED,
-                )
-            if not security.validate_password(
-                password_update.current_password,
-                user.hashed_password,
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=ErrorCode.INVALID_CURRENT_PASSWORD,
-                )
-
-        user.hashed_password = security.hash_password(password_update.new_password)
-
-        await self.session.commit()
-        await self.session.refresh(user)
-        user_logger.info(f"Password updated for user {user.id}")
         return user
 
     async def upload_avatar(
