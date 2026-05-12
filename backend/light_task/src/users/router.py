@@ -9,8 +9,17 @@ from fastapi import (
 
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
-from src.s3 import S3Client, get_s3_client
+from src.db.database import db_helper
+from src.db.unit_of_work import UnitOfWork
 from src.users.dependencies import valid_avatar
+from src.users.dto import (
+    DeleteAvatarCommand,
+    GetUserQuery,
+    RegisterUserCommand,
+    UpdateUserCommand,
+    UpdateUserPasswordCommand,
+    UploadAvatarCommand,
+)
 from src.users.schemas import (
     UserCreate,
     UserPasswordUpdate,
@@ -18,9 +27,45 @@ from src.users.schemas import (
     UserUpdate,
     UserPublic,
 )
-from src.users.service import UserService, get_user_service
+from src.users.storage import AvatarStorageGateway, get_avatar_storage_gateway
+from src.users.use_cases import (
+    DeleteAvatarUseCase,
+    GetUserUseCase,
+    RegisterUserUseCase,
+    UploadAvatarUseCase,
+    UpdateUserPasswordUseCase,
+    UpdateUserUseCase,
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+def get_user_use_case() -> GetUserUseCase:
+    return GetUserUseCase(db_helper.async_session_maker)
+
+
+def get_register_user_use_case() -> RegisterUserUseCase:
+    return RegisterUserUseCase(lambda: UnitOfWork())
+
+
+def get_update_user_use_case() -> UpdateUserUseCase:
+    return UpdateUserUseCase(lambda: UnitOfWork())
+
+
+def get_update_user_password_use_case() -> UpdateUserPasswordUseCase:
+    return UpdateUserPasswordUseCase(lambda: UnitOfWork())
+
+
+def get_upload_avatar_use_case(
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+) -> UploadAvatarUseCase:
+    return UploadAvatarUseCase(lambda: UnitOfWork(), storage)
+
+
+def get_delete_avatar_use_case(
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+) -> DeleteAvatarUseCase:
+    return DeleteAvatarUseCase(lambda: UnitOfWork(), storage)
 
 
 @router.post(
@@ -30,84 +75,95 @@ router = APIRouter(prefix="/users", tags=["Users"])
 )
 async def create_user(
     user_in: UserCreate,
-    user_service: Annotated[UserService, Depends(get_user_service)],
+    use_case: Annotated[RegisterUserUseCase, Depends(get_register_user_use_case)],
 ):
-    return await user_service.create_user(user_in)
+    command = RegisterUserCommand(
+        username=user_in.username,
+        email=str(user_in.email),
+        password=user_in.password,
+    )
+    return await use_case.execute(command)
 
 
 @router.get("/me", response_model=UserRead)
 async def read_users_me(
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
+    use_case: Annotated[GetUserUseCase, Depends(get_user_use_case)],
 ):
-    return await user_service.get_user_by_id(current_user.sub)
+    query = GetUserQuery(user_id=current_user.sub)
+    return await use_case.execute(query)
 
 
 @router.patch("/me", response_model=UserRead)
 async def update_user_me(
     user_update: UserUpdate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
+    use_case: Annotated[UpdateUserUseCase, Depends(get_update_user_use_case)],
 ):
-    user_db = await user_service.get_user_by_id(current_user.sub)
-    return await user_service.update_user(user=user_db, user_update=user_update)
+    command = UpdateUserCommand(
+        user_id=current_user.sub,
+        changes=user_update.model_dump(exclude_unset=True),
+    )
+    return await use_case.execute(command)
 
 
 @router.patch("/me/password", response_model=UserRead)
 async def update_user_password(
     password_update: UserPasswordUpdate,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
+    use_case: Annotated[
+        UpdateUserPasswordUseCase, Depends(get_update_user_password_use_case)
+    ],
 ):
-    user_db = await user_service.get_user_by_id(current_user.sub)
-    return await user_service.update_password(
-        user=user_db,
-        password_update=password_update,
+    command = UpdateUserPasswordCommand(
+        user_id=current_user.sub,
+        current_password=password_update.current_password,
+        new_password=password_update.new_password,
     )
+    return await use_case.execute(command)
 
 
 @router.get("/{user_id}", response_model=UserPublic)
 async def read_user_by_id(
     user_id: int,
-    user_service: Annotated[UserService, Depends(get_user_service)],
+    use_case: Annotated[GetUserUseCase, Depends(get_user_use_case)],
     _: Annotated[UserPayload, Depends(get_current_user)],
 ):
-    return await user_service.get_user_by_id(user_id)
+    query = GetUserQuery(user_id=user_id)
+    return await use_case.execute(query)
 
 
 @router.post("/me/avatar", response_model=UserRead)
 async def upload_avatar(
     file_data: Annotated[tuple[bytes, str, str], Depends(valid_avatar)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
-    s3_client: Annotated[S3Client, Depends(get_s3_client)],
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+    use_case: Annotated[UploadAvatarUseCase, Depends(get_upload_avatar_use_case)],
     bg_tasks: BackgroundTasks,
 ):
     content, ext, mime = file_data
 
-    user_db = await user_service.get_user_by_id(current_user.sub)
-
-    return await user_service.upload_avatar(
-        user=user_db,
+    command = UploadAvatarCommand(
+        user_id=current_user.sub,
         file_data=content,
         extension=ext,
         mime_type=mime,
-        s3_client=s3_client,
-        background_tasks=bg_tasks,
     )
+    result = await use_case.execute(command)
+    if result.old_avatar_object_key:
+        bg_tasks.add_task(storage.delete_file, result.old_avatar_object_key)
+    return result.user
 
 
 @router.delete("/me/avatar", response_model=UserRead)
 async def delete_avatar(
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
-    s3_client: Annotated[S3Client, Depends(get_s3_client)],
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+    use_case: Annotated[DeleteAvatarUseCase, Depends(get_delete_avatar_use_case)],
     bg_tasks: BackgroundTasks,
 ):
-    user_db = await user_service.get_user_by_id(current_user.sub)
-
-    return await user_service.delete_avatar(
-        user=user_db,
-        s3_client=s3_client,
-        background_tasks=bg_tasks,
-    )
+    command = DeleteAvatarCommand(user_id=current_user.sub)
+    result = await use_case.execute(command)
+    if result.old_avatar_object_key:
+        bg_tasks.add_task(storage.delete_file, result.old_avatar_object_key)
+    return result.user

@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import jwt
-from fastapi import HTTPException, status
 from pwdlib import PasswordHash
 
 from src.config import settings
@@ -15,6 +14,12 @@ ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
 
 password_hash = PasswordHash.recommended()
+
+
+class TokenDecodeError(Exception):
+    def __init__(self, code: ErrorCode):
+        self.code = code
+        super().__init__(str(code))
 
 
 def _read_jwt_key(path: Path, key_name: str) -> str:
@@ -64,17 +69,9 @@ def decode_jwt(token: str) -> dict[str, Any]:
     try:
         return jwt.decode(token, public_key, algorithms=[algorithm])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.TOKEN_EXPIRED,
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise TokenDecodeError(ErrorCode.TOKEN_EXPIRED)
     except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ErrorCode.COULD_NOT_VALIDATE,
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise TokenDecodeError(ErrorCode.COULD_NOT_VALIDATE)
 
 
 def create_access_token(

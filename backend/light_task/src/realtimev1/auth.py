@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,8 +28,8 @@ class WsAuthError(Exception):
 def validate_access_token(token: str) -> WsAuthContext:
     try:
         payload = security.decode_jwt(token)
-    except HTTPException as exc:
-        raise WsAuthError(str(exc.detail)) from exc
+    except security.TokenDecodeError as exc:
+        raise WsAuthError(str(exc.code)) from exc
 
     if payload.get("type") != security.ACCESS_TOKEN_TYPE:
         raise WsAuthError("INVALID_TOKEN_TYPE")

@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlparse
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from src.auth.yandex import YandexAuthService, YandexOAuthError, YandexProfile
+from src.auth.yandex import YandexOAuthClient, YandexOAuthError, YandexProfile
 from src.db.database import db_helper
 from src.security import hash_password
 from src.users.models import User
@@ -28,14 +28,14 @@ def _state_from_start_response(client: TestClient, next_path: str = "/projects")
     return query["state"][0]
 
 
-async def _fake_exchange_code_for_token(self: YandexAuthService, code: str) -> str:
+async def _fake_exchange_code_for_token(self: YandexOAuthClient, code: str) -> str:
     if code == "bad-code":
         raise YandexOAuthError("invalid_code")
     return "yandex-access-token"
 
 
 async def _fake_fetch_profile(
-    self: YandexAuthService,
+    self: YandexOAuthClient,
     access_token: str,
 ) -> YandexProfile:
     return YandexProfile(
@@ -47,7 +47,7 @@ async def _fake_fetch_profile(
 
 
 async def _fake_fetch_profile_without_email(
-    self: YandexAuthService,
+    self: YandexOAuthClient,
     access_token: str,
 ) -> YandexProfile:
     raise YandexOAuthError("missing_email")
@@ -55,12 +55,12 @@ async def _fake_fetch_profile_without_email(
 
 def _patch_yandex_success(monkeypatch) -> None:
     monkeypatch.setattr(
-        YandexAuthService,
+        YandexOAuthClient,
         "_exchange_code_for_token",
         _fake_exchange_code_for_token,
     )
     monkeypatch.setattr(
-        YandexAuthService,
+        YandexOAuthClient,
         "_fetch_profile",
         _fake_fetch_profile,
     )
@@ -234,12 +234,12 @@ def test_yandex_callback_handles_invalid_code(
 
 def test_yandex_callback_requires_email(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr(
-        YandexAuthService,
+        YandexOAuthClient,
         "_exchange_code_for_token",
         _fake_exchange_code_for_token,
     )
     monkeypatch.setattr(
-        YandexAuthService,
+        YandexOAuthClient,
         "_fetch_profile",
         _fake_fetch_profile_without_email,
     )

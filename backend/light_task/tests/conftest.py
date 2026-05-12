@@ -124,8 +124,24 @@ from src.db.database import db_helper  # noqa: E402
 from src.main import main_app  # noqa: E402
 
 
+def _all_selected_tests_are_infra_free(config: pytest.Config) -> bool:
+    items = getattr(config, "_lighttask_selected_items", [])
+    return bool(items) and all(item.get_closest_marker("no_infra") for item in items)
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session,
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    config._lighttask_selected_items = items  # type: ignore[attr-defined]
+
+
 @pytest.fixture(scope="session", autouse=True)
-def apply_migrations() -> None:
+def apply_migrations(request: pytest.FixtureRequest) -> None:
+    if _all_selected_tests_are_infra_free(request.config):
+        return
+
     root = Path(__file__).resolve().parents[1]
     alembic_cfg = Config(str(root / "alembic.ini"))
     command.upgrade(alembic_cfg, "head")
@@ -144,7 +160,20 @@ async def redis_client() -> redis.Redis:
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def clean_state(redis_client: redis.Redis) -> None:
+async def clean_state(
+    request: pytest.FixtureRequest,
+) -> None:
+    if request.node.get_closest_marker("no_infra"):
+        yield
+        return
+
+    redis_client = redis.from_url(
+        settings.realtime.redis_url,
+        encoding="utf-8",
+        decode_responses=True,
+    )
+    await redis_client.ping()
+
     async with db_helper.async_session_maker() as session:
         result = await session.execute(
             text(
@@ -178,6 +207,7 @@ async def clean_state(redis_client: redis.Redis) -> None:
             )
             await session.commit()
     await redis_client.flushdb()
+    await redis_client.aclose()
 
 
 @pytest.fixture
