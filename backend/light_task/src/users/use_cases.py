@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,16 +15,21 @@ from src.shared.errors import (
     ConflictError,
     DatabaseError,
     NotFoundError,
+    ServiceUnavailableError,
 )
 from src.users.dto import (
+    AvatarMutationResult,
+    DeleteAvatarCommand,
     GetUserQuery,
     RegisterUserCommand,
     UpdateUserCommand,
     UpdateUserPasswordCommand,
+    UploadAvatarCommand,
 )
 from src.users.models import User
 from src.users.passwords import hash_password, validate_password
 from src.users.repository import UserRepository
+from src.users.storage import AvatarStorageError, AvatarStorageGateway
 
 
 class GetUserUseCase:
@@ -155,6 +161,129 @@ class UpdateUserPasswordUseCase:
         except Exception as exc:
             user_logger.exception(
                 "Failed to update password for user %s",
+                command.user_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class UploadAvatarUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        storage: AvatarStorageGateway,
+        object_name_factory: Callable[[int, str], str] | None = None,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._storage = storage
+        self._object_name_factory = object_name_factory or (
+            lambda user_id, extension: f"avatars/user_{user_id}_{uuid4()}.{extension}"
+        )
+
+    async def execute(self, command: UploadAvatarCommand) -> AvatarMutationResult:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = UserRepository(uow.session)
+                user = await repository.get_user(command.user_id)
+                if user is None:
+                    raise NotFoundError(ErrorCode.USER_NOT_FOUND)
+
+                old_avatar_object_key = self._storage.object_key_from_url(
+                    user.avatar_url
+                )
+                object_name = self._object_name_factory(user.id, command.extension)
+
+                try:
+                    public_url = await self._storage.upload_file(
+                        file_data=command.file_data,
+                        object_name=object_name,
+                        content_type=command.mime_type,
+                    )
+                except AvatarStorageError as exc:
+                    raise ServiceUnavailableError(ErrorCode.FILE_UPLOAD_FAILED) from exc
+
+                try:
+                    user.avatar_url = public_url
+                    repository.save_user(user)
+                    await repository.flush()
+                    await repository.refresh_user(user)
+                    await uow.commit()
+                except Exception as exc:
+                    await self._storage.delete_file(object_name)
+                    user_logger.exception(
+                        "Failed to commit avatar upload for user %s",
+                        command.user_id,
+                        exc_info=exc,
+                    )
+                    raise DatabaseError(ErrorCode.DB_COMMIT_FAILED) from exc
+
+                return AvatarMutationResult(
+                    user=user,
+                    old_avatar_object_key=old_avatar_object_key,
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            user_logger.exception(
+                "Failed to upload avatar for user %s",
+                command.user_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class DeleteAvatarUseCase:
+    def __init__(
+        self,
+        uow_factory: Callable[[], UnitOfWork],
+        storage: AvatarStorageGateway,
+    ) -> None:
+        self._uow_factory = uow_factory
+        self._storage = storage
+
+    async def execute(self, command: DeleteAvatarCommand) -> AvatarMutationResult:
+        try:
+            async with self._uow_factory() as uow:
+                if uow.session is None:
+                    raise RuntimeError("UnitOfWork has not been entered")
+
+                repository = UserRepository(uow.session)
+                user = await repository.get_user(command.user_id)
+                if user is None:
+                    raise NotFoundError(ErrorCode.USER_NOT_FOUND)
+
+                old_avatar_object_key = self._storage.object_key_from_url(
+                    user.avatar_url
+                )
+                if old_avatar_object_key is None:
+                    return AvatarMutationResult(user=user)
+
+                try:
+                    user.avatar_url = None
+                    repository.save_user(user)
+                    await repository.flush()
+                    await repository.refresh_user(user)
+                    await uow.commit()
+                except Exception as exc:
+                    user_logger.exception(
+                        "Failed to commit avatar deletion for user %s",
+                        command.user_id,
+                        exc_info=exc,
+                    )
+                    raise DatabaseError(ErrorCode.DB_COMMIT_FAILED) from exc
+
+                return AvatarMutationResult(
+                    user=user,
+                    old_avatar_object_key=old_avatar_object_key,
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            user_logger.exception(
+                "Failed to delete avatar for user %s",
                 command.user_id,
                 exc_info=exc,
             )

@@ -79,6 +79,16 @@ class GoneError(AppError):
         super().__init__(code, status_code=410, params=params)
 
 
+class ServiceUnavailableError(AppError):
+    def __init__(
+        self,
+        code: ErrorCode | str,
+        *,
+        params: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(code, status_code=503, params=params)
+
+
 class DatabaseError(AppError):
     def __init__(
         self,

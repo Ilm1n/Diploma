@@ -11,13 +11,14 @@ from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
 from src.db.database import db_helper
 from src.db.unit_of_work import UnitOfWork
-from src.s3 import S3Client, get_s3_client
 from src.users.dependencies import valid_avatar
 from src.users.dto import (
+    DeleteAvatarCommand,
     GetUserQuery,
     RegisterUserCommand,
     UpdateUserCommand,
     UpdateUserPasswordCommand,
+    UploadAvatarCommand,
 )
 from src.users.schemas import (
     UserCreate,
@@ -26,10 +27,12 @@ from src.users.schemas import (
     UserUpdate,
     UserPublic,
 )
-from src.users.service import UserService, get_user_service
+from src.users.storage import AvatarStorageGateway, get_avatar_storage_gateway
 from src.users.use_cases import (
+    DeleteAvatarUseCase,
     GetUserUseCase,
     RegisterUserUseCase,
+    UploadAvatarUseCase,
     UpdateUserPasswordUseCase,
     UpdateUserUseCase,
 )
@@ -51,6 +54,18 @@ def get_update_user_use_case() -> UpdateUserUseCase:
 
 def get_update_user_password_use_case() -> UpdateUserPasswordUseCase:
     return UpdateUserPasswordUseCase(lambda: UnitOfWork())
+
+
+def get_upload_avatar_use_case(
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+) -> UploadAvatarUseCase:
+    return UploadAvatarUseCase(lambda: UnitOfWork(), storage)
+
+
+def get_delete_avatar_use_case(
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+) -> DeleteAvatarUseCase:
+    return DeleteAvatarUseCase(lambda: UnitOfWork(), storage)
 
 
 @router.post(
@@ -122,35 +137,33 @@ async def read_user_by_id(
 async def upload_avatar(
     file_data: Annotated[tuple[bytes, str, str], Depends(valid_avatar)],
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
-    s3_client: Annotated[S3Client, Depends(get_s3_client)],
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+    use_case: Annotated[UploadAvatarUseCase, Depends(get_upload_avatar_use_case)],
     bg_tasks: BackgroundTasks,
 ):
     content, ext, mime = file_data
 
-    user_db = await user_service.get_user_by_id(current_user.sub)
-
-    return await user_service.upload_avatar(
-        user=user_db,
+    command = UploadAvatarCommand(
+        user_id=current_user.sub,
         file_data=content,
         extension=ext,
         mime_type=mime,
-        s3_client=s3_client,
-        background_tasks=bg_tasks,
     )
+    result = await use_case.execute(command)
+    if result.old_avatar_object_key:
+        bg_tasks.add_task(storage.delete_file, result.old_avatar_object_key)
+    return result.user
 
 
 @router.delete("/me/avatar", response_model=UserRead)
 async def delete_avatar(
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    user_service: Annotated[UserService, Depends(get_user_service)],
-    s3_client: Annotated[S3Client, Depends(get_s3_client)],
+    storage: Annotated[AvatarStorageGateway, Depends(get_avatar_storage_gateway)],
+    use_case: Annotated[DeleteAvatarUseCase, Depends(get_delete_avatar_use_case)],
     bg_tasks: BackgroundTasks,
 ):
-    user_db = await user_service.get_user_by_id(current_user.sub)
-
-    return await user_service.delete_avatar(
-        user=user_db,
-        s3_client=s3_client,
-        background_tasks=bg_tasks,
-    )
+    command = DeleteAvatarCommand(user_id=current_user.sub)
+    result = await use_case.execute(command)
+    if result.old_avatar_object_key:
+        bg_tasks.add_task(storage.delete_file, result.old_avatar_object_key)
+    return result.user

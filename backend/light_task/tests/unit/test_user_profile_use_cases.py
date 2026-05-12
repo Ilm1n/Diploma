@@ -5,13 +5,17 @@ from types import SimpleNamespace
 import pytest
 
 from src.users.dto import (
+    UploadAvatarCommand,
     RegisterUserCommand,
     UpdateUserCommand,
     UpdateUserPasswordCommand,
 )
+from src.errors import ErrorCode
+from src.shared.errors import DatabaseError
 from src.users.repository import UserRepository
 from src.users.use_cases import (
     RegisterUserUseCase,
+    UploadAvatarUseCase,
     UpdateUserPasswordUseCase,
     UpdateUserUseCase,
 )
@@ -41,14 +45,21 @@ class FakeSession:
 
 
 class FakeUnitOfWork:
-    def __init__(self) -> None:
+    def __init__(self, *, fail_commit: bool = False) -> None:
         self.session = object()
+        self.fail_commit = fail_commit
+        self.commit_count = 0
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type, exc, traceback) -> bool:
         return False
+
+    async def commit(self) -> None:
+        self.commit_count += 1
+        if self.fail_commit:
+            raise RuntimeError("commit failed")
 
 
 class FakeUserRepository:
@@ -80,6 +91,22 @@ class FakeUserRepository:
         return None
 
     async def refresh_user(self, user: object) -> None:
+        return None
+
+
+class FakeAvatarStorage:
+    def __init__(self) -> None:
+        self.deleted: list[str] = []
+
+    async def upload_file(
+        self, *, file_data: bytes, object_name: str, content_type: str
+    ):
+        return f"http://storage.local/test/{object_name}"
+
+    async def delete_file(self, object_name: str) -> None:
+        self.deleted.append(object_name)
+
+    def object_key_from_url(self, url: str | None) -> str | None:
         return None
 
 
@@ -165,3 +192,30 @@ async def test_update_password_use_case_hashes_new_password_for_passwordless_use
     )
 
     assert result.hashed_password == "hashed:new-password"
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_use_case_deletes_new_object_on_commit_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    uow = FakeUnitOfWork(fail_commit=True)
+    storage = FakeAvatarStorage()
+    monkeypatch.setattr("src.users.use_cases.UserRepository", FakeUserRepository)
+    use_case = UploadAvatarUseCase(
+        lambda: uow,  # type: ignore[arg-type]
+        storage,  # type: ignore[arg-type]
+        object_name_factory=lambda user_id, extension: f"avatars/user_{user_id}.{extension}",
+    )
+
+    with pytest.raises(DatabaseError) as exc_info:
+        await use_case.execute(
+            UploadAvatarCommand(
+                user_id=1,
+                file_data=b"image",
+                extension="png",
+                mime_type="image/png",
+            )
+        )
+
+    assert exc_info.value.code == ErrorCode.DB_COMMIT_FAILED
+    assert storage.deleted == ["avatars/user_1.png"]
