@@ -16,6 +16,44 @@ class ProjectRepository:
     async def get_project(self, project_id: int) -> Project | None:
         return await self.session.get(Project, project_id)
 
+    async def list_user_projects(
+        self, user_id: int
+    ) -> list[tuple[Project, ProjectRole]]:
+        stmt = (
+            select(Project, ProjectMember.role)
+            .join(ProjectMember, Project.id == ProjectMember.project_id)
+            .where(ProjectMember.user_id == user_id)
+            .order_by(Project.updated_at.desc())
+        )
+        result = await self.session.execute(stmt)
+        return list(result.all())
+
+    async def get_project_with_role(
+        self,
+        *,
+        project_id: int,
+        user_id: int,
+    ) -> tuple[Project, ProjectRole] | None:
+        stmt = (
+            select(Project, ProjectMember.role)
+            .join(ProjectMember, Project.id == ProjectMember.project_id)
+            .where(
+                Project.id == project_id,
+                ProjectMember.user_id == user_id,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.first()
+
+    async def list_project_members(self, project_id: int) -> list[ProjectMember]:
+        stmt = (
+            select(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
+            .options(selectinload(ProjectMember.user))
+            .order_by(ProjectMember.joined_at)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     def add_project(
         self,
         *,
@@ -48,6 +86,7 @@ class ProjectRepository:
         project_id: int,
         user_id: int,
         with_user: bool = False,
+        with_project: bool = False,
     ) -> ProjectMember | None:
         stmt = select(ProjectMember).where(
             ProjectMember.project_id == project_id,
@@ -55,6 +94,8 @@ class ProjectRepository:
         )
         if with_user:
             stmt = stmt.options(selectinload(ProjectMember.user))
+        if with_project:
+            stmt = stmt.options(selectinload(ProjectMember.project))
         return await self.session.scalar(stmt)
 
     def add_member(

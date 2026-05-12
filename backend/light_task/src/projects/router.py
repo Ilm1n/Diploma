@@ -4,13 +4,12 @@ from fastapi import APIRouter, Depends, status
 
 from src.auth.dependencies import get_current_user
 from src.auth.schemas import UserPayload
-from src.projects.dependencies import (
-    check_project_manager,
-    check_project_member,
-)
 from src.projects.dto import (
     CreateProjectCommand,
     DeleteProjectCommand,
+    GetProjectDetailsQuery,
+    ListProjectMembersQuery,
+    ListUserProjectsQuery,
     RemoveMemberCommand,
     UpdateMemberRoleCommand,
     UpdateProjectCommand,
@@ -23,10 +22,12 @@ from src.projects.schemas import (
     ProjectMemberRead,
     ProjectMemberUpdate,
 )
-from src.projects.service import ProjectService, get_project_service
 from src.projects.use_cases import (
     CreateProjectUseCase,
     DeleteProjectUseCase,
+    GetProjectDetailsUseCase,
+    ListProjectMembersUseCase,
+    ListUserProjectsUseCase,
     RemoveMemberUseCase,
     UpdateMemberRoleUseCase,
     UpdateProjectUseCase,
@@ -37,6 +38,18 @@ from src.realtimev1.dependencies import get_client_mutation_id, get_event_publis
 from src.realtimev1.publisher import DomainEventPublisher
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
+
+
+def get_list_user_projects_use_case() -> ListUserProjectsUseCase:
+    return ListUserProjectsUseCase(db_helper.async_session_maker)
+
+
+def get_project_details_use_case() -> GetProjectDetailsUseCase:
+    return GetProjectDetailsUseCase(db_helper.async_session_maker)
+
+
+def get_list_project_members_use_case() -> ListProjectMembersUseCase:
+    return ListProjectMembersUseCase(db_helper.async_session_maker)
 
 
 def get_create_project_use_case(
@@ -113,20 +126,27 @@ async def create_project(
 @router.get("/", response_model=list[ProjectRead])
 async def get_my_projects(
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    project_service: Annotated[ProjectService, Depends(get_project_service)],
+    use_case: Annotated[
+        ListUserProjectsUseCase, Depends(get_list_user_projects_use_case)
+    ],
 ):
-    return await project_service.get_user_projects(user_id=current_user.sub)
+    query = ListUserProjectsQuery(user_id=current_user.sub)
+    return await use_case.execute(query)
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
 async def get_project_details(
     project_id: int,
     current_user: Annotated[UserPayload, Depends(get_current_user)],
-    project_service: Annotated[ProjectService, Depends(get_project_service)],
+    use_case: Annotated[
+        GetProjectDetailsUseCase, Depends(get_project_details_use_case)
+    ],
 ):
-    return await project_service.get_project_details(
-        project_id=project_id, user_id=current_user.sub
+    query = GetProjectDetailsQuery(
+        project_id=project_id,
+        actor_user_id=current_user.sub,
     )
+    return await use_case.execute(query)
 
 
 @router.patch("/{project_id}", response_model=ProjectRead)
@@ -164,10 +184,16 @@ async def delete_project(
 @router.get("/{project_id}/members", response_model=list[ProjectMemberRead])
 async def get_project_members(
     project_id: int,
-    _: Annotated[None, Depends(check_project_member)],
-    project_service: Annotated[ProjectService, Depends(get_project_service)],
+    current_user: Annotated[UserPayload, Depends(get_current_user)],
+    use_case: Annotated[
+        ListProjectMembersUseCase, Depends(get_list_project_members_use_case)
+    ],
 ):
-    return await project_service.get_project_members(project_id)
+    query = ListProjectMembersQuery(
+        project_id=project_id,
+        actor_user_id=current_user.sub,
+    )
+    return await use_case.execute(query)
 
 
 @router.delete(

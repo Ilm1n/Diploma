@@ -30,6 +30,23 @@ class DeleteProjectCommand:
 
 
 @dataclass(frozen=True, kw_only=True)
+class ListUserProjectsQuery:
+    user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class GetProjectDetailsQuery:
+    project_id: int
+    actor_user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ListProjectMembersQuery:
+    project_id: int
+    actor_user_id: int
+
+
+@dataclass(frozen=True, kw_only=True)
 class RemoveMemberCommand:
     project_id: int
     user_id: int

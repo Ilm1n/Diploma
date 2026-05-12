@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.db.unit_of_work import UnitOfWork
 from src.errors import ErrorCode
 from src.logger import project_logger
@@ -10,6 +12,9 @@ from src.projects.constants import ProjectRole
 from src.projects.dto import (
     CreateProjectCommand,
     DeleteProjectCommand,
+    GetProjectDetailsQuery,
+    ListProjectMembersQuery,
+    ListUserProjectsQuery,
     RemoveMemberCommand,
     UpdateMemberRoleCommand,
     UpdateProjectCommand,
@@ -28,6 +33,109 @@ from src.projects.schemas import ProjectRead
 from src.tags.constants import DEFAULT_PROJECT_TAGS
 from src.tags.models import Tag
 from src.shared.errors import AppError, DatabaseError, NotFoundError
+
+
+class ListUserProjectsUseCase:
+    def __init__(self, session_factory: Callable[[], AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def execute(self, query: ListUserProjectsQuery) -> list[ProjectRead]:
+        try:
+            async with self._session_factory() as session:
+                repository = ProjectRepository(session)
+                rows = await repository.list_user_projects(query.user_id)
+                return [
+                    ProjectRead(
+                        id=project.id,
+                        name=project.name,
+                        description=project.description,
+                        color=project.color,
+                        owner_id=project.owner_id,
+                        created_at=project.created_at,
+                        updated_at=project.updated_at,
+                        current_user_role=role,
+                    )
+                    for project, role in rows
+                ]
+        except AppError:
+            raise
+        except Exception as exc:
+            project_logger.exception(
+                "Failed to list projects for user %s",
+                query.user_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class GetProjectDetailsUseCase:
+    def __init__(self, session_factory: Callable[[], AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def execute(self, query: GetProjectDetailsQuery) -> ProjectRead:
+        try:
+            async with self._session_factory() as session:
+                repository = ProjectRepository(session)
+                row = await repository.get_project_with_role(
+                    project_id=query.project_id,
+                    user_id=query.actor_user_id,
+                )
+                if row is None:
+                    raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+                project, role = row
+                return ProjectRead(
+                    id=project.id,
+                    name=project.name,
+                    description=project.description,
+                    color=project.color,
+                    owner_id=project.owner_id,
+                    created_at=project.created_at,
+                    updated_at=project.updated_at,
+                    current_user_role=role,
+                )
+        except AppError:
+            raise
+        except Exception as exc:
+            project_logger.exception(
+                "Failed to read project %s for user %s",
+                query.project_id,
+                query.actor_user_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
+
+
+class ListProjectMembersUseCase:
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        policy: ProjectMemberPolicy | None = None,
+    ) -> None:
+        self._session_factory = session_factory
+        self._policy = policy or ProjectMemberPolicy()
+
+    async def execute(self, query: ListProjectMembersQuery) -> list[ProjectMember]:
+        try:
+            async with self._session_factory() as session:
+                repository = ProjectRepository(session)
+                requester_member = await repository.get_member(
+                    project_id=query.project_id,
+                    user_id=query.actor_user_id,
+                )
+                self._policy.ensure_project_member_can_read(
+                    requester_member=requester_member
+                )
+                return await repository.list_project_members(query.project_id)
+        except AppError:
+            raise
+        except Exception as exc:
+            project_logger.exception(
+                "Failed to list members for project %s",
+                query.project_id,
+                exc_info=exc,
+            )
+            raise DatabaseError() from exc
 
 
 class CreateProjectUseCase:

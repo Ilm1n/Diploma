@@ -7,6 +7,26 @@ from src.shared.errors import BadRequestError, ForbiddenError, NotFoundError
 
 
 class ProjectMemberPolicy:
+    def ensure_role_allowed(
+        self,
+        *,
+        requester_member: ProjectMember | None,
+        allowed_roles: list[ProjectRole],
+    ) -> None:
+        if requester_member is None:
+            raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
+        if requester_member.role not in allowed_roles:
+            raise ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+
+    def ensure_project_member_can_read(
+        self,
+        *,
+        requester_member: ProjectMember | None,
+    ) -> None:
+        if requester_member is None:
+            raise NotFoundError(ErrorCode.PROJECT_NOT_FOUND)
+
     def ensure_project_owner(
         self,
         *,
