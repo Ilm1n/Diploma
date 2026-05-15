@@ -1,0 +1,66 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam monochrome true
+skinparam actorStyle stick
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam package {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor Black
+}
+
+title Диаграмма вариантов использования: канбан-доска и задачи
+
+actor "Участник проекта" as Member
+actor "Менеджер проекта" as Manager
+actor "Владелец проекта" as Owner
+
+Manager --|> Member
+Owner --|> Manager
+
+rectangle "Kantano: канбан-доска" {
+  package "Доска" {
+    usecase "Открыть доску" as UC_OpenBoard
+    usecase "Фильтровать задачи" as UC_FilterTasks
+    usecase "Получать realtime-обновления" as UC_ReceiveUpdates
+  }
+
+  package "Задачи" {
+    usecase "Создать задачу" as UC_CreateTask
+    usecase "Просмотреть задачу" as UC_ViewTask
+    usecase "Редактировать свою задачу" as UC_EditOwnTask
+    usecase "Переместить свою задачу" as UC_MoveOwnTask
+    usecase "Редактировать любую задачу" as UC_EditAnyTask
+    usecase "Удалить задачу" as UC_DeleteTask
+  }
+
+  package "Настройка доски" {
+    usecase "Управлять колонками" as UC_ManageColumns
+    usecase "Управлять тегами" as UC_ManageTags
+  }
+}
+
+Member --> UC_OpenBoard
+Member --> UC_FilterTasks
+Member --> UC_ReceiveUpdates
+Member --> UC_CreateTask
+Member --> UC_ViewTask
+Member --> UC_EditOwnTask
+Member --> UC_MoveOwnTask
+
+Manager --> UC_EditAnyTask
+Manager --> UC_DeleteTask
+Manager --> UC_ManageColumns
+Manager --> UC_ManageTags
+
+@enduml

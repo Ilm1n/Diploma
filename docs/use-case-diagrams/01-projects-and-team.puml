@@ -1,0 +1,75 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam monochrome true
+skinparam actorStyle stick
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam package {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor Black
+}
+
+title Диаграмма вариантов использования: проекты, команда и приглашения
+
+actor "Пользователь" as User
+actor "Участник проекта" as Member
+actor "Менеджер проекта" as Manager
+actor "Владелец проекта" as Owner
+
+Member --|> User
+Manager --|> Member
+Owner --|> Manager
+
+rectangle "Kantano: проекты и команда" {
+  package "Проекты" {
+    usecase "Просматривать список проектов" as UC_ListProjects
+    usecase "Создать проект" as UC_CreateProject
+    usecase "Просматривать проект" as UC_ViewProject
+    usecase "Изменить проект" as UC_UpdateProject
+    usecase "Удалить проект" as UC_DeleteProject
+  }
+
+  package "Команда" {
+    usecase "Просматривать участников" as UC_ViewMembers
+    usecase "Удалить участника" as UC_RemoveMember
+    usecase "Изменить роль участника" as UC_ChangeRole
+  }
+
+  package "Приглашения" {
+    usecase "Создать приглашение" as UC_CreateInvite
+    usecase "Настроить приглашение" as UC_ConfigInvite
+    usecase "Просматривать приглашения" as UC_ViewInvites
+    usecase "Отозвать приглашение" as UC_RevokeInvite
+    usecase "Принять приглашение" as UC_AcceptInvite
+  }
+}
+
+User --> UC_ListProjects
+User --> UC_CreateProject
+User --> UC_AcceptInvite
+
+Member --> UC_ViewProject
+Member --> UC_ViewMembers
+
+Manager --> UC_RemoveMember
+Manager --> UC_CreateInvite
+Manager --> UC_ViewInvites
+Manager --> UC_RevokeInvite
+
+Owner --> UC_UpdateProject
+Owner --> UC_DeleteProject
+Owner --> UC_ChangeRole
+
+UC_CreateInvite .> UC_ConfigInvite : <<include>>
+
+@enduml

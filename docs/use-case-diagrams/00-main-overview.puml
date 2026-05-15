@@ -1,0 +1,59 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 16
+skinparam monochrome true
+skinparam actorStyle stick
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam rectangle {
+  BackgroundColor White
+  BorderColor Black
+}
+
+title Общая диаграмма вариантов использования веб-приложения Kantano
+
+actor "Гость" as Guest
+actor "Пользователь" as User
+actor "Участник проекта" as Member
+actor "Менеджер проекта" as Manager
+actor "Владелец проекта" as Owner
+
+Member --|> User
+Manager --|> Member
+Owner --|> Manager
+
+rectangle "Kantano" {
+  usecase "Зарегистрироваться" as UC_Register
+  usecase "Войти в систему" as UC_Login
+  usecase "Управлять профилем" as UC_Profile
+  usecase "Просматривать проекты" as UC_ListProjects
+  usecase "Создать проект" as UC_CreateProject
+  usecase "Принять приглашение" as UC_AcceptInvite
+  usecase "Работать с канбан-доской" as UC_WorkWithBoard
+  usecase "Управлять командой" as UC_ManageTeam
+  usecase "Управлять приглашениями" as UC_ManageInvites
+  usecase "Управлять проектом" as UC_ManageProject
+}
+
+Guest --> UC_Register
+Guest --> UC_Login
+Guest --> UC_AcceptInvite
+
+User --> UC_Profile
+User --> UC_ListProjects
+User --> UC_CreateProject
+User --> UC_AcceptInvite
+
+Member --> UC_WorkWithBoard
+
+Manager --> UC_ManageTeam
+Manager --> UC_ManageInvites
+
+Owner --> UC_ManageProject
+
+@enduml

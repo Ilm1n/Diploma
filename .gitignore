@@ -30,3 +30,6 @@ logs/
 
 postgres_data_dev/
 postgres_data_prod/
+
+DIPLOM_TEXTS/
+tmp/
