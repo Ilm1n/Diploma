@@ -30,13 +30,13 @@ const openTask = () => {
 const priorityConfig = computed(() => {
   switch (props.task.priority) {
     case 'CRITICAL':
-      return { severity: 'danger', label: 'Critical', icon: 'pi pi-exclamation-triangle' };
+      return { severity: 'danger', label: 'Критический', icon: 'pi pi-exclamation-triangle' };
     case 'HIGH':
-      return { severity: 'warn', label: 'High', icon: 'pi pi-arrow-up' };
+      return { severity: 'warn', label: 'Высокий', icon: 'pi pi-arrow-up' };
     case 'LOW':
-      return { severity: 'success', label: 'Low', icon: 'pi pi-arrow-down' };
+      return { severity: 'success', label: 'Низкий', icon: 'pi pi-arrow-down' };
     case 'MEDIUM':
-      return { severity: 'info', label: 'Medium', icon: 'pi pi-minus' };
+      return { severity: 'info', label: 'Средний', icon: 'pi pi-minus' };
     default:
       return null;
   }
