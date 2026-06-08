@@ -119,12 +119,43 @@ class RealtimeRuntime:
                     user_id=user_id,
                     reason="project_access_revoked",
                 )
+                await self._publish_project_presence_changed(
+                    project_id=message.project_id,
+                    actor_user_id=message.envelope.actor_user_id,
+                )
 
         if event_type == RealtimeEventType.PROJECT_DELETED:
             await self.connections.close_project_connections(
                 project_id=message.project_id,
                 reason="project_deleted",
             )
+
+    async def _publish_project_presence_changed(
+        self,
+        *,
+        project_id: int,
+        actor_user_id: int,
+    ) -> None:
+        active_user_count = await self.connections.active_project_user_count(
+            project_id=project_id,
+        )
+        envelope = new_event_envelope(
+            event_type=RealtimeEventType.PROJECT_PRESENCE_CHANGED,
+            scope=RealtimeScope.PROJECT,
+            project_id=project_id,
+            actor_user_id=actor_user_id,
+            payload={
+                "projectId": project_id,
+                "activeUserCount": active_user_count,
+            },
+        )
+        await self.dispatch_local(
+            RealtimeDeliveryMessage(
+                envelope=envelope,
+                project_id=project_id,
+                audience=RealtimeAudience.ALL,
+            )
+        )
 
     async def _presence_sync_loop(self) -> None:
         while True:
