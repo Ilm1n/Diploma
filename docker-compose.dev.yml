@@ -38,6 +38,7 @@ services:
       - ./backend/light_task/src:/app/src
       - ./backend/light_task/alembic:/app/alembic
       - ./backend/light_task/certs:/app/certs
+      - ./backend/light_task/.local:/app/.local
     ports:
       - "${LIGHTTASK_CONFIG__RUN__PORT:-8000}:${LIGHTTASK_CONFIG__RUN__PORT:-8000}"
     env_file:

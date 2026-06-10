@@ -23,7 +23,7 @@ Kantano - lightweight Kanban task manager (дипломный проект) на
 - Kanban board: колонки, задачи, drag-and-drop
 - теги, исполнители, приоритеты, фильтрация
 - инвайты в проект (invite links + QR)
-- аватары пользователей в S3-compatible storage
+- аватары пользователей в локальном dev-storage или S3-compatible storage
 
 ## 2. Архитектура
 Production topology:
@@ -59,7 +59,7 @@ Development topology:
 ```bash
 cp .env.template .env
 ```
-Заполни обязательные значения (DB + S3).
+Заполни обязательные значения для DB.
 
 ### 4.3 Сгенерировать JWT ключи
 См. инструкцию: [backend/light_task/src/auth/README.md](./backend/light_task/src/auth/README.md).
@@ -92,6 +92,14 @@ Frontend: `http://localhost:5173`
 - `LIGHTTASK_CONFIG__DB__USER`
 - `LIGHTTASK_CONFIG__DB__PASSWORD`
 - `LIGHTTASK_CONFIG__DB__NAME`
+
+По умолчанию в development аватары сохраняются локально:
+- `LIGHTTASK_CONFIG__S3__BACKEND=local`
+- файлы лежат в `backend/light_task/.local/avatar-storage`
+- публичные URL отдаются backend'ом через `/local-storage/*`
+
+Если нужно проверить реальный S3-compatible storage локально:
+- `LIGHTTASK_CONFIG__S3__BACKEND=s3`
 - `LIGHTTASK_CONFIG__S3__ACCESS_KEY`
 - `LIGHTTASK_CONFIG__S3__SECRET_KEY`
 - `LIGHTTASK_CONFIG__S3__BUCKET_NAME`
@@ -247,5 +255,5 @@ docker compose -f docker-compose.test.yml down -v
 ## 11. Troubleshooting
 - `401` на localhost после логина: проверь `LIGHTTASK_CONFIG__AUTH_JWT__SECURE=False` в `.env`.
 - Backend не стартует и ругается на ключи: проверь `jwt-private.pem`/`jwt-public.pem` и путь `certs`.
-- Upload аватаров падает: проверь S3 credentials, bucket name и доступы.
+- Upload аватаров падает при `LIGHTTASK_CONFIG__S3__BACKEND=s3`: проверь S3 credentials, bucket name и доступы.
 - Swagger не открывается: проверь актуальность `SWAGGER_HASH` и перезапусти gateway.

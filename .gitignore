@@ -27,6 +27,7 @@ htmlcov/
 
 logs/
 *.log
+backend/light_task/.local/
 
 postgres_data_dev/
 postgres_data_prod/

@@ -1,6 +1,7 @@
 from pathlib import Path
+from typing import Literal
 
-from pydantic import BaseModel, PostgresDsn, computed_field
+from pydantic import BaseModel, PostgresDsn, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -78,11 +79,24 @@ class AuthJWT(BaseModel):
 
 
 class S3Config(BaseModel):
-    access_key: str
-    secret_key: str
-    bucket_name: str
+    backend: Literal["local", "s3"] = "local"
+    access_key: str = ""
+    secret_key: str = ""
+    bucket_name: str = ""
     endpoint_url: str = "https://s3.ru1.storage.beget.cloud"
     region_name: str = "ru1"
+    local_storage_dir: Path = BASE_DIR / ".local" / "avatar-storage"
+    local_public_url: str = "http://localhost:8000/local-storage"
+
+    @model_validator(mode="after")
+    def validate_s3_credentials(self) -> "S3Config":
+        if self.backend == "s3" and (
+            not self.access_key or not self.secret_key or not self.bucket_name
+        ):
+            raise ValueError(
+                "S3 credentials and bucket name are required when S3 backend is enabled"
+            )
+        return self
 
 
 class Files(BaseModel):

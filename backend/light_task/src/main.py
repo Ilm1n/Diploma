@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, ORJSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.config import settings
 from src.db.database import db_helper
@@ -57,6 +58,14 @@ main_app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if settings.s3.backend == "local":
+    settings.s3.local_storage_dir.mkdir(parents=True, exist_ok=True)
+    main_app.mount(
+        "/local-storage",
+        StaticFiles(directory=settings.s3.local_storage_dir),
+        name="local-storage",
+    )
 
 main_app.include_router(auth_router, prefix="/api")
 main_app.include_router(user_router, prefix="/api")

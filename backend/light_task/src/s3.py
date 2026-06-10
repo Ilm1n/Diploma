@@ -12,7 +12,7 @@ from src.errors import ErrorCode
 
 
 class S3Client:
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = settings.s3
         self.session = aioboto3.Session()
 
@@ -60,7 +60,7 @@ class S3Client:
                     detail=ErrorCode.FILE_UPLOAD_FAILED,
                 )
 
-    async def delete_file(self, object_name: str):
+    async def delete_file(self, object_name: str) -> None:
         async with self.get_client() as client:
             try:
                 await client.delete_object(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -19,6 +20,7 @@ from src.users.use_cases import (
     UpdateUserPasswordUseCase,
     UpdateUserUseCase,
 )
+from src.users.storage import LocalAvatarStorageGateway
 
 
 class FakeSession:
@@ -219,3 +221,28 @@ async def test_upload_avatar_use_case_deletes_new_object_on_commit_failure(
 
     assert exc_info.value.code == ErrorCode.DB_COMMIT_FAILED
     assert storage.deleted == ["avatars/user_1.png"]
+
+
+@pytest.mark.asyncio
+async def test_local_avatar_storage_upload_extracts_key_and_deletes(
+    tmp_path: Path,
+) -> None:
+    storage = LocalAvatarStorageGateway(
+        storage_dir=tmp_path,
+        public_base_url="http://localhost:8000/local-storage",
+    )
+
+    url = await storage.upload_file(
+        file_data=b"image",
+        object_name="avatars/user_1.png",
+        content_type="image/png",
+    )
+
+    object_path = tmp_path / "avatars" / "user_1.png"
+    assert url == "http://localhost:8000/local-storage/avatars/user_1.png"
+    assert object_path.read_bytes() == b"image"
+    assert storage.object_key_from_url(url) == "avatars/user_1.png"
+
+    await storage.delete_file("avatars/user_1.png")
+
+    assert not object_path.exists()
